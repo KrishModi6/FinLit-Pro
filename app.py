@@ -1075,7 +1075,7 @@ with st.sidebar:
     # Navigation
     page = st.radio(
         "Navigation",
-        ["🏠 Dashboard", "📚 Learn", "📈 Stock Analysis", "⚖️ Compare", "🧮 Calculator", "🎭 Risk Profile", "₿ Crypto", "💼 Portfolio", "🎯 Quiz", "ℹ️ About"],
+        ["🏠 Dashboard", "📚 Learn", "📈 Stock Analysis", "⚖️ Compare", "🧮 Calculator", "🎭 Risk Profile", "🪙 Crypto", "💼 Portfolio", "🎯 Quiz", "ℹ️ About"],
         label_visibility="collapsed"
     )
     
@@ -1895,10 +1895,10 @@ elif page == "🎭 Risk Profile":
 # PAGE: CRYPTO
 # ═══════════════════════════════════════════════════════════
 
-elif page == "₿ Crypto":
+elif page == "🪙 Crypto":
     st.markdown("""
     <div class="hero-container" style="padding: 2rem 0;">
-        <h1 class="hero-title" style="font-size: 3rem;">₿ Crypto Analysis</h1>
+        <h1 class="hero-title" style="font-size: 3rem;">🪙 Crypto Analysis</h1>
         <p class="hero-subtitle">Cryptocurrency market insights</p>
     </div>
     """, unsafe_allow_html=True)
