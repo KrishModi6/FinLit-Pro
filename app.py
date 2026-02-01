@@ -913,6 +913,85 @@ Measures momentum on a scale of 0-100:
 - **Beta**: Volatility vs market (β=1 means same as market)
 - **Sharpe Ratio**: Return per unit of risk (higher = better)
 - **Max Drawdown**: Largest peak-to-trough decline
+""",
+
+    "📜 Options Trading": """
+## Introduction to Options
+
+### What is an Option?
+An **option** is a contract that gives you the **right** (but not obligation) to buy or sell a stock at a specific price before a certain date.
+
+---
+
+### Two Types of Options
+
+| Type | What It Does | When to Use |
+|------|--------------|-------------|
+| **CALL** 📈 | Right to **BUY** at strike price | You think stock will go UP |
+| **PUT** 📉 | Right to **SELL** at strike price | You think stock will go DOWN |
+
+---
+
+### Key Terms
+
+| Term | Definition |
+|------|------------|
+| **Strike Price** | The price you can buy/sell the stock |
+| **Premium** | The cost to buy the option |
+| **Expiration** | Date the option expires |
+| **In The Money (ITM)** | Option has intrinsic value |
+| **Out of The Money (OTM)** | Option has no intrinsic value |
+| **At The Money (ATM)** | Strike price = current stock price |
+
+---
+
+### Simple Example
+
+**CALL Option Example:**
+- Stock ABC trades at $100
+- You buy a $105 CALL for $2 (premium)
+- If stock rises to $115 → You profit $8 ($115 - $105 - $2)
+- If stock stays below $105 → You lose $2 (premium only)
+
+**PUT Option Example:**
+- Stock ABC trades at $100
+- You buy a $95 PUT for $2 (premium)
+- If stock falls to $85 → You profit $8 ($95 - $85 - $2)
+- If stock stays above $95 → You lose $2 (premium only)
+
+---
+
+### The Greeks (Option Sensitivity)
+
+| Greek | What It Measures |
+|-------|------------------|
+| **Delta (Δ)** | Price change per $1 stock move |
+| **Gamma (Γ)** | Rate of delta change |
+| **Theta (Θ)** | Time decay (value lost per day) |
+| **Vega (ν)** | Sensitivity to volatility |
+
+---
+
+### ⚠️ Options Risks
+
+> **Warning:** Options are complex and risky. You can lose 100% of your investment.
+
+- **Time Decay**: Options lose value every day
+- **Leverage**: Small moves = big gains OR losses
+- **Complexity**: Requires deep understanding
+- **Not for beginners**: Master stocks first!
+
+---
+
+### Basic Strategies
+
+| Strategy | Risk Level | Description |
+|----------|------------|-------------|
+| **Covered Call** | Low | Own stock + sell call |
+| **Protective Put** | Low | Own stock + buy put (insurance) |
+| **Long Call/Put** | Medium | Simple directional bet |
+| **Spreads** | Medium | Limit risk with multiple options |
+| **Naked Options** | ⚠️ HIGH | Don't do this as a beginner! |
 """
 }
 
@@ -1125,11 +1204,6 @@ elif page == "📚 Learn":
     
     for i, (module_name, content) in enumerate(EDUCATION_MODULES.items()):
         with tabs[i]:
-            st.markdown(f"""
-            <div class="premium-card">
-                {content}
-            </div>
-            """, unsafe_allow_html=True)
             st.markdown(content)
 
 # ═══════════════════════════════════════════════════════════
