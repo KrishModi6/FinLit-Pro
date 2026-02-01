@@ -1,0 +1,10 @@
+openbb>=4.0.0
+plotly>=5.18.0
+pandas>=2.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+yfinance>=0.2.36
+uvicorn>=0.27.0
+rich>=13.7.0
+questionary>=2.0.0
+streamlit>=1.31.0
