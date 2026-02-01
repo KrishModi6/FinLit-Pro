@@ -1,122 +1,71 @@
-# 💰 CAS Financial Literacy App
+# 📈 FinLit Pro - Financial Literacy App
 
-## IB CAS Project - Financial Education & Market Analysis
+A stunning, professional financial literacy web application built for IB CAS.
 
-A comprehensive financial literacy application built for IB CAS that teaches students about stocks, investing, and market analysis using real-world data through OpenBB.
+![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.31+-red.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
----
+## 🌟 Features
 
-## 🎯 Project Overview
+- **📚 Learn** - Comprehensive financial education modules
+- **📈 Stock Analysis** - Real-time data with technical indicators
+- **⚖️ Compare** - Side-by-side stock comparison
+- **🧮 Calculator** - Compound interest & investment projections
+- **🎭 Risk Profile** - Discover your investor personality
+- **₿ Crypto** - Cryptocurrency analysis
+- **💼 Portfolio** - Track your investments
+- **🎯 Quiz** - Test your financial knowledge
 
-This app helps students learn:
-- **Stock Market Basics** - How stocks work, market terminology
-- **Investment Fundamentals** - Risk, diversification, compound interest
-- **Technical Analysis** - Reading charts, indicators, patterns
-- **Real Data Analysis** - Using OpenBB to analyze actual market data
-- **Portfolio Management** - Building and tracking investments
+## 🚀 Live Demo
 
----
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://your-app-name.streamlit.app)
 
-## 📁 Project Structure
+## 🛠️ Tech Stack
 
-```
-CAS FINANCE APP/
-├── main.py                    # Main application entry point
-├── modules/
-│   ├── education.py           # Financial literacy lessons
-│   ├── stock_analysis.py      # OpenBB stock analysis tools
-│   ├── portfolio_tracker.py   # Portfolio management
-│   └── quiz.py                # Knowledge assessment quizzes
-├── notebooks/
-│   └── financial_analysis.ipynb  # Interactive Jupyter notebook
-├── data/
-│   └── sample_portfolio.json  # Sample portfolio data
-└── requirements.txt           # Project dependencies
-```
+- **Python** - Core programming
+- **Streamlit** - Web framework
+- **Plotly** - Interactive charts
+- **OpenBB** - Market data (Free Bloomberg alternative)
+- **Pandas/NumPy** - Data processing
 
----
+## 📦 Installation
 
-## 🚀 Quick Start
-
-### 1. Install Dependencies
 ```bash
+# Clone the repository
+git clone https://github.com/YOUR_USERNAME/cas-finance-app.git
+cd cas-finance-app
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Run the app
+streamlit run app.py
 ```
 
-### 2. Run the App
-```bash
-python main.py
-```
+## 📱 Install as Mobile App (PWA)
 
-### 3. Or Use the Jupyter Notebook
-Open `notebooks/financial_analysis.ipynb` for interactive learning!
+1. Open the app in your mobile browser
+2. Tap "Share" → "Add to Home Screen"
+3. The app will work like a native app!
 
----
+## 🎓 IB CAS Project
 
-## 📚 Learning Modules
+This application was developed as an **IB CAS (Creativity, Activity, Service)** project to promote financial literacy among students.
 
-### Module 1: Stock Market Basics
-- What are stocks?
-- How the stock market works
-- Market participants and exchanges
-- Bull vs Bear markets
+### Learning Outcomes
+- **Creativity** - Designing & building a web application
+- **Activity** - Active engagement with financial markets
+- **Service** - Sharing financial education with peers
 
-### Module 2: Investment Fundamentals
-- Risk vs Return
-- Diversification
-- Compound interest
-- Investment vehicles (stocks, bonds, ETFs, mutual funds)
+## ⚠️ Disclaimer
 
-### Module 3: Technical Analysis
-- Reading candlestick charts
-- Moving averages (SMA, EMA)
-- RSI, MACD, Bollinger Bands
-- Support and resistance levels
+This application is for **educational purposes only**. Nothing in this app constitutes financial advice. Always do your own research and consult with qualified financial advisors before making any investment decisions.
 
-### Module 4: Fundamental Analysis
-- Reading financial statements
-- Key ratios (P/E, P/B, EPS)
-- Evaluating company health
-- Industry analysis
+## 📄 License
+
+MIT License - feel free to use this for your own projects!
 
 ---
 
-## 🔧 OpenBB Integration
-
-This app uses [OpenBB](https://openbb.co) - the free, open-source alternative to Bloomberg Terminal - to fetch real market data for:
-- Historical price data
-- Technical indicators
-- Stock screening
-- Cryptocurrency analysis
-
----
-
-## 📊 Features
-
-✅ Interactive educational content  
-✅ Real-time stock data analysis  
-✅ Technical indicator calculations  
-✅ Knowledge quizzes  
-✅ Portfolio tracking  
-✅ Visual charts and graphs  
-✅ Bitcoin/Crypto analysis  
-
----
-
-## 🎓 CAS Learning Outcomes
-
-- **Creativity**: Building a functional app from scratch
-- **Activity**: Active engagement with financial markets
-- **Service**: Sharing financial knowledge with peers
-
----
-
-## 📖 Resources
-
-- [OpenBB Documentation](https://docs.openbb.co)
-- [Investopedia](https://www.investopedia.com)
-- [Yahoo Finance](https://finance.yahoo.com)
-
----
-
-*Created for IB CAS Project - Financial Literacy Education*
+Made with ❤️ for IB CAS
