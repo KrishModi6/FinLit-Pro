@@ -581,28 +581,30 @@ if 'risk_question' not in st.session_state:
 
 @st.cache_data(ttl=300)
 def fetch_stock_data(symbol: str, days: int = 365):
-    """Fetch stock data using OpenBB"""
+    """Fetch stock data using yfinance"""
     try:
-        from openbb import obb
-        data = obb.equity.price.historical(
-            symbol=symbol,
-            provider="yfinance",
-            start_date=(datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-        ).to_df()
+        import yfinance as yf
+        ticker = yf.Ticker(symbol)
+        data = ticker.history(period=f"{days}d")
+        if data.empty:
+            return None
+        # Rename columns to lowercase for consistency
+        data.columns = data.columns.str.lower()
         return data
     except:
         return None
 
 @st.cache_data(ttl=300)
 def fetch_crypto_data(symbol: str, days: int = 365):
-    """Fetch crypto data using OpenBB"""
+    """Fetch crypto data using yfinance"""
     try:
-        from openbb import obb
-        data = obb.crypto.price.historical(
-            symbol=f"{symbol}USD",
-            provider="yfinance",
-            start_date=(datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-        ).to_df()
+        import yfinance as yf
+        ticker = yf.Ticker(f"{symbol}-USD")
+        data = ticker.history(period=f"{days}d")
+        if data.empty:
+            return None
+        # Rename columns to lowercase for consistency
+        data.columns = data.columns.str.lower()
         return data
     except:
         return None
