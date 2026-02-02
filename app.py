@@ -1105,7 +1105,7 @@ with st.sidebar:
     st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
     st.markdown("""
     <div style="text-align: center; padding: 1rem 0;">
-        <p style="color: #4b5563; font-size: 0.75rem; margin: 0;">IB CAS Project 2024</p>
+        <p style="color: #4b5563; font-size: 0.75rem; margin: 0;">IB CAS Project 2026 By Krish Modi</p>
         <p style="color: #6366f1; font-size: 0.7rem; margin: 0.5rem 0 0 0;">Powered by OpenBB</p>
     </div>
     """, unsafe_allow_html=True)
