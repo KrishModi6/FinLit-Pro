@@ -46,8 +46,28 @@ st.markdown("""
     /* Hide Streamlit Branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
     .stDeployButton {display: none;}
+    
+    /* Hide header content but keep sidebar toggle button visible */
+    [data-testid="stHeader"] {
+        background: transparent !important;
+    }
+    [data-testid="stHeaderActionElements"] {
+        display: none;
+    }
+    
+    /* Style the sidebar collapse button */
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="collapsedControl"] {
+        color: #a5b4fc !important;
+        background: rgba(99, 102, 241, 0.1) !important;
+        border: 1px solid rgba(99, 102, 241, 0.3) !important;
+        border-radius: 8px !important;
+    }
+    [data-testid="stSidebarCollapseButton"]:hover,
+    [data-testid="collapsedControl"]:hover {
+        background: rgba(99, 102, 241, 0.2) !important;
+    }
     
     /* ═══════════════════════════════════════════════════════════ */
     /* HERO SECTION */
