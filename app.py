@@ -1097,7 +1097,7 @@ with st.sidebar:
     # Navigation
     page = st.radio(
         "Navigation",
-        ["🏠 Dashboard", "📚 Learn", "📈 Stock Analysis", "⚖️ Compare", "🧮 Calculator", "🎭 Risk Profile", "🪙 Crypto", "💼 Portfolio", "🎯 Quiz", "ℹ️ About"],
+        ["🏠 Dashboard", "📚 Learn", "📈 Stock Analysis", "🤖 AI Predictor", "⚖️ Compare", "🧮 Calculator", "🎭 Risk Profile", "🪙 Crypto", "💼 Portfolio", "🎯 Quiz", "ℹ️ About"],
         label_visibility="collapsed"
     )
     
@@ -1361,6 +1361,561 @@ elif page == "📈 Stock Analysis":
                     st.markdown('<span class="signal-neutral">○ Within BB Range</span>', unsafe_allow_html=True)
         else:
             st.error(f"❌ Could not fetch data for '{symbol}'. Please check the symbol and try again.")
+
+# ═══════════════════════════════════════════════════════════
+# PAGE: AI PREDICTOR
+# ═══════════════════════════════════════════════════════════
+
+elif page == "🤖 AI Predictor":
+    st.markdown("""
+    <div class="hero-container" style="padding: 2rem 0;">
+        <h1 class="hero-title" style="font-size: 3rem;">🤖 AI Market Predictor</h1>
+        <p class="hero-subtitle">Monte Carlo simulation, trend regression & multi-signal intelligence</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # --- Controls ---
+    col_input1, col_input2, col_input3 = st.columns([2, 1, 1])
+    with col_input1:
+        ai_symbol = st.text_input("Enter ticker symbol", value="AAPL", key="ai_ticker").upper().strip()
+    with col_input2:
+        forecast_days = st.selectbox("Forecast horizon", [7, 14, 30, 60, 90], index=2, key="ai_horizon")
+    with col_input3:
+        num_simulations = st.selectbox("Simulations", [500, 1000, 5000, 10000], index=1, key="ai_sims")
+
+    if st.button("🚀 Run AI Prediction", use_container_width=True, type="primary"):
+        with st.spinner("🧠 AI engine analyzing data..."):
+            # Fetch extended history for better predictions
+            raw = fetch_stock_data(ai_symbol, 730)
+
+            if raw is None or len(raw) < 60:
+                st.error("❌ Not enough data for this ticker. Try a major stock like AAPL, MSFT, or GOOGL.")
+            else:
+                data = calculate_indicators(raw)
+                closes = data['close'].dropna().values
+                current_price = closes[-1]
+
+                # ══════════════════════════════════════════════
+                # 1. MONTE CARLO SIMULATION
+                # ══════════════════════════════════════════════
+                log_returns = np.diff(np.log(closes))
+                mu = log_returns.mean()
+                sigma = log_returns.std()
+
+                np.random.seed(42)
+                simulation_results = np.zeros((num_simulations, forecast_days))
+                for sim in range(num_simulations):
+                    prices = [current_price]
+                    for d in range(forecast_days):
+                        shock = np.random.normal(mu, sigma)
+                        prices.append(prices[-1] * np.exp(shock))
+                    simulation_results[sim] = prices[1:]
+
+                mc_median = np.median(simulation_results[:, -1])
+                mc_p10 = np.percentile(simulation_results[:, -1], 10)
+                mc_p25 = np.percentile(simulation_results[:, -1], 25)
+                mc_p75 = np.percentile(simulation_results[:, -1], 75)
+                mc_p90 = np.percentile(simulation_results[:, -1], 90)
+                mc_mean = np.mean(simulation_results[:, -1])
+                prob_up = np.mean(simulation_results[:, -1] > current_price) * 100
+
+                # Percentile bands over time
+                median_path = np.median(simulation_results, axis=0)
+                p10_path = np.percentile(simulation_results, 10, axis=0)
+                p25_path = np.percentile(simulation_results, 25, axis=0)
+                p75_path = np.percentile(simulation_results, 75, axis=0)
+                p90_path = np.percentile(simulation_results, 90, axis=0)
+
+                # ══════════════════════════════════════════════
+                # 2. LINEAR REGRESSION TREND
+                # ══════════════════════════════════════════════
+                from scipy import stats as scipy_stats
+                lookback = min(120, len(closes))
+                recent = closes[-lookback:]
+                x_hist = np.arange(lookback)
+                slope, intercept, r_value, p_value, std_err = scipy_stats.linregress(x_hist, recent)
+
+                x_future = np.arange(lookback, lookback + forecast_days)
+                trend_forecast = slope * x_future + intercept
+                trend_target = trend_forecast[-1]
+                r_squared = r_value ** 2
+
+                # ══════════════════════════════════════════════
+                # 3. EXPONENTIAL MOVING AVERAGE FORECAST
+                # ══════════════════════════════════════════════
+                ema_12 = pd.Series(closes).ewm(span=12).mean().iloc[-1]
+                ema_26 = pd.Series(closes).ewm(span=26).mean().iloc[-1]
+                ema_50 = pd.Series(closes).ewm(span=50).mean().iloc[-1]
+
+                # Project EMA trend
+                ema_momentum = (ema_12 - ema_26) / ema_26
+                ema_target = current_price * (1 + ema_momentum * forecast_days / 12)
+
+                # ══════════════════════════════════════════════
+                # 4. MULTI-SIGNAL SCORING ENGINE
+                # ══════════════════════════════════════════════
+                signals = {}
+                score = 0
+                max_score = 0
+
+                # Signal 1: RSI
+                rsi_val = data['RSI'].dropna().iloc[-1]
+                if rsi_val < 30:
+                    signals['RSI'] = ('🟢 Oversold — Strong Buy', 2)
+                    score += 2
+                elif rsi_val < 40:
+                    signals['RSI'] = ('🟢 Approaching Oversold — Buy', 1)
+                    score += 1
+                elif rsi_val > 70:
+                    signals['RSI'] = ('🔴 Overbought — Strong Sell', -2)
+                    score -= 2
+                elif rsi_val > 60:
+                    signals['RSI'] = ('🟡 Approaching Overbought — Caution', -1)
+                    score -= 1
+                else:
+                    signals['RSI'] = ('⚪ Neutral', 0)
+                max_score += 2
+
+                # Signal 2: MACD
+                macd_val = data['MACD'].dropna().iloc[-1]
+                macd_sig = data['MACD_signal'].dropna().iloc[-1]
+                macd_hist = data['MACD_hist'].dropna().iloc[-1]
+                macd_hist_prev = data['MACD_hist'].dropna().iloc[-2]
+                if macd_val > macd_sig and macd_hist > macd_hist_prev:
+                    signals['MACD'] = ('🟢 Bullish Crossover + Accelerating', 2)
+                    score += 2
+                elif macd_val > macd_sig:
+                    signals['MACD'] = ('🟢 Bullish', 1)
+                    score += 1
+                elif macd_val < macd_sig and macd_hist < macd_hist_prev:
+                    signals['MACD'] = ('🔴 Bearish Crossover + Accelerating', -2)
+                    score -= 2
+                elif macd_val < macd_sig:
+                    signals['MACD'] = ('🔴 Bearish', -1)
+                    score -= 1
+                else:
+                    signals['MACD'] = ('⚪ Neutral', 0)
+                max_score += 2
+
+                # Signal 3: SMA Trend (price vs SMA 20/50)
+                sma20 = data['SMA_20'].dropna().iloc[-1]
+                sma50 = data['SMA_50'].dropna().iloc[-1]
+                if current_price > sma20 > sma50:
+                    signals['Moving Averages'] = ('🟢 Strong Uptrend — Price > SMA20 > SMA50', 2)
+                    score += 2
+                elif current_price > sma20:
+                    signals['Moving Averages'] = ('🟢 Above SMA20 — Short-term Bullish', 1)
+                    score += 1
+                elif current_price < sma20 < sma50:
+                    signals['Moving Averages'] = ('🔴 Strong Downtrend — Price < SMA20 < SMA50', -2)
+                    score -= 2
+                elif current_price < sma20:
+                    signals['Moving Averages'] = ('🔴 Below SMA20 — Short-term Bearish', -1)
+                    score -= 1
+                else:
+                    signals['Moving Averages'] = ('⚪ Mixed', 0)
+                max_score += 2
+
+                # Signal 4: Bollinger Band Position
+                bb_upper = data['BB_upper'].dropna().iloc[-1]
+                bb_lower = data['BB_lower'].dropna().iloc[-1]
+                bb_mid = data['BB_middle'].dropna().iloc[-1]
+                bb_pct = (current_price - bb_lower) / (bb_upper - bb_lower) if (bb_upper - bb_lower) != 0 else 0.5
+                if bb_pct > 0.95:
+                    signals['Bollinger Bands'] = ('🔴 At Upper Band — Overbought', -2)
+                    score -= 2
+                elif bb_pct > 0.8:
+                    signals['Bollinger Bands'] = ('🟡 Near Upper Band — Caution', -1)
+                    score -= 1
+                elif bb_pct < 0.05:
+                    signals['Bollinger Bands'] = ('🟢 At Lower Band — Oversold', 2)
+                    score += 2
+                elif bb_pct < 0.2:
+                    signals['Bollinger Bands'] = ('🟢 Near Lower Band — Opportunity', 1)
+                    score += 1
+                else:
+                    signals['Bollinger Bands'] = ('⚪ Within Bands — Neutral', 0)
+                max_score += 2
+
+                # Signal 5: Volume Trend
+                vol_avg = data['volume'].rolling(20).mean().dropna().iloc[-1]
+                vol_now = data['volume'].iloc[-1]
+                vol_ratio = vol_now / vol_avg if vol_avg > 0 else 1
+                price_up = closes[-1] > closes[-2]
+                if vol_ratio > 1.5 and price_up:
+                    signals['Volume'] = ('🟢 High Volume Rally — Confirmed', 2)
+                    score += 2
+                elif vol_ratio > 1.5 and not price_up:
+                    signals['Volume'] = ('🔴 High Volume Selloff — Distribution', -2)
+                    score -= 2
+                elif vol_ratio > 1.2 and price_up:
+                    signals['Volume'] = ('🟢 Above-Average Volume + Up', 1)
+                    score += 1
+                elif vol_ratio < 0.6:
+                    signals['Volume'] = ('🟡 Low Volume — Weak Conviction', 0)
+                else:
+                    signals['Volume'] = ('⚪ Normal Volume', 0)
+                max_score += 2
+
+                # Signal 6: Momentum (Rate of Change)
+                roc_10 = ((closes[-1] - closes[-10]) / closes[-10]) * 100 if len(closes) >= 10 else 0
+                roc_30 = ((closes[-1] - closes[-30]) / closes[-30]) * 100 if len(closes) >= 30 else 0
+                if roc_10 > 5 and roc_30 > 10:
+                    signals['Momentum'] = (f'🟢 Strong Momentum — 10d: +{roc_10:.1f}%, 30d: +{roc_30:.1f}%', 2)
+                    score += 2
+                elif roc_10 > 2:
+                    signals['Momentum'] = (f'🟢 Positive Momentum — 10d: +{roc_10:.1f}%', 1)
+                    score += 1
+                elif roc_10 < -5 and roc_30 < -10:
+                    signals['Momentum'] = (f'🔴 Strong Negative — 10d: {roc_10:.1f}%, 30d: {roc_30:.1f}%', -2)
+                    score -= 2
+                elif roc_10 < -2:
+                    signals['Momentum'] = (f'🔴 Negative Momentum — 10d: {roc_10:.1f}%', -1)
+                    score -= 1
+                else:
+                    signals['Momentum'] = (f'⚪ Flat — 10d: {roc_10:.1f}%', 0)
+                max_score += 2
+
+                # ══════════════════════════════════════════════
+                # 5. COMPOSITE PREDICTION
+                # ══════════════════════════════════════════════
+                # Weighted average of all models
+                composite_target = (mc_median * 0.40 + trend_target * 0.30 + ema_target * 0.30)
+                composite_change = ((composite_target - current_price) / current_price) * 100
+
+                # AI Confidence (based on model agreement)
+                model_predictions = [mc_median, trend_target, ema_target]
+                model_std = np.std(model_predictions) / current_price * 100
+                if model_std < 2:
+                    confidence = "🟢 HIGH"
+                    confidence_pct = min(95, 90 - model_std)
+                elif model_std < 5:
+                    confidence = "🟡 MEDIUM"
+                    confidence_pct = min(80, 75 - model_std)
+                else:
+                    confidence = "🔴 LOW"
+                    confidence_pct = max(30, 60 - model_std)
+
+                # Overall signal
+                if score >= 4:
+                    overall_signal = "STRONG BUY"
+                    signal_color = "#10b981"
+                    signal_icon = "🚀"
+                elif score >= 2:
+                    overall_signal = "BUY"
+                    signal_color = "#34d399"
+                    signal_icon = "📈"
+                elif score <= -4:
+                    overall_signal = "STRONG SELL"
+                    signal_color = "#ef4444"
+                    signal_icon = "🔻"
+                elif score <= -2:
+                    overall_signal = "SELL"
+                    signal_color = "#f87171"
+                    signal_icon = "📉"
+                else:
+                    overall_signal = "HOLD"
+                    signal_color = "#f59e0b"
+                    signal_icon = "⏸️"
+
+                # ══════════════════════════════════════════════
+                # DISPLAY RESULTS
+                # ══════════════════════════════════════════════
+
+                # --- Top: Overall Signal ---
+                st.markdown(f"""
+                <div class="premium-card" style="text-align: center; border-color: {signal_color}40;">
+                    <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">{signal_icon}</div>
+                    <div style="font-size: 2.5rem; font-weight: 900; color: {signal_color}; letter-spacing: 3px;">{overall_signal}</div>
+                    <div style="color: #9ca3af; font-size: 1.1rem; margin-top: 0.5rem;">
+                        {ai_symbol} • {forecast_days}-Day Forecast • Signal Score: {score}/{max_score}
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <span style="background: {signal_color}20; color: {signal_color}; padding: 0.5rem 1.5rem; border-radius: 50px; font-weight: 700; font-size: 1.3rem;">
+                            Target: ${composite_target:,.2f} ({'+' if composite_change >= 0 else ''}{composite_change:.2f}%)
+                        </span>
+                    </div>
+                    <div style="color: #6b7280; font-size: 0.85rem; margin-top: 1rem;">
+                        Confidence: {confidence} ({confidence_pct:.0f}%) • Probability of going up: {prob_up:.1f}%
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                # --- Price Targets Row ---
+                st.markdown('<div class="section-header">🎯 Price Targets by Model</div>', unsafe_allow_html=True)
+
+                tc1, tc2, tc3, tc4 = st.columns(4)
+                with tc1:
+                    mc_change = ((mc_median - current_price) / current_price) * 100
+                    mc_color = "#10b981" if mc_change >= 0 else "#ef4444"
+                    st.markdown(f"""
+                    <div class="metric-card">
+                        <div class="metric-label">🎲 Monte Carlo</div>
+                        <div class="metric-value">${mc_median:,.2f}</div>
+                        <div style="color: {mc_color}; font-weight: 700;">{'+' if mc_change >= 0 else ''}{mc_change:.2f}%</div>
+                        <div style="color: #6b7280; font-size: 0.75rem;">{num_simulations:,} simulations</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with tc2:
+                    tr_change = ((trend_target - current_price) / current_price) * 100
+                    tr_color = "#10b981" if tr_change >= 0 else "#ef4444"
+                    st.markdown(f"""
+                    <div class="metric-card">
+                        <div class="metric-label">📐 Regression Trend</div>
+                        <div class="metric-value">${trend_target:,.2f}</div>
+                        <div style="color: {tr_color}; font-weight: 700;">{'+' if tr_change >= 0 else ''}{tr_change:.2f}%</div>
+                        <div style="color: #6b7280; font-size: 0.75rem;">R² = {r_squared:.3f}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with tc3:
+                    ema_change = ((ema_target - current_price) / current_price) * 100
+                    ema_color = "#10b981" if ema_change >= 0 else "#ef4444"
+                    st.markdown(f"""
+                    <div class="metric-card">
+                        <div class="metric-label">〰️ EMA Momentum</div>
+                        <div class="metric-value">${ema_target:,.2f}</div>
+                        <div style="color: {ema_color}; font-weight: 700;">{'+' if ema_change >= 0 else ''}{ema_change:.2f}%</div>
+                        <div style="color: #6b7280; font-size: 0.75rem;">EMA 12/26 projection</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with tc4:
+                    st.markdown(f"""
+                    <div class="metric-card">
+                        <div class="metric-label">📊 Current Price</div>
+                        <div class="metric-value">${current_price:,.2f}</div>
+                        <div style="color: #6366f1; font-weight: 700;">{ai_symbol}</div>
+                        <div style="color: #6b7280; font-size: 0.75rem;">Live</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                # --- Monte Carlo Fan Chart ---
+                st.markdown('<div class="section-header">🎲 Monte Carlo Probability Forecast</div>', unsafe_allow_html=True)
+
+                future_dates = pd.bdate_range(start=data.index[-1] + timedelta(days=1), periods=forecast_days)
+
+                # Build the chart
+                fig_mc = go.Figure()
+
+                # Show a sample of simulation paths (transparent)
+                sample_count = min(100, num_simulations)
+                for i in range(sample_count):
+                    fig_mc.add_trace(go.Scatter(
+                        x=future_dates, y=simulation_results[i],
+                        mode='lines',
+                        line=dict(color='rgba(99, 102, 241, 0.04)', width=0.8),
+                        showlegend=False, hoverinfo='skip'
+                    ))
+
+                # 10th-90th percentile band
+                fig_mc.add_trace(go.Scatter(
+                    x=future_dates, y=p90_path,
+                    mode='lines', line=dict(color='rgba(239, 68, 68, 0.0)', width=0),
+                    showlegend=False, hoverinfo='skip'
+                ))
+                fig_mc.add_trace(go.Scatter(
+                    x=future_dates, y=p10_path,
+                    mode='lines', line=dict(color='rgba(239, 68, 68, 0.0)', width=0),
+                    fill='tonexty', fillcolor='rgba(99, 102, 241, 0.08)',
+                    name='10th-90th Percentile', hoverinfo='skip'
+                ))
+
+                # 25th-75th percentile band
+                fig_mc.add_trace(go.Scatter(
+                    x=future_dates, y=p75_path,
+                    mode='lines', line=dict(color='rgba(99, 102, 241, 0.0)', width=0),
+                    showlegend=False, hoverinfo='skip'
+                ))
+                fig_mc.add_trace(go.Scatter(
+                    x=future_dates, y=p25_path,
+                    mode='lines', line=dict(color='rgba(99, 102, 241, 0.0)', width=0),
+                    fill='tonexty', fillcolor='rgba(99, 102, 241, 0.18)',
+                    name='25th-75th Percentile', hoverinfo='skip'
+                ))
+
+                # Median path
+                fig_mc.add_trace(go.Scatter(
+                    x=future_dates, y=median_path,
+                    mode='lines', line=dict(color='#6366f1', width=3),
+                    name='Median Forecast'
+                ))
+
+                # Regression trend line
+                fig_mc.add_trace(go.Scatter(
+                    x=future_dates, y=trend_forecast,
+                    mode='lines', line=dict(color='#f59e0b', width=2, dash='dash'),
+                    name='Regression Trend'
+                ))
+
+                # Historical tail (last 60 days)
+                hist_tail = data['close'].iloc[-60:]
+                fig_mc.add_trace(go.Scatter(
+                    x=hist_tail.index, y=hist_tail.values,
+                    mode='lines', line=dict(color='#9ca3af', width=2),
+                    name='Historical Price'
+                ))
+
+                # Current price marker
+                fig_mc.add_trace(go.Scatter(
+                    x=[data.index[-1]], y=[current_price],
+                    mode='markers', marker=dict(color='#fff', size=10, symbol='diamond',
+                                                 line=dict(color='#6366f1', width=2)),
+                    name='Current Price'
+                ))
+
+                fig_mc.update_layout(
+                    template='plotly_dark',
+                    height=550,
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5,
+                        bgcolor="rgba(0,0,0,0)", font=dict(size=11, color='#9ca3af')
+                    ),
+                    margin=dict(l=0, r=10, t=40, b=0),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(family='Inter', color='#9ca3af'),
+                    yaxis_title="Price ($)",
+                    xaxis_title=""
+                )
+                fig_mc.update_xaxes(gridcolor='rgba(55, 65, 81, 0.3)', showgrid=True, zeroline=False)
+                fig_mc.update_yaxes(gridcolor='rgba(55, 65, 81, 0.3)', showgrid=True, zeroline=False)
+
+                st.plotly_chart(fig_mc, use_container_width=True)
+
+                # --- Probability Distribution ---
+                st.markdown('<div class="section-header">📊 Price Distribution at Forecast End</div>', unsafe_allow_html=True)
+
+                final_prices = simulation_results[:, -1]
+
+                fig_dist = go.Figure()
+                fig_dist.add_trace(go.Histogram(
+                    x=final_prices,
+                    nbinsx=80,
+                    marker=dict(
+                        color='rgba(99, 102, 241, 0.6)',
+                        line=dict(color='rgba(99, 102, 241, 0.8)', width=1)
+                    ),
+                    name='Simulated Outcomes'
+                ))
+
+                # Add vertical lines for key levels
+                fig_dist.add_vline(x=current_price, line_dash="solid", line_color="#ffffff",
+                                   annotation_text=f"Current ${current_price:,.0f}", annotation_position="top")
+                fig_dist.add_vline(x=mc_median, line_dash="dash", line_color="#6366f1",
+                                   annotation_text=f"Median ${mc_median:,.0f}", annotation_position="top left")
+                fig_dist.add_vline(x=mc_p10, line_dash="dot", line_color="#ef4444",
+                                   annotation_text=f"10th pctl ${mc_p10:,.0f}", annotation_position="bottom left")
+                fig_dist.add_vline(x=mc_p90, line_dash="dot", line_color="#10b981",
+                                   annotation_text=f"90th pctl ${mc_p90:,.0f}", annotation_position="bottom right")
+
+                fig_dist.update_layout(
+                    template='plotly_dark',
+                    height=350,
+                    showlegend=False,
+                    margin=dict(l=0, r=10, t=40, b=0),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(family='Inter', color='#9ca3af'),
+                    xaxis_title="Price ($)",
+                    yaxis_title="Frequency"
+                )
+                fig_dist.update_xaxes(gridcolor='rgba(55, 65, 81, 0.3)', showgrid=True, zeroline=False)
+                fig_dist.update_yaxes(gridcolor='rgba(55, 65, 81, 0.3)', showgrid=True, zeroline=False)
+
+                st.plotly_chart(fig_dist, use_container_width=True)
+
+                # --- Probability stats ---
+                prob_cols = st.columns(5)
+                prob_data = [
+                    ("📉 Bear Case (10th)", f"${mc_p10:,.2f}", f"{((mc_p10 - current_price)/current_price)*100:+.1f}%", "#ef4444"),
+                    ("📊 Low Est (25th)", f"${mc_p25:,.2f}", f"{((mc_p25 - current_price)/current_price)*100:+.1f}%", "#f87171"),
+                    ("🎯 Median (50th)", f"${mc_median:,.2f}", f"{((mc_median - current_price)/current_price)*100:+.1f}%", "#6366f1"),
+                    ("📈 High Est (75th)", f"${mc_p75:,.2f}", f"{((mc_p75 - current_price)/current_price)*100:+.1f}%", "#34d399"),
+                    ("🚀 Bull Case (90th)", f"${mc_p90:,.2f}", f"{((mc_p90 - current_price)/current_price)*100:+.1f}%", "#10b981"),
+                ]
+                for i, (label, price, pct, color) in enumerate(prob_data):
+                    with prob_cols[i]:
+                        st.markdown(f"""
+                        <div class="metric-card">
+                            <div class="metric-label">{label}</div>
+                            <div class="metric-value" style="font-size: 1.3rem;">{price}</div>
+                            <div style="color: {color}; font-weight: 700;">{pct}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                # --- Signal Breakdown ---
+                st.markdown('<div class="section-header">🧠 AI Signal Breakdown</div>', unsafe_allow_html=True)
+
+                signal_cols = st.columns(3)
+                signal_items = list(signals.items())
+                for i, (sig_name, (sig_desc, sig_score)) in enumerate(signal_items):
+                    with signal_cols[i % 3]:
+                        if sig_score >= 2:
+                            s_border = "#10b981"
+                        elif sig_score >= 1:
+                            s_border = "#34d399"
+                        elif sig_score <= -2:
+                            s_border = "#ef4444"
+                        elif sig_score <= -1:
+                            s_border = "#f87171"
+                        else:
+                            s_border = "#4b5563"
+
+                        score_display = f"+{sig_score}" if sig_score > 0 else str(sig_score)
+                        st.markdown(f"""
+                        <div class="premium-card" style="border-color: {s_border}40; padding: 1.2rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #fff; font-weight: 700; font-size: 1rem;">{sig_name}</span>
+                                <span style="background: {s_border}30; color: {s_border}; padding: 0.2rem 0.6rem; border-radius: 8px; font-weight: 800; font-size: 0.9rem;">{score_display}</span>
+                            </div>
+                            <div style="color: #9ca3af; font-size: 0.9rem; margin-top: 0.5rem;">{sig_desc}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                # --- Key Stats Table ---
+                st.markdown('<div class="section-header">📋 Prediction Summary</div>', unsafe_allow_html=True)
+
+                summary_data = {
+                    "Metric": [
+                        "Current Price", "Composite Target", "Expected Change",
+                        "Monte Carlo Median", "Regression Target", "EMA Target",
+                        "Prob. of Increase", "Model Spread", "Regression R²",
+                        "RSI", "MACD Histogram", "Volatility (Annual)"
+                    ],
+                    "Value": [
+                        f"${current_price:,.2f}",
+                        f"${composite_target:,.2f}",
+                        f"{composite_change:+.2f}%",
+                        f"${mc_median:,.2f}",
+                        f"${trend_target:,.2f}",
+                        f"${ema_target:,.2f}",
+                        f"{prob_up:.1f}%",
+                        f"${max(model_predictions) - min(model_predictions):,.2f}",
+                        f"{r_squared:.4f}",
+                        f"{rsi_val:.1f}",
+                        f"{macd_hist:.4f}",
+                        f"{sigma * np.sqrt(252) * 100:.1f}%"
+                    ]
+                }
+
+                st.dataframe(
+                    pd.DataFrame(summary_data).set_index("Metric"),
+                    use_container_width=True
+                )
+
+                # --- Disclaimer ---
+                st.markdown("""
+                <div class="premium-card" style="border-color: rgba(239, 68, 68, 0.3); margin-top: 1rem;">
+                    <h3 style="color: #ef4444; margin-bottom: 0.5rem;">⚠️ Important Disclaimer</h3>
+                    <p style="color: #9ca3af; font-size: 0.9rem; line-height: 1.7;">
+                        This AI Predictor uses <strong style="color: #fff;">Monte Carlo simulations</strong>,
+                        <strong style="color: #fff;">linear regression</strong>, and <strong style="color: #fff;">technical indicators</strong>
+                        to model possible future outcomes. These are <strong style="color: #ef4444;">NOT guaranteed predictions</strong>.
+                        Markets are influenced by news, earnings, macroeconomics, and unpredictable events that no model can foresee.
+                        This tool is for <strong style="color: #fff;">educational purposes only</strong>. Never invest based solely on algorithmic predictions.
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════
 # PAGE: STOCK COMPARISON
