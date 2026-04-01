@@ -13,6 +13,12 @@ from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import warnings
 warnings.filterwarnings('ignore')
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+import os
 
 # ═══════════════════════════════════════════════════════════
 # PAGE CONFIG - MUST BE FIRST STREAMLIT COMMAND
@@ -29,124 +35,125 @@ st.set_page_config(
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
-    /* Import Premium Font */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-    
+    /* Import Premium Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
     /* Global Reset */
     * {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    
-    /* App Background - Stunning Gradient */
+
+    /* App Background */
     .stApp {
-        background: linear-gradient(135deg, #0a0a0f 0%, #13131a 25%, #1a1a2e 50%, #0f0f1a 100%);
+        background: #08090d;
+        background-image:
+            radial-gradient(ellipse at 20% 0%, rgba(56, 189, 248, 0.04) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 100%, rgba(139, 92, 246, 0.04) 0%, transparent 50%);
         background-attachment: fixed;
     }
-    
+
     /* Hide Streamlit Branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     .stDeployButton {display: none;}
-    
-    /* Hide header content but keep sidebar toggle button visible */
+
     [data-testid="stHeader"] {
         background: transparent !important;
     }
     [data-testid="stHeaderActionElements"] {
         display: none;
     }
-    
-    /* Style the sidebar collapse button */
+
+    /* Sidebar collapse button */
     [data-testid="stSidebarCollapseButton"],
     [data-testid="collapsedControl"] {
-        color: #a5b4fc !important;
-        background: rgba(99, 102, 241, 0.1) !important;
-        border: 1px solid rgba(99, 102, 241, 0.3) !important;
-        border-radius: 8px !important;
+        color: #94a3b8 !important;
+        background: rgba(15, 23, 42, 0.8) !important;
+        border: 1px solid rgba(51, 65, 85, 0.5) !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(12px) !important;
     }
     [data-testid="stSidebarCollapseButton"]:hover,
     [data-testid="collapsedControl"]:hover {
-        background: rgba(99, 102, 241, 0.2) !important;
+        background: rgba(30, 41, 59, 0.9) !important;
+        border-color: rgba(99, 102, 241, 0.4) !important;
     }
-    
+
     /* ═══════════════════════════════════════════════════════════ */
     /* HERO SECTION */
     /* ═══════════════════════════════════════════════════════════ */
-    
+
     .hero-container {
         text-align: center;
-        padding: 3rem 0;
+        padding: 4rem 0 3rem 0;
         margin-bottom: 2rem;
+        position: relative;
     }
-    
+
     .hero-badge {
         display: inline-block;
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%);
-        border: 1px solid rgba(99, 102, 241, 0.3);
+        background: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.2);
         border-radius: 50px;
-        padding: 0.5rem 1.5rem;
-        font-size: 0.85rem;
-        color: #a5b4fc;
-        letter-spacing: 2px;
+        padding: 0.4rem 1.2rem;
+        font-size: 0.7rem;
+        color: #818cf8;
+        letter-spacing: 3px;
         text-transform: uppercase;
+        font-weight: 600;
         margin-bottom: 1.5rem;
     }
-    
+
     .hero-title {
         font-size: 4.5rem;
         font-weight: 900;
         letter-spacing: -3px;
-        line-height: 1.1;
+        line-height: 1.05;
         margin: 0;
         padding: 0;
-        background: linear-gradient(135deg, #fff 0%, #a5b4fc 50%, #c4b5fd 100%);
+        background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 40%, #818cf8 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        animation: shimmer 3s ease-in-out infinite;
     }
-    
-    @keyframes shimmer {
-        0%, 100% { filter: brightness(1); }
-        50% { filter: brightness(1.2); }
-    }
-    
+
     .hero-subtitle {
-        font-size: 1.25rem;
-        color: #6b7280;
+        font-size: 1.1rem;
+        color: #475569;
         font-weight: 400;
         margin-top: 1rem;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
+        line-height: 1.6;
     }
-    
+
     .hero-glow {
         position: absolute;
-        top: 0;
+        top: -100px;
         left: 50%;
         transform: translateX(-50%);
-        width: 600px;
-        height: 400px;
-        background: radial-gradient(ellipse, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+        width: 800px;
+        height: 500px;
+        background: radial-gradient(ellipse, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
         pointer-events: none;
         z-index: -1;
     }
-    
+
     /* ═══════════════════════════════════════════════════════════ */
     /* PREMIUM CARDS */
     /* ═══════════════════════════════════════════════════════════ */
-    
+
     .premium-card {
-        background: rgba(255, 255, 255, 0.02);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 24px;
-        padding: 2rem;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(51, 65, 85, 0.4);
+        border-radius: 16px;
+        padding: 1.75rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
     }
-    
+
     .premium-card::before {
         content: '';
         position: absolute;
@@ -154,28 +161,27 @@ st.markdown("""
         left: 0;
         right: 0;
         height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.5), transparent);
+        background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
     }
-    
+
     .premium-card:hover {
-        transform: translateY(-8px);
         border-color: rgba(99, 102, 241, 0.3);
-        box-shadow: 0 25px 50px rgba(99, 102, 241, 0.15),
-                    0 0 100px rgba(99, 102, 241, 0.05);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+                    0 0 0 1px rgba(99, 102, 241, 0.1);
     }
-    
+
     /* Feature Card */
     .feature-card {
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.05) 100%);
-        border: 1px solid rgba(99, 102, 241, 0.15);
-        border-radius: 20px;
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid rgba(51, 65, 85, 0.4);
+        border-radius: 16px;
         padding: 2rem;
         height: 100%;
-        transition: all 0.4s ease;
+        transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
     }
-    
+
     .feature-card::after {
         content: '';
         position: absolute;
@@ -183,400 +189,446 @@ st.markdown("""
         left: -50%;
         width: 200%;
         height: 200%;
-        background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 60%);
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 60%);
         opacity: 0;
         transition: opacity 0.4s ease;
     }
-    
+
     .feature-card:hover {
-        transform: translateY(-10px) scale(1.02);
+        transform: translateY(-4px);
         border-color: rgba(99, 102, 241, 0.4);
-        box-shadow: 0 30px 60px rgba(99, 102, 241, 0.2);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
     }
-    
+
     .feature-card:hover::after {
         opacity: 1;
     }
-    
+
     .feature-icon {
-        font-size: 3.5rem;
+        font-size: 2.5rem;
         margin-bottom: 1rem;
         display: block;
     }
-    
+
     .feature-title {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         font-weight: 700;
-        color: #fff;
-        margin-bottom: 0.75rem;
+        color: #f1f5f9;
+        margin-bottom: 0.5rem;
     }
-    
+
     .feature-desc {
-        color: #9ca3af;
-        font-size: 1rem;
+        color: #64748b;
+        font-size: 0.9rem;
         line-height: 1.7;
     }
-    
+
     /* ═══════════════════════════════════════════════════════════ */
     /* METRIC CARDS */
     /* ═══════════════════════════════════════════════════════════ */
-    
+
     .metric-card {
-        background: linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.8) 100%);
-        border: 1px solid rgba(55, 65, 81, 0.5);
-        border-radius: 20px;
-        padding: 1.5rem;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(51, 65, 85, 0.4);
+        border-radius: 14px;
+        padding: 1.25rem;
         text-align: center;
-        transition: all 0.3s ease;
+        transition: all 0.25s ease;
         position: relative;
         overflow: hidden;
     }
-    
+
     .metric-card::before {
         content: '';
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
+        height: 2px;
+        background: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7);
+        opacity: 0.7;
     }
-    
+
     .metric-card:hover {
-        transform: scale(1.03);
-        border-color: rgba(99, 102, 241, 0.4);
+        border-color: rgba(99, 102, 241, 0.3);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
     }
-    
+
     .metric-label {
-        font-size: 0.8rem;
-        color: #6b7280;
+        font-size: 0.7rem;
+        color: #64748b;
         text-transform: uppercase;
         letter-spacing: 1.5px;
         font-weight: 600;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.4rem;
     }
-    
+
     .metric-value {
-        font-size: 2rem;
+        font-size: 1.75rem;
         font-weight: 800;
-        color: #fff;
+        color: #f1f5f9;
         letter-spacing: -1px;
+        font-family: 'JetBrains Mono', 'Inter', monospace;
     }
-    
+
     .metric-change {
-        font-size: 1rem;
+        font-size: 0.9rem;
         font-weight: 600;
-        margin-top: 0.5rem;
+        margin-top: 0.3rem;
+        font-family: 'JetBrains Mono', 'Inter', monospace;
     }
-    
-    .metric-positive { color: #10b981; }
-    .metric-negative { color: #ef4444; }
-    
+
+    .metric-positive { color: #34d399; }
+    .metric-negative { color: #f87171; }
+
     /* ═══════════════════════════════════════════════════════════ */
     /* SIDEBAR */
     /* ═══════════════════════════════════════════════════════════ */
-    
+
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0f0f1a 0%, #13131a 50%, #0a0a0f 100%);
-        border-right: 1px solid rgba(255, 255, 255, 0.03);
+        background: linear-gradient(180deg, #0c1120 0%, #0a0f1e 100%);
+        border-right: 1px solid rgba(51, 65, 85, 0.3);
     }
-    
+
     [data-testid="stSidebar"] > div:first-child {
-        padding: 2rem 1.5rem;
+        padding: 1.5rem 1.25rem;
     }
-    
+
     .sidebar-brand {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding-bottom: 2rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        margin-bottom: 2rem;
+        gap: 10px;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+        margin-bottom: 1.5rem;
     }
-    
+
     .sidebar-logo {
-        font-size: 2.5rem;
+        font-size: 2rem;
     }
-    
+
     .sidebar-title {
-        font-size: 1.5rem;
+        font-size: 1.35rem;
         font-weight: 800;
-        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #f1f5f9;
         letter-spacing: -0.5px;
     }
-    
+
     /* ═══════════════════════════════════════════════════════════ */
     /* BUTTONS */
     /* ═══════════════════════════════════════════════════════════ */
-    
+
     .stButton > button {
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
         color: white;
         border: none;
-        border-radius: 14px;
-        padding: 0.875rem 2rem;
+        border-radius: 10px;
+        padding: 0.75rem 1.75rem;
         font-weight: 600;
-        font-size: 1rem;
-        letter-spacing: 0.5px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+        font-size: 0.9rem;
+        letter-spacing: 0.3px;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
     }
-    
+
     .stButton > button:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 30px rgba(99, 102, 241, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
     }
-    
+
     .stButton > button:active {
-        transform: translateY(-1px);
+        transform: translateY(0px);
     }
-    
+
     /* ═══════════════════════════════════════════════════════════ */
     /* INPUTS */
     /* ═══════════════════════════════════════════════════════════ */
-    
+
     .stTextInput > div > div > input,
     .stSelectbox > div > div,
     .stNumberInput > div > div > input {
-        background: rgba(17, 24, 39, 0.8) !important;
-        border: 1px solid rgba(55, 65, 81, 0.5) !important;
-        border-radius: 12px !important;
-        color: #fff !important;
-        padding: 0.75rem 1rem !important;
-        transition: all 0.3s ease !important;
+        background: rgba(15, 23, 42, 0.8) !important;
+        border: 1px solid rgba(51, 65, 85, 0.5) !important;
+        border-radius: 10px !important;
+        color: #e2e8f0 !important;
+        padding: 0.7rem 1rem !important;
+        transition: all 0.25s ease !important;
+        font-family: 'Inter', sans-serif !important;
     }
-    
+
     .stTextInput > div > div > input:focus,
     .stSelectbox > div > div:focus-within,
     .stNumberInput > div > div > input:focus {
         border-color: #6366f1 !important;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12) !important;
     }
-    
+
+    /* Chat input styling */
+    .stChatInput > div {
+        background: rgba(15, 23, 42, 0.8) !important;
+        border: 1px solid rgba(51, 65, 85, 0.5) !important;
+        border-radius: 12px !important;
+    }
+
+    .stChatMessage {
+        background: rgba(15, 23, 42, 0.4) !important;
+        border: 1px solid rgba(51, 65, 85, 0.3) !important;
+        border-radius: 12px !important;
+    }
+
     /* ═══════════════════════════════════════════════════════════ */
     /* SECTION HEADERS */
     /* ═══════════════════════════════════════════════════════════ */
-    
+
     .section-header {
-        font-size: 1.75rem;
-        font-weight: 800;
-        color: #fff;
-        margin: 2.5rem 0 1.5rem 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #f1f5f9;
+        margin: 2rem 0 1.25rem 0;
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        gap: 0.6rem;
         letter-spacing: -0.5px;
     }
-    
+
     .section-divider {
         height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
-        margin: 2rem 0;
+        background: linear-gradient(90deg, transparent, rgba(51, 65, 85, 0.5), transparent);
+        margin: 1.5rem 0;
     }
-    
+
     /* ═══════════════════════════════════════════════════════════ */
     /* SIGNAL BADGES */
     /* ═══════════════════════════════════════════════════════════ */
-    
+
     .signal-bullish {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);
-        border: 1px solid rgba(16, 185, 129, 0.4);
-        color: #10b981;
-        padding: 0.5rem 1rem;
-        border-radius: 50px;
+        background: rgba(16, 185, 129, 0.08);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        color: #34d399;
+        padding: 0.4rem 0.9rem;
+        border-radius: 8px;
         font-weight: 600;
-        font-size: 0.85rem;
-        margin: 0.25rem;
+        font-size: 0.8rem;
+        margin: 0.2rem;
     }
-    
+
     .signal-bearish {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%);
-        border: 1px solid rgba(239, 68, 68, 0.4);
-        color: #ef4444;
-        padding: 0.5rem 1rem;
-        border-radius: 50px;
+        background: rgba(239, 68, 68, 0.08);
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        color: #f87171;
+        padding: 0.4rem 0.9rem;
+        border-radius: 8px;
         font-weight: 600;
-        font-size: 0.85rem;
-        margin: 0.25rem;
+        font-size: 0.8rem;
+        margin: 0.2rem;
     }
-    
+
     .signal-neutral {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.2) 100%);
-        border: 1px solid rgba(251, 191, 36, 0.4);
+        background: rgba(251, 191, 36, 0.08);
+        border: 1px solid rgba(251, 191, 36, 0.25);
         color: #fbbf24;
-        padding: 0.5rem 1rem;
-        border-radius: 50px;
+        padding: 0.4rem 0.9rem;
+        border-radius: 8px;
         font-weight: 600;
-        font-size: 0.85rem;
-        margin: 0.25rem;
+        font-size: 0.8rem;
+        margin: 0.2rem;
     }
-    
+
     /* ═══════════════════════════════════════════════════════════ */
     /* TABS */
     /* ═══════════════════════════════════════════════════════════ */
-    
+
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+        gap: 6px;
         background: transparent;
-        padding: 0.5rem;
-        border-radius: 16px;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        background: rgba(17, 24, 39, 0.5);
+        padding: 0.25rem;
         border-radius: 12px;
-        border: 1px solid rgba(55, 65, 81, 0.3);
-        color: #9ca3af;
-        padding: 0.75rem 1.5rem;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        background: rgba(15, 23, 42, 0.5);
+        border-radius: 10px;
+        border: 1px solid rgba(51, 65, 85, 0.3);
+        color: #94a3b8;
+        padding: 0.6rem 1.2rem;
         font-weight: 500;
-        transition: all 0.3s ease;
+        font-size: 0.85rem;
+        transition: all 0.25s ease;
     }
-    
+
     .stTabs [data-baseweb="tab"]:hover {
-        background: rgba(99, 102, 241, 0.1);
-        border-color: rgba(99, 102, 241, 0.3);
+        background: rgba(99, 102, 241, 0.06);
+        border-color: rgba(99, 102, 241, 0.2);
     }
-    
+
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(139, 92, 246, 0.3) 100%) !important;
-        border-color: rgba(99, 102, 241, 0.5) !important;
-        color: #fff !important;
+        background: rgba(99, 102, 241, 0.12) !important;
+        border-color: rgba(99, 102, 241, 0.4) !important;
+        color: #e2e8f0 !important;
     }
-    
+
     /* ═══════════════════════════════════════════════════════════ */
     /* QUIZ STYLING */
     /* ═══════════════════════════════════════════════════════════ */
-    
+
     .quiz-card {
-        background: rgba(17, 24, 39, 0.6);
-        border: 1px solid rgba(55, 65, 81, 0.5);
-        border-radius: 20px;
-        padding: 2rem;
-        margin: 1rem 0;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(51, 65, 85, 0.4);
+        border-radius: 14px;
+        padding: 1.75rem;
+        margin: 0.75rem 0;
     }
-    
+
     .quiz-question {
-        font-size: 1.4rem;
+        font-size: 1.25rem;
         font-weight: 700;
-        color: #fff;
-        margin-bottom: 1.5rem;
+        color: #f1f5f9;
+        margin-bottom: 1.25rem;
         line-height: 1.5;
     }
-    
+
     .quiz-correct {
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%);
-        border: 1px solid rgba(16, 185, 129, 0.4);
-        border-radius: 16px;
-        padding: 1.5rem;
-        margin: 1rem 0;
+        background: rgba(16, 185, 129, 0.06);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin: 0.75rem 0;
     }
-    
+
     .quiz-wrong {
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%);
-        border: 1px solid rgba(239, 68, 68, 0.4);
-        border-radius: 16px;
-        padding: 1.5rem;
-        margin: 1rem 0;
+        background: rgba(239, 68, 68, 0.06);
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin: 0.75rem 0;
     }
-    
+
     .quiz-score {
-        font-size: 5rem;
+        font-size: 4rem;
         font-weight: 900;
-        background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        font-family: 'JetBrains Mono', monospace;
     }
-    
+
     /* ═══════════════════════════════════════════════════════════ */
     /* PROGRESS BAR */
     /* ═══════════════════════════════════════════════════════════ */
-    
+
     .stProgress > div > div > div > div {
-        background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
-        border-radius: 10px;
+        background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+        border-radius: 8px;
     }
-    
+
     /* ═══════════════════════════════════════════════════════════ */
     /* SCROLLBAR */
     /* ═══════════════════════════════════════════════════════════ */
-    
+
     ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
     }
-    
+
     ::-webkit-scrollbar-track {
-        background: rgba(17, 24, 39, 0.5);
+        background: rgba(15, 23, 42, 0.3);
     }
-    
+
     ::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, #6366f1 0%, #a855f7 100%);
-        border-radius: 10px;
+        background: rgba(99, 102, 241, 0.3);
+        border-radius: 6px;
     }
-    
+
     ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, #818cf8 0%, #c084fc 100%);
+        background: rgba(99, 102, 241, 0.5);
     }
-    
+
     /* ═══════════════════════════════════════════════════════════ */
     /* RADIO BUTTONS (NAV) */
     /* ═══════════════════════════════════════════════════════════ */
-    
+
     [data-testid="stSidebar"] .stRadio > div {
-        gap: 8px;
+        gap: 4px;
     }
-    
+
     [data-testid="stSidebar"] .stRadio > div > label {
-        background: rgba(17, 24, 39, 0.5);
-        border: 1px solid rgba(55, 65, 81, 0.3);
-        border-radius: 12px;
-        padding: 0.75rem 1rem;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 0.55rem 0.9rem;
         margin: 0;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
         cursor: pointer;
+        font-size: 0.9rem;
     }
-    
+
     [data-testid="stSidebar"] .stRadio > div > label:hover {
+        background: rgba(99, 102, 241, 0.06);
+        border-color: rgba(51, 65, 85, 0.3);
+    }
+
+    [data-testid="stSidebar"] .stRadio > div > label[data-checked="true"] {
         background: rgba(99, 102, 241, 0.1);
         border-color: rgba(99, 102, 241, 0.3);
     }
-    
-    [data-testid="stSidebar"] .stRadio > div > label[data-checked="true"] {
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
-        border-color: rgba(99, 102, 241, 0.5);
-    }
-    
+
     /* Glass Effect */
     .glass {
-        background: rgba(255, 255, 255, 0.02);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 24px;
+        background: rgba(15, 23, 42, 0.5);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(51, 65, 85, 0.4);
+        border-radius: 16px;
     }
-    
+
     /* Data Table */
     .stDataFrame {
-        border-radius: 16px;
+        border-radius: 12px;
         overflow: hidden;
     }
-    
+
     /* Expander */
     .streamlit-expanderHeader {
-        background: rgba(17, 24, 39, 0.5) !important;
-        border-radius: 12px !important;
-        border: 1px solid rgba(55, 65, 81, 0.3) !important;
+        background: rgba(15, 23, 42, 0.5) !important;
+        border-radius: 10px !important;
+        border: 1px solid rgba(51, 65, 85, 0.3) !important;
+    }
+
+    /* Stat row for dashboard */
+    .stat-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid rgba(51, 65, 85, 0.2);
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-ticker {
+        font-weight: 700;
+        color: #f1f5f9;
+        font-size: 0.95rem;
+        min-width: 60px;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .stat-name {
+        color: #64748b;
+        font-size: 0.8rem;
+        flex: 1;
+    }
+    .stat-price {
+        font-weight: 700;
+        color: #e2e8f0;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.9rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -1097,16 +1149,16 @@ with st.sidebar:
     # Navigation
     page = st.radio(
         "Navigation",
-        ["🏠 Dashboard", "📚 Learn", "📈 Stock Analysis", "🤖 AI Predictor", "⚖️ Compare", "🧮 Calculator", "🎭 Risk Profile", "🪙 Crypto", "💼 Portfolio", "🎯 Quiz", "ℹ️ About"],
+        ["🏠 Dashboard", "📚 Learn", "📈 Stock Analysis", "🤖 AI Predictor", "💬 AI Advisor", "⚖️ Compare", "🧮 Calculator", "🎭 Risk Profile", "🪙 Crypto", "💼 Portfolio", "🎯 Quiz", "ℹ️ About"],
         label_visibility="collapsed"
     )
     
     # Footer
     st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
     st.markdown("""
-    <div style="text-align: center; padding: 1rem 0;">
-        <p style="color: #4b5563; font-size: 0.75rem; margin: 0;">IB CAS Project 2026 By Krish Modi</p>
-        <p style="color: #6366f1; font-size: 0.7rem; margin: 0.5rem 0 0 0;">Powered by OpenBB</p>
+    <div style="text-align: center; padding: 0.75rem 0;">
+        <p style="color: #334155; font-size: 0.7rem; margin: 0; letter-spacing: 0.5px;">IB CAS Project 2026</p>
+        <p style="color: #475569; font-size: 0.7rem; margin: 0.25rem 0 0 0; font-weight: 600;">Krish Modi</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1119,47 +1171,15 @@ if page == "🏠 Dashboard":
     st.markdown("""
     <div class="hero-container">
         <div class="hero-glow"></div>
-        <div class="hero-badge">IB CAS Project</div>
+        <div class="hero-badge">Financial Literacy Platform</div>
         <h1 class="hero-title">FinLit Pro</h1>
-        <p class="hero-subtitle">Master the art of investing with real market data & professional tools</p>
+        <p class="hero-subtitle">Real-time market intelligence, AI-powered analysis, and interactive education — built for the next generation of investors.</p>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Feature Cards
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("""
-        <div class="feature-card">
-            <span class="feature-icon">📚</span>
-            <div class="feature-title">Learn</div>
-            <div class="feature-desc">Master stocks, technical analysis, portfolio theory, and risk management through interactive modules.</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class="feature-card">
-            <span class="feature-icon">📊</span>
-            <div class="feature-title">Analyze</div>
-            <div class="feature-desc">Real-time market data with professional charts, indicators, and AI-powered trading signals.</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown("""
-        <div class="feature-card">
-            <span class="feature-icon">🎯</span>
-            <div class="feature-title">Practice</div>
-            <div class="feature-desc">Test your knowledge with quizzes, track virtual portfolios, and apply what you learn.</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
-    
-    # Market Overview
-    st.markdown('<div class="section-header">📊 Live Market Overview</div>', unsafe_allow_html=True)
-    
+
+    # Market Overview first — more professional to lead with data
+    st.markdown('<div class="section-header">Live Markets</div>', unsafe_allow_html=True)
+
     market_tickers = [
         ("AAPL", "Apple", "🍎"),
         ("MSFT", "Microsoft", "🪟"),
@@ -1167,9 +1187,9 @@ if page == "🏠 Dashboard":
         ("TSLA", "Tesla", "⚡"),
         ("BTC", "Bitcoin", "₿")
     ]
-    
+
     cols = st.columns(5)
-    
+
     for i, (symbol, name, icon) in enumerate(market_tickers):
         with cols[i]:
             try:
@@ -1177,37 +1197,78 @@ if page == "🏠 Dashboard":
                     data = fetch_crypto_data(symbol, 7)
                 else:
                     data = fetch_stock_data(symbol, 7)
-                
+
                 if data is not None and len(data) > 1:
                     price = data['close'].iloc[-1]
                     prev_price = data['close'].iloc[-2]
                     change = ((price - prev_price) / prev_price) * 100
                     change_class = "metric-positive" if change >= 0 else "metric-negative"
-                    change_symbol = "↑" if change >= 0 else "↓"
-                    
+                    change_symbol = "+" if change >= 0 else ""
+
                     st.markdown(f"""
                     <div class="metric-card">
                         <div class="metric-label">{icon} {name}</div>
-                        <div class="metric-value">${price:,.0f}</div>
-                        <div class="metric-change {change_class}">{change_symbol} {abs(change):.2f}%</div>
+                        <div class="metric-value">${price:,.2f}</div>
+                        <div class="metric-change {change_class}">{change_symbol}{change:.2f}%</div>
                     </div>
                     """, unsafe_allow_html=True)
                 else:
                     st.markdown(f"""
                     <div class="metric-card">
                         <div class="metric-label">{icon} {name}</div>
-                        <div class="metric-value">—</div>
-                        <div class="metric-change">Loading...</div>
+                        <div class="metric-value">--</div>
+                        <div style="color: #475569; font-size: 0.8rem;">Loading</div>
                     </div>
                     """, unsafe_allow_html=True)
             except:
                 st.markdown(f"""
                 <div class="metric-card">
                     <div class="metric-label">{icon} {name}</div>
-                    <div class="metric-value">—</div>
-                    <div class="metric-change">Unavailable</div>
+                    <div class="metric-value">--</div>
+                    <div style="color: #475569; font-size: 0.8rem;">Unavailable</div>
                 </div>
                 """, unsafe_allow_html=True)
+
+    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+
+    # Feature Cards
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.markdown("""
+        <div class="feature-card">
+            <span class="feature-icon">📚</span>
+            <div class="feature-title">Learn</div>
+            <div class="feature-desc">Interactive modules on stocks, technical analysis, options, and risk management.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown("""
+        <div class="feature-card">
+            <span class="feature-icon">📊</span>
+            <div class="feature-title">Analyze</div>
+            <div class="feature-desc">Professional charts with indicators, signals, and multi-stock comparison tools.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown("""
+        <div class="feature-card">
+            <span class="feature-icon">🤖</span>
+            <div class="feature-title">AI Tools</div>
+            <div class="feature-desc">Monte Carlo predictions, multi-signal scoring, and a GPT-powered financial advisor.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col4:
+        st.markdown("""
+        <div class="feature-card">
+            <span class="feature-icon">🎯</span>
+            <div class="feature-title">Practice</div>
+            <div class="feature-desc">Knowledge quizzes, portfolio tracking, and risk profiling to test your skills.</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════
 # PAGE: LEARN
@@ -1916,6 +1977,131 @@ elif page == "🤖 AI Predictor":
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════════════════
+# PAGE: AI ADVISOR (GPT-Powered Chatbot)
+# ═══════════════════════════════════════════════════════════
+
+elif page == "💬 AI Advisor":
+    st.markdown("""
+    <div class="hero-container" style="padding: 2rem 0;">
+        <h1 class="hero-title" style="font-size: 3rem;">💬 AI Financial Advisor</h1>
+        <p class="hero-subtitle">Ask anything about stocks, investing, markets, or financial concepts — powered by GPT</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if not OPENAI_AVAILABLE:
+        st.error("The `openai` package is not installed. Run `pip install openai` to enable the AI Advisor.")
+        st.stop()
+
+    # Initialize chat history
+    if 'chat_messages' not in st.session_state:
+        st.session_state.chat_messages = []
+
+    # API key handling — check secrets first, then sidebar input
+    api_key = None
+    try:
+        api_key = st.secrets.get("OPENAI_API_KEY", None)
+    except:
+        pass
+    if not api_key:
+        api_key = os.environ.get("OPENAI_API_KEY", None)
+
+    if not api_key:
+        st.markdown("""
+        <div class="premium-card" style="border-color: rgba(99, 102, 241, 0.3);">
+            <h3 style="color: #f1f5f9; margin-bottom: 0.75rem;">🔑 Setup Required</h3>
+            <p style="color: #94a3b8; font-size: 0.9rem; line-height: 1.7; margin-bottom: 0.5rem;">
+                To use the AI Advisor, enter your OpenAI API key below. Your key stays in your browser session and is never stored.
+            </p>
+            <p style="color: #64748b; font-size: 0.8rem;">
+                Get a key at <strong style="color: #818cf8;">platform.openai.com/api-keys</strong>
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        api_key = st.text_input("OpenAI API Key", type="password", placeholder="sk-...")
+
+    if api_key:
+        # System prompt for financial advisor
+        SYSTEM_PROMPT = """You are FinLit Pro's AI Financial Advisor — an expert, friendly financial educator built into a student financial literacy platform (IB CAS project).
+
+Your role:
+- Explain financial concepts clearly for high school and university students
+- Answer questions about stocks, crypto, ETFs, bonds, options, technical analysis, fundamental analysis, portfolio management, and macroeconomics
+- When asked about a specific stock, provide balanced educational analysis (not financial advice)
+- Use real examples and analogies to make concepts accessible
+- Keep responses concise but thorough (2-4 paragraphs max unless asked for detail)
+- Use markdown formatting for readability (bold, bullet points, tables when helpful)
+
+Rules:
+- ALWAYS include a brief disclaimer when discussing specific investment decisions: "This is educational analysis, not financial advice."
+- Never recommend specific buy/sell actions — instead explain the factors a student should consider
+- Be encouraging about financial learning
+- If asked something outside finance, politely redirect to financial topics"""
+
+        # Display chat history
+        for msg in st.session_state.chat_messages:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+
+        # Chat input
+        if prompt := st.chat_input("Ask me anything about finance, stocks, or investing..."):
+            # Add user message
+            st.session_state.chat_messages.append({"role": "user", "content": prompt})
+            with st.chat_message("user"):
+                st.markdown(prompt)
+
+            # Generate AI response
+            with st.chat_message("assistant"):
+                with st.spinner("Thinking..."):
+                    try:
+                        client = OpenAI(api_key=api_key)
+                        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+                        # Include last 10 messages for context
+                        for msg in st.session_state.chat_messages[-10:]:
+                            messages.append({"role": msg["role"], "content": msg["content"]})
+
+                        response = client.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=messages,
+                            max_tokens=1000,
+                            temperature=0.7
+                        )
+                        reply = response.choices[0].message.content
+                        st.markdown(reply)
+                        st.session_state.chat_messages.append({"role": "assistant", "content": reply})
+                    except Exception as e:
+                        error_msg = str(e)
+                        if "api_key" in error_msg.lower() or "auth" in error_msg.lower():
+                            st.error("Invalid API key. Please check your OpenAI API key and try again.")
+                        else:
+                            st.error(f"Error: {error_msg}")
+
+        # Suggested questions
+        if not st.session_state.chat_messages:
+            st.markdown('<div class="section-header">Try asking</div>', unsafe_allow_html=True)
+
+            suggest_cols = st.columns(2)
+            suggestions = [
+                ("What is a P/E ratio and why does it matter?", "📊"),
+                ("Explain dollar-cost averaging like I'm 15", "💡"),
+                ("How do I read a candlestick chart?", "📈"),
+                ("What's the difference between ETFs and mutual funds?", "⚖️"),
+            ]
+            for i, (suggestion, icon) in enumerate(suggestions):
+                with suggest_cols[i % 2]:
+                    if st.button(f"{icon} {suggestion}", key=f"suggest_{i}", use_container_width=True):
+                        st.session_state.chat_messages.append({"role": "user", "content": suggestion})
+                        st.rerun()
+
+        # Clear chat button
+        if st.session_state.chat_messages:
+            st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+            if st.button("🗑️ Clear Conversation", use_container_width=True):
+                st.session_state.chat_messages = []
+                st.rerun()
+    else:
+        st.info("Enter your OpenAI API key above to start chatting with the AI Financial Advisor.")
 
 # ═══════════════════════════════════════════════════════════
 # PAGE: STOCK COMPARISON
