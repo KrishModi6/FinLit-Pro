@@ -19,6 +19,7 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 import os
+import re
 
 # ═══════════════════════════════════════════════════════════
 # PAGE CONFIG - MUST BE FIRST STREAMLIT COMMAND
@@ -630,6 +631,110 @@ st.markdown("""
         font-family: 'JetBrains Mono', monospace;
         font-size: 0.9rem;
     }
+
+    /* ── Glossary hover tooltips (Grammarly-style popup) ── */
+    .gloss {
+        position: relative;
+        border-bottom: 1.5px dashed rgba(99, 102, 241, 0.7);
+        color: #c7d2fe;
+        cursor: help;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .gloss .gloss-pop {
+        visibility: hidden;
+        opacity: 0;
+        transform: translateX(-50%) translateY(6px);
+        position: absolute;
+        bottom: 150%;
+        left: 50%;
+        width: max-content;
+        max-width: 320px;
+        background: #0b1120;
+        border: 1px solid rgba(99, 102, 241, 0.45);
+        border-radius: 12px;
+        padding: 0.7rem 0.85rem;
+        font-size: 0.8rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #cbd5e1;
+        white-space: normal;
+        text-align: left;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+        z-index: 10000;
+        transition: opacity 0.15s ease, transform 0.15s ease;
+        pointer-events: none;
+    }
+    .gloss .gloss-pop::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 6px solid transparent;
+        border-top-color: rgba(99, 102, 241, 0.45);
+    }
+    .gloss-pop-term {
+        display: block;
+        font-weight: 700;
+        font-size: 0.82rem;
+        color: #a5b4fc;
+        margin-bottom: 0.25rem;
+        letter-spacing: 0.2px;
+    }
+    .gloss:hover .gloss-pop {
+        visibility: visible;
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+    /* Let popups escape container clipping */
+    [data-testid="stMarkdownContainer"],
+    [data-testid="stVerticalBlock"],
+    .element-container { overflow: visible !important; }
+
+    /* ── Glossary reference page cards ── */
+    .gloss-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 0.9rem;
+        margin-top: 1rem;
+    }
+    .gloss-card {
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid rgba(51, 65, 85, 0.4);
+        border-left: 3px solid #6366f1;
+        border-radius: 12px;
+        padding: 0.9rem 1.05rem;
+        transition: all 0.2s ease;
+    }
+    .gloss-card:hover {
+        border-color: rgba(99, 102, 241, 0.5);
+        background: rgba(99, 102, 241, 0.06);
+        transform: translateY(-2px);
+    }
+    .gloss-card-term {
+        font-weight: 700;
+        color: #f1f5f9;
+        font-size: 0.98rem;
+        margin-bottom: 0.35rem;
+    }
+    .gloss-card-def {
+        color: #94a3b8;
+        font-size: 0.84rem;
+        line-height: 1.5;
+    }
+    .gloss-cat {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #818cf8;
+        background: rgba(99, 102, 241, 0.12);
+        padding: 0.15rem 0.5rem;
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -810,6 +915,171 @@ def create_professional_chart(data, symbol):
 # EDUCATIONAL CONTENT
 # ═══════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════
+# GLOSSARY  —  hover-to-define terms (Grammarly-style popups)
+# ═══════════════════════════════════════════════════════════
+GLOSSARY = {
+    # ── Markets ──
+    "Bull Market": "A prolonged period of rising prices, typically 20%+ up from recent lows. Signals optimism and economic expansion.",
+    "Bear Market": "A prolonged period of falling prices, typically 20%+ down from recent highs. Signals pessimism and fear — named for how a bear swipes its paws downward.",
+    "Bullish": "An optimistic view that a price will go UP. If you are bullish on Apple, you expect Apple stock to rise.",
+    "Bearish": "A pessimistic view that a price will go DOWN. If you are bearish on a stock, you expect it to fall.",
+    "Volatility": "How much and how fast a price swings up and down. High volatility means bigger, riskier swings — it is the main measure of risk.",
+    "Liquidity": "How quickly an asset can be turned into cash without losing value. Cash is highly liquid; real estate is illiquid.",
+    "Market Cap": "Market capitalization = share price × total shares outstanding. The total dollar value of a company.",
+    "IPO": "Initial Public Offering — the first time a private company sells shares to the public on a stock exchange.",
+    "Ticker Symbol": "A short unique code for a security, e.g. AAPL for Apple, MSFT for Microsoft.",
+    "Shareholder": "Someone who owns shares (stock) in a company and therefore owns a piece of it.",
+    "Stock Exchange": "A marketplace where stocks are bought and sold, such as the NYSE or NASDAQ.",
+    "S&P 500": "An index of 500 of the largest US public companies — the most common benchmark for the US stock market.",
+    "Benchmark": "A standard you measure performance against, e.g. comparing your portfolio's return to the S&P 500.",
+    "Concentration Risk": "The danger of putting too much money in one investment. If that single bet fails, the whole portfolio collapses.",
+
+    # ── Technical Analysis ──
+    "Moving Average": "The average closing price over a set number of days, recalculated daily to smooth out noise and reveal the trend.",
+    "SMA": "Simple Moving Average — the average price over a set period, giving each day equal weight. Smooths price to show the trend.",
+    "SMA 20": "The 20-day simple moving average (average close of the last 20 days). Tracks the SHORT-term trend; price above it is short-term bullish.",
+    "SMA 50": "The 50-day simple moving average (average close of the last 50 days). Tracks the MEDIUM-term trend.",
+    "SMA 200": "The 200-day simple moving average (average close of the last 200 days). Tracks the LONG-term trend; widely watched as the dividing line between bull and bear.",
+    "RSI": "Relative Strength Index — a momentum gauge from 0 to 100. Above 70 = overbought (may fall); below 30 = oversold (may rise).",
+    "MACD": "Moving Average Convergence Divergence — a momentum indicator. MACD line above its signal line = bullish momentum; below = bearish.",
+    "Golden Cross": "A bullish signal where the 50-day moving average crosses ABOVE the 200-day moving average, often marking the start of an uptrend.",
+    "Death Cross": "A bearish signal where the 50-day moving average crosses BELOW the 200-day moving average, often warning of a downtrend.",
+    "Overbought": "When a price has risen so fast it may be due for a pullback. Often flagged by RSI above 70.",
+    "Oversold": "When a price has fallen so fast it may be due to bounce back. Often flagged by RSI below 30.",
+    "Support": "A price level where buying tends to halt a decline — a 'floor' under the price.",
+    "Resistance": "A price level where selling tends to cap a rise — a 'ceiling' over the price.",
+    "Breakout": "When price pushes above a resistance level, often signaling further gains.",
+
+    # ── Valuation ──
+    "P/E Ratio": "Price-to-Earnings = share price ÷ EPS. How many dollars investors pay for $1 of earnings. A high P/E means pricey or high growth expected.",
+    "EPS": "Earnings Per Share = (net income − preferred dividends) ÷ shares outstanding. The profit assigned to each share; a primary driver of stock price.",
+    "EBITDA": "Earnings Before Interest, Taxes, Depreciation and Amortization. Core operating profit that strips out financing and accounting effects so companies can be compared fairly.",
+    "Dividend": "A cash payment a company distributes to shareholders out of its profits, often quarterly.",
+    "Dividend Yield": "Annual dividend ÷ share price, as a %. Example: a $2.28 dividend giving a 2.41% yield. Shows the income a stock pays.",
+    "Payout Ratio": "The share of earnings paid out as dividends. A 64% payout ratio means 64% of profit is returned to shareholders.",
+
+    # ── Financial Statements ──
+    "Balance Sheet": "A snapshot of what a company OWNS vs OWES at one moment. Follows Assets = Liabilities + Equity. Called the investor's X-ray.",
+    "Income Statement": "Also called the P&L. Shows profitability over a period: revenue minus costs and expenses, ending in net income.",
+    "Cash Flow Statement": "Tracks actual cash moving in and out across operating, investing, and financing activities. Net income is an opinion; cash flow is a fact.",
+    "Assets": "Everything a company owns that has value — cash, inventory, property, equipment, intellectual property.",
+    "Liabilities": "Everything a company owes — debt, loans, and bills (payables).",
+    "Equity": "What is left for owners after subtracting liabilities from assets — the company's net worth, including retained earnings.",
+    "Retained Earnings": "Profits a company has kept and reinvested rather than paying out as dividends.",
+    "Revenue": "The top line — total money earned from sales before any costs are subtracted.",
+    "COGS": "Cost of Goods Sold — the direct costs of producing what a company sells (materials, labor).",
+    "Gross Profit": "Revenue minus COGS — profit before overhead and other expenses.",
+    "Operating Income": "Profit from core operations after subtracting operating expenses (SG&A, R&D) from gross profit.",
+    "Net Income": "The bottom line — final profit after ALL costs, including taxes and interest, are subtracted.",
+    "Gross Margin": "Gross profit ÷ revenue. Measures production efficiency — how much of each sales dollar survives direct costs.",
+    "Operating Margin": "Operating income ÷ revenue. Profitability from core operations after overhead.",
+    "Net Margin": "Net income ÷ revenue. The share of every sales dollar that becomes final profit. Revenue is vanity, margin is sanity.",
+    "Debt": "Borrowed money that must be repaid, usually with interest.",
+    "Leverage": "Using borrowed money to invest. It magnifies gains but also magnifies losses — and the debt must always be repaid.",
+
+    # ── Ratios ──
+    "Current Ratio": "Current assets ÷ current liabilities. Can the company pay its short-term bills now? Above 1 is healthier.",
+    "Quick Ratio": "(Current assets − inventory) ÷ current liabilities. A stricter liquidity test using only cash and near-cash.",
+    "Net Debt to EBITDA": "Total debt minus cash, divided by EBITDA. Roughly how many years of earnings to pay off debt. Lower is safer.",
+    "Receivables Days": "Average number of days a company takes to collect payment from customers. Faster (fewer days) is better.",
+    "Debt-to-Equity": "Total debt ÷ shareholder equity. How much a company relies on borrowing vs owners' money. High = riskier.",
+
+    # ── Funds ──
+    "Mutual Fund": "A pooled fund that gathers money from many investors to buy a diversified mix of assets. Priced once per day at NAV; often actively managed.",
+    "ETF": "Exchange-Traded Fund — a fund that trades on an exchange like a stock throughout the day. Usually passive and low-cost, tracking an index.",
+    "NAV": "Net Asset Value — the price per share of a fund: (total assets − liabilities) ÷ shares outstanding.",
+    "Expense Ratio": "The annual fee a fund charges as a % of your investment. A 0.50% ratio costs $5/year per $1,000. Fees compound and eat returns.",
+    "Index Fund": "A passive fund that simply tracks a market index (like the S&P 500). Low fees — the 'autopilot' approach.",
+    "Active Management": "A manager hand-picks investments trying to beat the market, charging higher fees for that expertise.",
+    "Passive Investing": "Tracking an index instead of trying to beat it. Lower cost and broad diversification.",
+    "Capital Gains Distribution": "Profits a fund passes to investors after selling assets within the fund at a gain.",
+    "Target Date Fund": "A fund that automatically shifts from risky to safe assets as a target year (like retirement) approaches.",
+    "Money Market Fund": "A very low-risk fund holding short-term cash-like instruments. Low return, high liquidity.",
+    "Bond Fund": "A fund that invests mainly in bonds, aiming for steady income with moderate risk.",
+
+    # ── Rates & Yields ──
+    "Interest Rate": "The price you PAY to borrow money, as a % of the loan. Think of it as an expense.",
+    "Yield": "The income you EARN on an investment per year, as a %. Think of it as the 'rent' your money collects — it excludes price gains.",
+    "Total Return": "Total Return = Yield + Capital Appreciation. The full gain from an investment: income received PLUS the change in its price.",
+    "Capital Appreciation": "The increase in an asset's price. It is 'paper' (unrealized) wealth until you actually sell.",
+    "Federal Funds Rate": "The interest rate US banks charge each other overnight, set in a target range by the Federal Reserve. The baseline for nearly all other rates.",
+    "EFFR": "Effective Federal Funds Rate — the actual average overnight rate banks lend to each other. The closest thing to a risk-free baseline rate.",
+    "Risk-Free Rate": "The return on an essentially riskless investment, usually a US Treasury. The baseline all other returns are compared to.",
+    "Yield Curve": "A graph of bond yields across maturities (3-month to 30-year). Its shape signals market expectations for the economy.",
+    "Inverted Yield Curve": "When short-term bonds yield MORE than long-term bonds — unusual, and a classic warning sign of economic uncertainty or recession.",
+    "Risk Premium": "The extra yield investors demand for taking on more risk. A riskier borrower must pay a higher rate.",
+    "Spread": "The difference between two rates or yields — e.g. a risky corporate bond vs a safe Treasury. The strategy: grow your yields, shrink your rates.",
+    "Credit Score": "A number (like a FICO score, 300–850) summarizing how reliably you repay debt. A higher score earns you lower interest rates.",
+    "FICO Score": "The most widely used credit score (300–850). Lenders use it to set your rate: higher score = lower APR.",
+    "APR": "Annual Percentage Rate — the yearly cost of borrowing, including interest and fees, as a %.",
+    "Treasury": "A bond issued by the US government. Considered the safest investment and the basis for the risk-free rate.",
+    "Corporate Bond": "A bond issued by a company. Pays more than Treasuries to compensate for higher default risk; riskier issuers pay even more.",
+    "Coupon": "The fixed interest payment a bond pays its holder, usually expressed as an annual rate.",
+    "Default Risk": "The chance a borrower fails to pay interest or repay principal. Higher default risk demands a higher yield.",
+    "Interest Rate Risk": "The risk that rising rates lower the value of bonds you already hold — new bonds pay more, so yours are worth less.",
+    "Inflation Risk": "The risk that rising prices erode your money's purchasing power, so low returns may not keep up with the cost of living.",
+
+    # ── Asset Classes ──
+    "Cash Equivalents": "The safest, most liquid assets — savings, money market funds, CDs. Low risk and low return.",
+    "Fixed Income": "Investments that pay regular set payments and return principal at maturity — mainly bonds. Steady income, moderate risk.",
+    "Bonds": "Loans you make to a government or company. They pay you interest (coupons) and return your principal at maturity.",
+    "Equities": "Another word for stocks — ownership shares in companies. Higher risk, driven by capital appreciation and dividends.",
+    "Stock": "A share of ownership in a company. Owning stock makes you a part-owner entitled to a slice of profits.",
+    "Real Estate": "Property (homes, commercial buildings) held for rental income and price appreciation; a tangible inflation hedge.",
+    "Real Assets": "Tangible assets like real estate and commodities (oil, gold) that hold physical value and hedge inflation.",
+    "Alternative Investments": "Non-traditional assets — hedge funds, private equity, commodities, crypto. High complexity, low liquidity, high risk/reward.",
+    "Commodities": "Physical goods like gold, silver, oil and corn that trade on markets and often hedge inflation.",
+    "Hedge Fund": "A lightly regulated, high-fee fund using complex strategies for wealthy and institutional investors. High risk, low liquidity.",
+    "Private Equity": "Investing directly in private companies not traded on public exchanges. Illiquid and long-term.",
+    "CDs": "Certificates of Deposit — bank deposits locked for a fixed term in exchange for a guaranteed rate. Safe but illiquid until maturity.",
+    "Crypto": "Cryptocurrency like Bitcoin — a digital asset known for very high volatility; classed as an alternative investment.",
+
+    # ── Strategy ──
+    "Asset Allocation": "Dividing your portfolio across asset classes (stocks, bonds, real estate, cash). The single biggest driver of long-term risk and return.",
+    "Diversification": "Spreading money across many investments so no single loss can sink you. Don't put all your eggs in one basket.",
+    "Rebalancing": "Periodically selling winners and buying laggards to return to your target allocation, since winners grow and skew your risk.",
+    "Risk Tolerance": "How much volatility you can stomach without panic-selling — the 'sleep factor.' Can you handle a 20% drop calmly?",
+    "Time Horizon": "How long until you need the money. Longer horizons let you take more risk and ride out volatility.",
+    "Financial Goals": "What the money is for — retirement, a house, education. Goals drive how you invest.",
+    "IPS": "Investment Policy Statement — a written 'constitution' for a portfolio. Defines goals, risk, allocation, roles, constraints and benchmarks to enforce discipline.",
+    "Risk-Adjusted Return": "How much return you earn for the risk you take. Good allocation optimizes return for your specific risk tolerance.",
+    "Capital Preservation": "A strategy focused on protecting your money rather than growing it — prioritizing safety and liquidity over returns.",
+    "Compound Interest": "Earning interest on your interest as well as your principal, so growth accelerates over time. Einstein called it the eighth wonder of the world.",
+    "Rule of 72": "A shortcut: 72 ÷ interest rate ≈ years to double your money. At 8%, money doubles in about 9 years.",
+    "Dollar-Cost Averaging": "Investing a fixed amount on a regular schedule regardless of price, which smooths out your average cost over time.",
+    "Principal": "The original amount of money you invest or borrow, before any interest or returns.",
+    "Beta": "A measure of a stock's volatility relative to the overall market. Beta of 1 moves with the market; above 1 is more volatile.",
+    "Stop-Loss": "An order that automatically sells a position once it falls to a preset price, capping your loss.",
+}
+
+# Case-insensitive lookup index
+_GLOSSARY_LC = {k.lower(): (k, v) for k, v in GLOSSARY.items()}
+
+
+def g(term, label=None):
+    """Return an inline HTML span that shows a hover popup definition."""
+    label = label or term
+    hit = _GLOSSARY_LC.get(term.lower())
+    if not hit:
+        return label
+    canonical, definition = hit
+    safe = definition.replace("<", "&lt;").replace(">", "&gt;").replace("$", "&#36;")
+    return (
+        f'<span class="gloss">{label}'
+        f'<span class="gloss-pop"><span class="gloss-pop-term">{canonical}</span>{safe}</span></span>'
+    )
+
+
+def glossify(text):
+    """Replace [[term]] or [[term|label]] markers in markdown with hover spans."""
+    def _repl(m):
+        key = m.group(1).strip()
+        lab = m.group(2).strip() if m.group(2) else None
+        return g(key, lab)
+    return re.sub(r"\[\[([^\]|]+?)(?:\|([^\]]+))?\]\]", _repl, text)
+
+
 EDUCATION_MODULES = {
     "📊 Stock Market Basics": """
 ## Understanding the Stock Market
@@ -833,12 +1103,12 @@ A **stock** (or share) represents **partial ownership** in a company. When you b
 
 ### Market Types
 
-🐂 **Bull Market**
+🐂 **[[Bull Market]]**
 - Prices rising 20%+ from recent lows
 - Investor optimism & confidence
 - Economic expansion
 
-🐻 **Bear Market**  
+🐻 **[[Bear Market]]**
 - Prices falling 20%+ from recent highs
 - Investor pessimism & fear
 - Economic contraction
@@ -862,14 +1132,14 @@ A **stock** (or share) represents **partial ownership** in a company. When you b
 
 ---
 
-### Growth of $10,000 at 10% Annual Return
+### Growth of &#36;10,000 at 10% Annual Return
 
 | Years | Value | Total Growth |
 |-------|-------|--------------|
-| 5 | $16,105 | +61% |
-| 10 | $25,937 | +159% |
-| 20 | $67,275 | +573% |
-| 30 | **$174,494** | +1,645% |
+| 5 | &#36;16,105 | +61% |
+| 10 | &#36;25,937 | +159% |
+| 20 | &#36;67,275 | +573% |
+| 30 | **&#36;174,494** | +1,645% |
 
 ---
 
@@ -905,20 +1175,20 @@ The study of **price patterns and indicators** to predict future movements. It a
 
 ### Key Indicators
 
-#### Moving Averages (MA)
-- **SMA 20**: Short-term trend (20-day average)
-- **SMA 50**: Medium-term trend
-- **SMA 200**: Long-term trend
-- Price > MA = **Bullish** ✅
-- Price < MA = **Bearish** ❌
+#### [[Moving Average|Moving Averages]] (MA)
+- **[[SMA 20]]**: Short-term trend (20-day average)
+- **[[SMA 50]]**: Medium-term trend
+- **[[SMA 200]]**: Long-term trend
+- Price > MA = **[[Bullish]]** ✅
+- Price < MA = **[[Bearish]]** ❌
 
-#### RSI (Relative Strength Index)
+#### [[RSI]] (Relative Strength Index)
 Measures momentum on a scale of 0-100:
 - **RSI > 70**: Overbought 🔴 (potential reversal down)
 - **RSI < 30**: Oversold 🟢 (potential reversal up)
 - **RSI 30-70**: Neutral zone
 
-#### MACD (Moving Average Convergence Divergence)
+#### [[MACD]] (Moving Average Convergence Divergence)
 - **MACD > Signal Line** = Bullish momentum
 - **MACD < Signal Line** = Bearish momentum
 - **Histogram** shows momentum strength
@@ -1022,16 +1292,16 @@ An **option** is a contract that gives you the **right** (but not obligation) to
 ### Simple Example
 
 **CALL Option Example:**
-- Stock ABC trades at $100
-- You buy a $105 CALL for $2 (premium)
-- If stock rises to $115 → You profit $8 ($115 - $105 - $2)
-- If stock stays below $105 → You lose $2 (premium only)
+- Stock ABC trades at &#36;100
+- You buy a &#36;105 CALL for &#36;2 (premium)
+- If stock rises to &#36;115 → You profit &#36;8 (&#36;115 - &#36;105 - &#36;2)
+- If stock stays below &#36;105 → You lose &#36;2 (premium only)
 
 **PUT Option Example:**
-- Stock ABC trades at $100
-- You buy a $95 PUT for $2 (premium)
-- If stock falls to $85 → You profit $8 ($95 - $85 - $2)
-- If stock stays above $95 → You lose $2 (premium only)
+- Stock ABC trades at &#36;100
+- You buy a &#36;95 PUT for &#36;2 (premium)
+- If stock falls to &#36;85 → You profit &#36;8 (&#36;95 - &#36;85 - &#36;2)
+- If stock stays above &#36;95 → You lose &#36;2 (premium only)
 
 ---
 
@@ -1039,7 +1309,7 @@ An **option** is a contract that gives you the **right** (but not obligation) to
 
 | Greek | What It Measures |
 |-------|------------------|
-| **Delta (Δ)** | Price change per $1 stock move |
+| **Delta (Δ)** | Price change per &#36;1 stock move |
 | **Gamma (Γ)** | Rate of delta change |
 | **Theta (Θ)** | Time decay (value lost per day) |
 | **Vega (ν)** | Sensitivity to volatility |
@@ -1068,6 +1338,299 @@ An **option** is a contract that gives you the **right** (but not obligation) to
 | **Naked Options** | ⚠️ HIGH | Don't do this as a beginner! |
 """
 }
+
+# ── Curriculum modules (DIME Level 2) — added as extra Learn tabs ──
+EDUCATION_MODULES["🩺 Financial Statements"] = r"""
+## Financial Statements & Diagnostics
+
+Financial statements are the **investor's X-ray** — they reveal a company's quantitative health (profit, debt) even when the story sounds great.
+
+---
+
+### The Three Core Statements
+
+**1. The [[Income Statement]] (P&L)** — tracks profitability over a period. It flows from the top line to the bottom line:
+
+- [[Revenue]] *(top line)* — total money earned from sales
+- − [[COGS]] — direct production costs
+- = [[Gross Profit]]
+- − Operating Expenses (SG&A, R&D, overhead)
+- = [[Operating Income]]
+- − Taxes & Interest
+- = [[Net Income]] *(bottom line — the final profit)*
+
+**2. The [[Balance Sheet]]** — a snapshot at one instant of what a company owns vs owes:
+
+> **[[Assets]] = [[Liabilities]] + [[Equity]]**
+
+High [[Equity]] (owns more than it owes) = stable. High [[Liabilities]] (owes more than it owns) = high-risk and [[Leverage|leveraged]].
+
+**3. The [[Cash Flow Statement]]** — tracks the actual cash moving in and out (Operating, Investing, Financing). A company can show a profit on paper and still go bankrupt if it runs out of cash. *Net income is an opinion; cash flow is a fact.*
+
+---
+
+### Measuring Efficiency: Margins
+> *"It's not just what you make, it's what you keep."*
+
+- [[Gross Margin]] = Gross Profit ÷ Revenue → production efficiency
+- [[Operating Margin]] = Operating Income ÷ Revenue → core-business efficiency
+- [[Net Margin]] = Net Income ÷ Revenue → the true bottom line
+
+*Revenue is vanity, margin is sanity.*
+
+---
+
+### The Analyst's Toolkit: Critical Ratios
+
+| Ratio | Formula | What it tells you |
+|-------|---------|-------------------|
+| Current Ratio | Current Assets ÷ Current Liabilities | Can they pay bills NOW? |
+| Quick Ratio | (Current Assets − Inventory) ÷ Current Liabilities | Liquidity using only cash-like assets |
+| Net Debt to EBITDA | (Debt − Cash) ÷ EBITDA | Years to pay off debt (lower is better) |
+| Receivables Days | Avg days to collect | Speed of collecting payments (faster is better) |
+
+*Hover for definitions:* [[Current Ratio]] · [[Quick Ratio]] · [[Net Debt to EBITDA]] · [[Receivables Days]]
+
+> *Ratios remove emotion. Never trust a story; trust the math.*
+
+---
+
+### Case Study — Leverage Kills: Nordstrom vs JCPenney
+- **Nordstrom (survivor):** Net Debt \$1.6bn, Net-Debt/EBITDA ≈ **1.0x** (safe). Survived COVID-19 on a strong balance sheet.
+- **JCPenney (casualty):** Net Debt \$3.6bn, ratio ≈ **3.6x** (critical). Went bankrupt.
+
+*"JCPenney didn't die from bad clothes; they died from bad debt."* [[Leverage]] magnifies gains but guarantees losses.
+
+---
+
+### Case Study — Efficiency: FedEx vs UPS
+| Metric | FedEx | UPS |
+|--------|-------|-----|
+| Revenue | \$87.4B | \$90.7B |
+| Gross Margin | **21.30%** | 17.54% |
+| Operating Margin | 6.72% | **8.84%** |
+| Net Margin | 4.44% | **6.25%** |
+
+FedEx wins on production efficiency (gross margin), but UPS runs leaner overhead → better operating and net margins. *Revenue is vanity, margin is sanity.*
+
+---
+
+### The "Buy" Decision Matrix — Kohl's (KSS): a **NO**
+- Revenue Growth **−4.20%** (shrinking) · Profit Margin **1.66%** (low)
+- [[Debt-to-Equity]] **195%** (high risk) · [[Current Ratio]] **1.08** (barely liquid)
+
+High debt + shrinking revenue + low margin = high risk. *Sometimes the best trade is the one you don't make.*
+"""
+
+EDUCATION_MODULES["🧮 Valuation Metrics"] = r"""
+## Valuation Metrics
+
+How do we decide if a company is a **'Buy'**? We turn financial statements into comparable numbers.
+
+---
+
+### [[EPS]] — Earnings Per Share
+**EPS = (Net Income − Preferred Dividends) ÷ Shares Outstanding.** The slice of profit attached to each share — a primary driver of stock price.
+
+### [[EBITDA]]
+*Earnings Before Interest, Taxes, Depreciation & Amortization.* Isolates **core operational profitability** by removing financing and accounting effects, so you can fairly compare companies with different tax and debt structures.
+
+### [[P/E Ratio]] — Price-to-Earnings
+**P/E = Price ÷ EPS.** How many dollars investors pay for \$1 of earnings. High P/E = expensive, or high growth expected.
+
+### [[Market Cap]]
+Share price × shares outstanding = the company's total market value.
+
+---
+
+### The Diagnostic Conflict (UPS vs FedEx)
+- **UPS:** earnings growing **+37%**, but the stock price **fell −10%**.
+- **FedEx:** earnings shrinking **−14%**, but the stock price **rose +14%**.
+
+Which signal do you trust — market sentiment or fundamentals?
+
+> *"The market is a voting machine in the short run, but a weighing machine in the long run."* — Benjamin Graham
+
+Short term, prices follow emotion (voting). Long term, they follow real earnings (weighing).
+"""
+
+EDUCATION_MODULES["📜 Investment Policy (IPS)"] = r"""
+## The Investment Policy Statement (IPS)
+
+> *"Successful investing is 10% picking stocks and 90% discipline."*
+
+An [[IPS]] is the **constitution** for your portfolio — the governing law every decision must obey. It enforces:
+- **Discipline** — prevents emotional reactions to [[Volatility|market volatility]].
+- **Accountability** — clearly defines who is responsible for what.
+- **Alignment** — every analyst agrees on the goal *before* trading begins.
+
+---
+
+### The Six Pillars of an Effective IPS
+1. **[[Financial Goals|Goals & Objectives]]** — what the investor wants (retirement, growth) and the [[Time Horizon]].
+2. **[[Risk Tolerance]]** — how much volatility is acceptable.
+3. **[[Asset Allocation]]** — guidelines for splitting money among stocks, bonds, etc.
+4. **Roles & Responsibilities** — who does what (client, advisor, custodian).
+5. **Constraints** — limits such as [[Liquidity]] needs or ethical screens.
+6. **Performance [[Benchmark|Benchmarks]]** — how success is measured (e.g. vs the [[S&P 500]]).
+
+---
+
+### The \$100,000 Portfolio Challenge
+You manage a shared **\$100,000 virtual portfolio** on Personal Finance Lab. The constraint: justify each investment with at least **three** financial metrics (e.g. [[P/E Ratio]], [[EPS]] growth, [[Debt-to-Equity]]).
+
+> *"You are not gambling. You are allocating capital based on data. If you can't explain the 'Why' with numbers, don't buy it."*
+
+**Team roles:** Lead Analyst (reads the X-ray) · Strategy Manager (buy/sell calls) · Data Tracker (performance) · Communications Lead (reporting).
+
+---
+
+### IPS Development Process
+**Gather Info → Define Objectives → Formulate Strategy → Draft Document → Review & Sign-Off.**
+It is iterative — the team agrees the rules *before* the first trade is placed.
+"""
+
+EDUCATION_MODULES["⚖️ Asset Allocation"] = r"""
+## Asset Allocation & Diversification
+
+### Winners Rotate
+The top asset class one year is frequently at the bottom the next — the winner of 2023 was often the loser of 2022. Because we **cannot predict** the winner, we [[Diversification|diversify]] across classes to capture growth while limiting losses.
+
+### What is [[Asset Allocation]]?
+Dividing a portfolio among different asset classes — stocks, bonds, real estate, cash. It:
+- Reduces [[Volatility]] (smooths the highs and lows)
+- Improves [[Risk-Adjusted Return|risk-adjusted returns]]
+- Provides stability (prevents collapse from a single crash)
+
+---
+
+### The Risk vs Reward Spectrum *(low → high)*
+1. **[[Cash Equivalents]]** — money market, [[CDs]]. Least risky, highly liquid, low return.
+2. **[[Fixed Income]] ([[Bonds]])** — Treasuries, corporates. Regular interest, relatively stable.
+3. **[[Real Estate]]** — rental income, but subject to market swings.
+4. **[[Equities]]** *(stocks)* — ownership; value fluctuates with company and market performance.
+5. **[[Alternative Investments]]** — [[Hedge Fund|hedge funds]], [[Crypto]], [[Commodities]]. Riskiest, complex, illiquid.
+
+**Risks to know:** [[Inflation Risk]] erodes cash; bonds carry [[Default Risk]] and [[Interest Rate Risk]].
+
+---
+
+### The Three Pillars of Decision-Making
+- **[[Financial Goals]] (the What)** — retirement, education, preservation.
+- **[[Time Horizon]] (the When)** — longer horizons allow more risk.
+- **[[Risk Tolerance]] (the How)** — the 'sleep factor': can you withstand a 20% drop without panic-selling?
+
+---
+
+### Strategy & Maintenance
+- **Strategic:** long-term target, strict adherence.
+- **Tactical:** short-term tilts for opportunity.
+- **Dynamic:** rules-based automatic adjustments.
+
+The crucial step is **[[Rebalancing]]** — sell high, buy low to reset to your target, because winners grow and skew your risk.
+
+---
+
+### Two Scenarios
+- **Short-term goal** (\$50,000 tuition in 2 years): [[Capital Preservation]] — ~45% cash, 45% govt bonds, 10% stocks. You can't afford crypto's ~50% volatility.
+- **Long-term goal** (house down payment in 10 years): balanced growth — heavier in [[Equities]], using time to ride out volatility and beat inflation.
+
+> *"It is not about picking the best stock; it is about selecting the right balance for your life."*
+"""
+
+EDUCATION_MODULES["🧺 Mutual Funds & ETFs"] = r"""
+## Mutual Funds & ETFs
+
+### The Temptation — and the Trap
+A single hot stock (Nvidia surged ~90% in a year) is tempting, but it carries **[[Concentration Risk]]**: if that one company stumbles, the whole portfolio collapses. The fix is **pooled capital**.
+
+---
+
+### The Two Vehicles
+
+**[[Mutual Fund]]**
+- Trades **once daily** after market close
+- Priced at end-of-day [[NAV]]
+- Often **[[Active Management|actively managed]]**
+
+**[[ETF]] — Exchange-Traded Fund**
+- Trades **like a stock** all day at real-time prices
+- Typically **[[Passive Investing|passive]] / [[Index Fund|index-tracking]]**
+
+---
+
+### Key Metrics (KPIs)
+- **[[NAV]]** — price per share = (assets − liabilities) ÷ shares.
+- **[[Expense Ratio]]** — the annual fee. High fees compound and quietly eat returns, so an [[Active Management|active]] fee must be justified.
+- **[[Index Fund]]** — tracks an index automatically; low-fee 'autopilot.'
+- Returns come from **[[Dividend|dividends]]**, **[[Capital Gains Distribution|capital gains distributions]]**, and a rising [[NAV]].
+
+---
+
+### Calibrating Risk / Return *(low → high)*
+[[Money Market Fund]] → [[Bond Fund]] → [[S&P 500]] [[Index Fund]] → Emerging-Markets Equity.
+Other categories: balanced funds, specialty funds, [[Target Date Fund|target-date funds]].
+
+---
+
+### The Investment Committee Simulation
+Manage a shared **\$50,000** portfolio — *no individual stock picking.*
+**Driving question:** how do investors choose funds to balance cost, diversification, and risk?
+**Roles:** Fund Research Analyst · Cost & Expense Analyst · Portfolio Manager · Communications Lead.
+
+Define a strategy (Growth / Stability / Income, a risk level, and a diversification rule like *'no more than 40% in one fund'*), research **2 funds + 2 ETFs**, then justify every dollar by [[NAV]], [[Expense Ratio]], and fund type.
+"""
+
+EDUCATION_MODULES["💵 Rates, Yields & Spread"] = r"""
+## Rates, Yields & the Spread
+
+### The Core Dichotomy: paying vs earning
+- **[[Interest Rate]]** = the *cost of capital* — the price you **pay** for debt (an EXPENSE).
+- **[[Yield]]** = the *return on capital* — the income you **earn** (the 'rent' your money collects).
+
+---
+
+### Total Return
+> **[[Total Return]] = [[Yield]] + [[Capital Appreciation]]**
+
+[[Yield]] is real, cash-in-hand income (dividends, coupons). [[Capital Appreciation]] is the unrealized rise in price — paper wealth until you sell. Historically, dividend yield made up ~**31.6%** of the S&P 500's total return.
+
+**Example — Starbucks (SBUX):** annual [[Dividend]] \$2.28 → [[Dividend Yield]] **2.41%** (dividend ÷ price), paid quarterly, with a [[Payout Ratio]] of ~64%.
+
+---
+
+### The Pacesetter: the [[Federal Funds Rate]]
+The Fed's [[EFFR]] is the [[Risk-Free Rate|risk-free]] baseline. It sets borrowing costs, bank liquidity, and the interest on national debt — it ripples all the way into your wallet.
+
+---
+
+### The Risk Ladder
+Safer borrowers pay less; riskier borrowers pay a higher [[Risk Premium]]:
+
+| Rating | Yield | |
+|--------|-------|--|
+| US Corporate AAA | 4.39% | safest |
+| US Corporate AA | 4.52% | |
+| US Corporate A | 4.82% | |
+| US Corporate BBB | 5.12% | riskier |
+
+The yield gap is the [[Spread]] that compensates for [[Default Risk]].
+
+### The [[Yield Curve]]
+Normally, longer-term debt pays more (you demand more to lock money away). An **[[Inverted Yield Curve]]** — short-term yields ABOVE long-term — is a classic signal of economic uncertainty.
+
+---
+
+### Your Personal Rates
+Your rate = **Fed baseline + your credit risk.** Mortgages, auto, student, and revolving (credit-card) debt all key off the baseline. A higher **[[FICO Score|credit score]]** earns a lower [[APR]] — and a 1.6% difference over a 30-year mortgage equals tens of thousands of dollars.
+
+---
+
+### The Winning Strategy: manage the [[Spread]]
+**Grow these yields:** stocks · bonds · real estate · a business.
+**Shrink these rates:** credit cards · auto loans · mortgages · student loans.
+Your financial health = maximize the left column, minimize the right.
+"""
 
 # Quiz Questions
 QUIZ_DATA = [
@@ -1149,7 +1712,7 @@ with st.sidebar:
     # Navigation
     page = st.radio(
         "Navigation",
-        ["🏠 Dashboard", "📚 Learn", "📈 Stock Analysis", "🤖 AI Predictor", "💬 AI Advisor", "⚖️ Compare", "🧮 Calculator", "🎭 Risk Profile", "🪙 Crypto", "💼 Portfolio", "🎯 Quiz", "ℹ️ About"],
+        ["🏠 Dashboard", "📚 Learn", "📖 Glossary", "📈 Stock Analysis", "🤖 AI Predictor", "💬 AI Advisor", "⚖️ Compare", "🧮 Calculator", "🎭 Risk Profile", "🪙 Crypto", "💼 Portfolio", "🎯 Quiz", "ℹ️ About"],
         label_visibility="collapsed"
     )
     
@@ -1287,7 +1850,62 @@ elif page == "📚 Learn":
     
     for i, (module_name, content) in enumerate(EDUCATION_MODULES.items()):
         with tabs[i]:
-            st.markdown(content)
+            st.markdown(glossify(content), unsafe_allow_html=True)
+
+    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+    st.info("💡 Hover any underlined term to see its definition. Want the full list? Open the **📖 Glossary** page from the sidebar.")
+
+# ═══════════════════════════════════════════════════════════
+# PAGE: GLOSSARY
+# ═══════════════════════════════════════════════════════════
+
+elif page == "📖 Glossary":
+    st.markdown("""
+    <div class="hero-container" style="padding: 2rem 0;">
+        <h1 class="hero-title" style="font-size: 3rem;">📖 Glossary</h1>
+        <p class="hero-subtitle">Every term in the app, defined. Hover any underlined word in a lesson to see these instantly.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Live hover demo so users discover the feature
+    st.markdown(
+        glossify(
+            "**Try it →** hover these: a [[Bull Market]] vs a [[Bear Market]], "
+            "the [[SMA 50]] crossing the [[SMA 200]] (a [[Golden Cross]]), "
+            "an [[ETF]]'s [[Expense Ratio]], or an [[Inverted Yield Curve]]."
+        ),
+        unsafe_allow_html=True,
+    )
+
+    query = st.text_input(
+        "Search terms",
+        placeholder="Search e.g. 'RSI', 'yield', 'EBITDA', 'bull'...",
+        label_visibility="collapsed",
+    )
+
+    items = sorted(GLOSSARY.items(), key=lambda kv: kv[0].lower())
+    if query:
+        q = query.lower()
+        items = [(t, d) for t, d in items if q in t.lower() or q in d.lower()]
+
+    st.markdown(
+        f'<p style="color:#64748b;font-size:0.85rem;margin:0.75rem 0 0.25rem;">'
+        f'{len(items)} term{"s" if len(items) != 1 else ""}</p>',
+        unsafe_allow_html=True,
+    )
+
+    if not items:
+        st.info("No terms match your search.")
+    else:
+        cards = '<div class="gloss-grid">'
+        for t, d in items:
+            safe_d = d.replace("<", "&lt;").replace(">", "&gt;").replace("$", "&#36;")
+            cards += (
+                f'<div class="gloss-card"><div class="gloss-card-term">{t}</div>'
+                f'<div class="gloss-card-def">{safe_d}</div></div>'
+            )
+        cards += "</div>"
+        st.markdown(cards, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════
 # PAGE: STOCK ANALYSIS
