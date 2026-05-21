@@ -14,3 +14,4 @@ Thumbs.db
 *.log
 data/*.json
 notebooks/.ipynb_checkpoints/
+.claude/
