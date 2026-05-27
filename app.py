@@ -1710,11 +1710,16 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     
     # Navigation
+    _pages = ["🏠 Dashboard", "📚 Learn", "📖 Glossary", "📈 Stock Analysis", "🤖 AI Predictor", "💬 AI Advisor", "⚖️ Compare", "🧮 Calculator", "🎭 Risk Profile", "🪙 Crypto", "💼 Portfolio", "🎯 Quiz", "ℹ️ About"]
+    _url_page = st.query_params.get("page", "🏠 Dashboard")
+    _default_idx = _pages.index(_url_page) if _url_page in _pages else 0
     page = st.radio(
         "Navigation",
-        ["🏠 Dashboard", "📚 Learn", "📖 Glossary", "📈 Stock Analysis", "🤖 AI Predictor", "💬 AI Advisor", "⚖️ Compare", "🧮 Calculator", "🎭 Risk Profile", "🪙 Crypto", "💼 Portfolio", "🎯 Quiz", "ℹ️ About"],
+        _pages,
+        index=_default_idx,
         label_visibility="collapsed"
     )
+    st.query_params["page"] = page
     
     # Footer
     st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)

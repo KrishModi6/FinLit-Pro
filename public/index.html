@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinLit Pro</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #08090d; }
+    iframe { width: 100%; height: 100%; border: none; display: block; }
+  </style>
+</head>
+<body>
+  <iframe id="app" allow="fullscreen" allowfullscreen></iframe>
+  <script>
+    const base = "https://finlitpro.streamlit.app/";
+    const params = new URLSearchParams(window.location.search);
+    params.set("embed", "true");
+    document.getElementById("app").src = base + "?" + params.toString() + window.location.hash;
+  </script>
+</body>
+</html>
