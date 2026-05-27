@@ -14,9 +14,8 @@
   <iframe id="app" allow="fullscreen" allowfullscreen></iframe>
   <script>
     const base = "https://finlitpro.streamlit.app/";
-    const params = new URLSearchParams(window.location.search);
-    params.set("embed", "true");
-    document.getElementById("app").src = base + "?" + params.toString() + window.location.hash;
+    const search = window.location.search || "";
+    document.getElementById("app").src = base + search + window.location.hash;
   </script>
 </body>
 </html>
