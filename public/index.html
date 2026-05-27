@@ -11,10 +11,13 @@
   </style>
 </head>
 <body>
+  <iframe id="app" allow="fullscreen; clipboard-read; clipboard-write" allowfullscreen></iframe>
   <script>
     const base = "https://finlitpro.streamlit.app/";
-    const search = window.location.search || "";
-    window.location.replace(base + search + window.location.hash);
+    const params = new URLSearchParams(window.location.search);
+    params.set("embed", "true");
+    params.set("embed_options", "show_padding");
+    document.getElementById("app").src = base + "?" + params.toString() + window.location.hash;
   </script>
 </body>
 </html>

@@ -1711,15 +1711,17 @@ with st.sidebar:
     
     # Navigation
     _pages = ["🏠 Dashboard", "📚 Learn", "📖 Glossary", "📈 Stock Analysis", "🤖 AI Predictor", "💬 AI Advisor", "⚖️ Compare", "🧮 Calculator", "🎭 Risk Profile", "🪙 Crypto", "💼 Portfolio", "🎯 Quiz", "ℹ️ About"]
-    _url_page = st.query_params.get("page", "🏠 Dashboard")
-    _default_idx = _pages.index(_url_page) if _url_page in _pages else 0
+    _slugs = ["dashboard", "learn", "glossary", "stock-analysis", "ai-predictor", "ai-advisor", "compare", "calculator", "risk-profile", "crypto", "portfolio", "quiz", "about"]
+    _slug_to_idx = {s: i for i, s in enumerate(_slugs)}
+    _url_slug = st.query_params.get("page", "dashboard")
+    _default_idx = _slug_to_idx.get(_url_slug, 0)
     page = st.radio(
         "Navigation",
         _pages,
         index=_default_idx,
         label_visibility="collapsed"
     )
-    st.query_params["page"] = page
+    st.query_params["page"] = _slugs[_pages.index(page)]
     
     # Footer
     st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
