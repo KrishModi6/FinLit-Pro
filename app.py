@@ -67,6 +67,25 @@ st.markdown("""
         display: none !important;
     }
 
+    /* Double-clicking UI chrome should not text-select it — on the gradient
+       titles the selection box exposes the solid text and looks broken.
+       Real content (paragraphs, glossary, tables, inputs) stays selectable. */
+    .hero-title, .hero-subtitle, .hero-badge, .section-header,
+    .sidebar-brand, .sidebar-title, .sidebar-logo,
+    .feature-title, .feature-desc, .feature-icon,
+    .metric-label, .metric-value, .metric-change,
+    [data-testid="stSidebar"] .stRadio,
+    .stButton button,
+    .stTabs [data-baseweb="tab"] {
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        user-select: none !important;
+    }
+
+    /* On-brand selection color for the content that IS selectable */
+    ::selection { background: rgba(99, 102, 241, 0.35); color: #ffffff; }
+    ::-moz-selection { background: rgba(99, 102, 241, 0.35); color: #ffffff; }
+
     [data-testid="stHeader"] {
         background: transparent !important;
     }
