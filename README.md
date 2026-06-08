@@ -19,8 +19,8 @@ A stunning, professional financial literacy web application built for IB CAS.
 
 ## 🚀 Live Demo
 
-finlitpro.org 
-
+[finlitpro.org 
+](finlitpro.org)
 ## 🛠️ Tech Stack
 
 - **Python** - Core programming
