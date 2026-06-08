@@ -58,6 +58,33 @@ st.markdown("""
     footer {visibility: hidden;}
     .stDeployButton {display: none;}
 
+    /* ── Kill the Streamlit Community Cloud viewer bar ────────────────────
+       The "Built with Streamlit 🎈 / Fullscreen ⤢" strip at the bottom of the
+       page is injected by the Community Cloud host. Its "Fullscreen" control is
+       a link to the BARE app URL (no ?embed), so inside the finlitpro.org
+       iframe clicking it navigates the user out to finlitpro.streamlit.app.
+       Hide the whole strip — badge + fullscreen link — by every selector it
+       is known to use across Streamlit versions. */
+    [data-testid="stStatusWidget"],
+    [data-testid="stAppViewBadge"],
+    [data-testid="stBottomBlockContainer"] [class*="viewerBadge"],
+    [class*="viewerBadge"],
+    [class*="ViewerBadge"],
+    [class*="stViewerBadge"],
+    a[href*="streamlit.io"],
+    a[href*="share.streamlit.io"],
+    a[href*="streamlit.app"],
+    a[title="Fullscreen"],
+    a[aria-label="Fullscreen"],
+    button[title="Fullscreen"],
+    button[aria-label="Fullscreen"],
+    button[title="Enter Fullscreen"],
+    button[title="Exit Fullscreen"] {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
     /* Double-clicking UI chrome should not text-select it — on the gradient
        titles the selection box exposes the solid text and looks broken.
        Real content (paragraphs, glossary, tables, inputs) stays selectable. */
