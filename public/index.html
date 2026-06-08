@@ -50,7 +50,15 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #08090d; }
-    iframe { width: 100%; height: 100%; border: none; display: block; }
+    /* Start the app hidden over the dark background, then fade it in once it has
+       loaded. This masks Streamlit's initial mount flash (default styles → custom
+       fonts/gradients), which is what reads as "flickering on every open". */
+    iframe {
+      width: 100%; height: 100%; border: none; display: block;
+      opacity: 0;
+      transition: opacity .45s ease;
+    }
+    iframe.ready { opacity: 1; }
   </style>
 </head>
 <body>
@@ -84,11 +92,19 @@
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
           allow="fullscreen; clipboard-read; clipboard-write" allowfullscreen></iframe>
   <script>
+    const app = document.getElementById("app");
     const base = "https://finlitpro.streamlit.app/";
     const params = new URLSearchParams(window.location.search);
     params.set("embed", "true");
     params.set("embed_options", "show_padding");
-    document.getElementById("app").src = base + "?" + params.toString() + window.location.hash;
+
+    // Reveal (fade in) once the app frame has loaded; the timeout is a safety
+    // net so the app is never stuck invisible if the load event is missed.
+    const reveal = () => app.classList.add("ready");
+    app.addEventListener("load", reveal);
+    setTimeout(reveal, 4000);
+
+    app.src = base + "?" + params.toString() + window.location.hash;
   </script>
 
   <!-- Vercel Web Analytics (page views / visitors for finlitpro.org) -->
