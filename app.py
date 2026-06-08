@@ -373,6 +373,46 @@ st.markdown("""
         box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12) !important;
     }
 
+    /* Selectbox selected value — force the chosen number/text to be visible
+       (Streamlit/BaseWeb otherwise renders it with a transparent text-fill). */
+    .stSelectbox div[data-baseweb="select"] > div,
+    .stSelectbox div[data-baseweb="select"] div[role="button"],
+    .stSelectbox div[data-baseweb="select"] span {
+        color: #e2e8f0 !important;
+        -webkit-text-fill-color: #e2e8f0 !important;
+    }
+
+    /* Dropdown menu popover — replace BaseWeb's default grey with the app theme */
+    div[data-baseweb="popover"] ul[role="listbox"],
+    ul[data-baseweb="menu"],
+    div[data-baseweb="menu"] {
+        background: #0f172a !important;
+        border: 1px solid rgba(99, 102, 241, 0.30) !important;
+        border-radius: 10px !important;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55) !important;
+        padding: 4px !important;
+    }
+    li[role="option"],
+    ul[data-baseweb="menu"] li {
+        background: transparent !important;
+        color: #cbd5e1 !important;
+        border-radius: 8px !important;
+        transition: background 0.15s ease !important;
+    }
+    li[role="option"]:hover,
+    ul[data-baseweb="menu"] li:hover,
+    li[role="option"][aria-selected="true"],
+    li[aria-selected="true"] {
+        background: rgba(99, 102, 241, 0.20) !important;
+        color: #ffffff !important;
+    }
+
+    /* Hide Plotly's grey modebar toolbar on every chart for a cleaner look */
+    .js-plotly-plot .modebar,
+    .modebar-container {
+        display: none !important;
+    }
+
     /* Chat input styling */
     .stChatInput > div {
         background: rgba(15, 23, 42, 0.8) !important;
