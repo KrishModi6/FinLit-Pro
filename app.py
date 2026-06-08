@@ -373,11 +373,20 @@ st.markdown("""
         box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12) !important;
     }
 
-    /* Selectbox selected value — force the chosen number/text to be visible
-       (Streamlit/BaseWeb otherwise renders it with a transparent text-fill). */
+    /* Selectbox selected value — make the chosen number/text visible.
+       BaseWeb collapses the value element to height:0 (overflow:hidden), so the
+       text is present but clipped to nothing; restore its height + color. */
     .stSelectbox div[data-baseweb="select"] > div,
     .stSelectbox div[data-baseweb="select"] div[role="button"],
     .stSelectbox div[data-baseweb="select"] span {
+        color: #e2e8f0 !important;
+        -webkit-text-fill-color: #e2e8f0 !important;
+    }
+    .stSelectbox div[data-baseweb="select"] div[value] {
+        height: auto !important;
+        min-height: 1.4em !important;
+        line-height: 1.4 !important;
+        overflow: visible !important;
         color: #e2e8f0 !important;
         -webkit-text-fill-color: #e2e8f0 !important;
     }
