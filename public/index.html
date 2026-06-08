@@ -3,9 +3,50 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FinLit Pro</title>
+
+  <!-- Primary SEO -->
+  <title>FinLit Pro — Learn Investing, Markets & Money Management (Free)</title>
+  <meta name="description" content="FinLit Pro is a free financial-literacy app for students and beginners. Learn investing, stock markets, valuation, asset allocation, and personal finance with interactive lessons, a 100+ term glossary, live market data, and an AI advisor." />
+  <meta name="keywords" content="financial literacy, learn investing, stock market for beginners, personal finance for students, investing basics, finance glossary, money management" />
+  <meta name="author" content="Krish Modi" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <link rel="canonical" href="https://www.finlitpro.org/" />
+  <meta name="theme-color" content="#6366f1" />
+
+  <!-- Open Graph (link previews on WhatsApp, Discord, LinkedIn, Slack, iMessage) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="FinLit Pro" />
+  <meta property="og:title" content="FinLit Pro — Learn Investing, Markets & Money Management (Free)" />
+  <meta property="og:description" content="A free financial-literacy app: interactive lessons on investing, markets, and personal finance, a 100+ term glossary, live market data, and an AI advisor." />
+  <meta property="og:url" content="https://www.finlitpro.org/" />
+  <meta property="og:image" content="https://www.finlitpro.org/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter / X card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="FinLit Pro — Learn Investing, Markets & Money (Free)" />
+  <meta name="twitter:description" content="Free interactive financial-literacy app for students and beginners." />
+  <meta name="twitter:image" content="https://www.finlitpro.org/og-image.png" />
+
   <!-- Favicon: the 📈 chart emoji rendered as an inline SVG (matches the Streamlit page icon) -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>" />
+
+  <!-- Structured data: helps Google understand what this site is -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "FinLit Pro",
+    "url": "https://www.finlitpro.org/",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "Web",
+    "description": "A free financial-literacy app for students and beginners covering investing, markets, valuation, asset allocation, and personal finance.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "author": { "@type": "Person", "name": "Krish Modi" }
+  }
+  </script>
+
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #08090d; }
@@ -13,7 +54,29 @@
   </style>
 </head>
 <body>
-  <iframe id="app" allow="fullscreen; clipboard-read; clipboard-write" allowfullscreen></iframe>
+  <!-- Crawlable content for search engines (the live app loads in the iframe below).
+       Visually hidden from sighted users but read by crawlers and screen readers. -->
+  <main style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;">
+    <h1>FinLit Pro — Free Financial Literacy for Students &amp; Beginners</h1>
+    <p>FinLit Pro is a free, interactive financial-literacy app that teaches investing,
+       stock markets, valuation metrics, asset allocation, mutual funds and ETFs, and
+       personal money management. It includes a searchable glossary of 100+ finance terms,
+       live market data and charts, an AI market predictor, and an AI financial advisor.</p>
+    <p>Topics covered: how to start investing, reading financial statements, RSI and MACD
+       indicators, diversification, risk and return, compound interest, budgeting, and more.</p>
+    <p><a href="https://finlitpro.streamlit.app/">Open the FinLit Pro app</a></p>
+  </main>
+
+  <noscript>
+    <div style="color:#e5e7eb;font-family:sans-serif;max-width:640px;margin:12vh auto;padding:24px;text-align:center;">
+      <h1>FinLit Pro</h1>
+      <p>FinLit Pro is a free financial-literacy app for students and beginners.
+         Please enable JavaScript, or open the app directly:</p>
+      <p><a style="color:#818cf8;" href="https://finlitpro.streamlit.app/">finlitpro.streamlit.app</a></p>
+    </div>
+  </noscript>
+
+  <iframe id="app" title="FinLit Pro app" allow="fullscreen; clipboard-read; clipboard-write" allowfullscreen></iframe>
   <script>
     const base = "https://finlitpro.streamlit.app/";
     const params = new URLSearchParams(window.location.search);
