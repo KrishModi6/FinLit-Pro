@@ -59,19 +59,41 @@
       transition: opacity .45s ease;
     }
     iframe.ready { opacity: 1; }
-    /* Mask over the host "Fullscreen" link (bottom-right). Matches the Streamlit
-       theme background so it blends. pointer-events:none means it ONLY hides the
-       link visually — every click passes through to the app, so it can never block
-       the AI-advisor chat send button beneath it. The redirect itself is already
-       dead because the sandbox forbids the link's target="_blank" popup. */
-    #fs-mask {
-      position: fixed;
-      right: 0; bottom: 0;
-      width: 230px; height: 38px;
+
+    /* Our own bottom bar, layered exactly over the Community Cloud oembed strip.
+       The Streamlit host sizes the app iframe to (viewport − 36px) and gives the
+       bottom 36px to its "Built with Streamlit / Fullscreen" bar — so the app's
+       own UI (including the AI-advisor chat input) lives ABOVE this zone. That
+       means this opaque bar covers the host strip and NOTHING of the app. It both
+       hides the Streamlit branding and hosts our own fullscreen control that keeps
+       the user on finlitpro.org. */
+    #fs-bar {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      height: 38px;
       background: #0a0a0f;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex; align-items: center; justify-content: flex-end;
+      padding: 0 14px;
       z-index: 2147483647;
-      pointer-events: none;
     }
+    #fs-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      font: 500 13px/1 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
+      color: #cbd5e1;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+      -webkit-user-select: none; user-select: none;
+      transition: background .15s ease, border-color .15s ease, color .15s ease;
+    }
+    #fs-btn:hover {
+      background: rgba(99, 102, 241, 0.14);
+      border-color: rgba(99, 102, 241, 0.5);
+      color: #ffffff;
+    }
+    #fs-btn svg { width: 14px; height: 14px; display: block; }
   </style>
 </head>
 <body>
@@ -101,15 +123,24 @@
        Streamlit app runs (scripts, websockets, forms), but it can neither navigate
        the top window NOR open new tabs. The Community Cloud "Fullscreen" control is
        an <a target="_blank" href="/?utm_medium=oembed"> — a new-tab open — so with
-       popups blocked the browser simply refuses it. That kills the redirect at the
-       wrapper level, instantly, without waiting on a Streamlit redeploy. -->
+       popups blocked the browser refuses it, and our #fs-bar covers it anyway. -->
   <iframe id="app" title="FinLit Pro app"
           sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-modals"
           allow="clipboard-read; clipboard-write"></iframe>
-  <!-- Opaque mask over the bottom-right corner where the "Fullscreen" link sits,
-       so it is hidden on sight even before the app-side CSS redeploys. Sized to the
-       host badge bar only (≈40px tall) so it never overlaps the chat input above. -->
-  <div id="fs-mask" aria-hidden="true"></div>
+
+  <!-- Our bottom bar: covers the Streamlit oembed strip and provides a Fullscreen
+       button that fullscreens THIS finlitpro.org page (so the user is never sent to
+       the streamlit.app domain). -->
+  <div id="fs-bar">
+    <button id="fs-btn" type="button" aria-label="Toggle fullscreen" title="Toggle fullscreen">
+      <svg id="fs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/>
+      </svg>
+      <span id="fs-label">Fullscreen</span>
+    </button>
+  </div>
+
   <script>
     const app = document.getElementById("app");
     const base = "https://finlitpro.streamlit.app/";
@@ -124,6 +155,28 @@
     setTimeout(reveal, 4000);
 
     app.src = base + "?" + params.toString() + window.location.hash;
+
+    // ── Fullscreen ON finlitpro.org ─────────────────────────────────────────
+    // Fullscreen the wrapper page itself (which is just this iframe), so the app
+    // fills the screen WITHOUT navigating anywhere. No redirect to streamlit.app.
+    const fsBtn = document.getElementById("fs-btn");
+    const fsLabel = document.getElementById("fs-label");
+    const inFullscreen = () => document.fullscreenElement || document.webkitFullscreenElement;
+
+    fsBtn.addEventListener("click", () => {
+      try {
+        if (!inFullscreen()) {
+          const el = document.documentElement;
+          (el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen).call(el);
+        } else {
+          (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen).call(document);
+        }
+      } catch (e) { /* fullscreen API unavailable — no-op, never redirects */ }
+    });
+
+    const syncLabel = () => { fsLabel.textContent = inFullscreen() ? "Exit Fullscreen" : "Fullscreen"; };
+    document.addEventListener("fullscreenchange", syncLabel);
+    document.addEventListener("webkitfullscreenchange", syncLabel);
   </script>
 
   <!-- Vercel Web Analytics (page views / visitors for finlitpro.org) -->

@@ -58,22 +58,6 @@ st.markdown("""
     footer {visibility: hidden;}
     .stDeployButton {display: none;}
 
-    /* ── Kill the Streamlit Community Cloud oEmbed bar ────────────────────
-       The "Built with Streamlit 🎈 / Fullscreen ⤢" strip at the bottom is the
-       Community Cloud oEmbed bar. Its "Fullscreen" link points to /?utm_medium=
-       oembed (the app with NO ?embed) and opens target="_blank" — that is the
-       "redirect to the other website". The classes are CSS-module hashed
-       (e.g. _hostedName_1upux_12), so match by stable prefix + :has() on the
-       container. Verified against the live deployment to fully remove the bar. */
-    a[href*="utm_medium=oembed"],
-    a[class*="_linkOutText_"],
-    div[class*="_hostedName_"],
-    div[class*="_profileContainer_"],
-    div:has(> [class*="_hostedName_"]),
-    div:has(> div > a[href*="utm_medium=oembed"]) {
-        display: none !important;
-    }
-
     /* Double-clicking UI chrome should not text-select it — on the gradient
        titles the selection box exposes the solid text and looks broken.
        Real content (paragraphs, glossary, tables, inputs) stays selectable. */
