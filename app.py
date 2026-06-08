@@ -58,6 +58,15 @@ st.markdown("""
     footer {visibility: hidden;}
     .stDeployButton {display: none;}
 
+    /* Hide the chart/table "view fullscreen" ⛶ button — inside the finlitpro.org
+       iframe it breaks the app out to the public streamlit.app site. */
+    [data-testid="StyledFullScreenButton"],
+    [data-testid="StyledFullScreenFrame"] button,
+    button[title="View fullscreen"],
+    button[title="Exit fullscreen"] {
+        display: none !important;
+    }
+
     [data-testid="stHeader"] {
         background: transparent !important;
     }
@@ -1715,13 +1724,24 @@ with st.sidebar:
     _slug_to_idx = {s: i for i, s in enumerate(_slugs)}
     _url_slug = st.query_params.get("page", "dashboard")
     _default_idx = _slug_to_idx.get(_url_slug, 0)
+
+    # Seed the radio's state from the URL exactly once. After that the widget
+    # owns its own state via the key, so a single click switches pages (passing
+    # index= every rerun while writing query_params caused a double-click lag).
+    if "nav_page" not in st.session_state:
+        st.session_state.nav_page = _pages[_default_idx]
+
     page = st.radio(
         "Navigation",
         _pages,
-        index=_default_idx,
+        key="nav_page",
         label_visibility="collapsed"
     )
-    st.query_params["page"] = _slugs[_pages.index(page)]
+
+    # Keep the URL slug in sync for deep-linking / refresh, without re-seeding the widget.
+    _target_slug = _slugs[_pages.index(page)]
+    if st.query_params.get("page") != _target_slug:
+        st.query_params["page"] = _target_slug
     
     # Footer
     st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
