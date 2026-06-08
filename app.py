@@ -58,15 +58,6 @@ st.markdown("""
     footer {visibility: hidden;}
     .stDeployButton {display: none;}
 
-    /* Hide the chart/table "view fullscreen" ⛶ button — inside the finlitpro.org
-       iframe it breaks the app out to the public streamlit.app site. */
-    [data-testid="StyledFullScreenButton"],
-    [data-testid="StyledFullScreenFrame"] button,
-    button[title="View fullscreen"],
-    button[title="Exit fullscreen"] {
-        display: none !important;
-    }
-
     /* Double-clicking UI chrome should not text-select it — on the gradient
        titles the selection box exposes the solid text and looks broken.
        Real content (paragraphs, glossary, tables, inputs) stays selectable. */
