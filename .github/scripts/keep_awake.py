@@ -40,16 +40,30 @@ def main() -> int:
 
         # Wait for the real Streamlit app to mount. This confirms the container is
         # running and that we held an active WebSocket session — the thing that
-        # resets the inactivity timer. A cold boot (heavy imports) can take a while.
+        # resets the inactivity timer. This app imports openbb (very heavy), so a
+        # cold boot can take a few minutes; allow up to 4 min.
+        app_root = (
+            '[data-testid="stApp"], .stApp, '
+            '[data-testid="stAppViewContainer"], section.main'
+        )
         try:
-            page.wait_for_selector('[data-testid="stApp"]', state="visible", timeout=180_000)
+            page.wait_for_selector(app_root, state="attached", timeout=240_000)
             print("App is awake — Streamlit UI mounted.", flush=True)
         except PWTimeout:
             print(
-                "WARNING: stApp not detected in time, but a real session was "
+                "WARNING: app root not detected in time, but a real session was "
                 "established (the visit still counts as traffic).",
                 flush=True,
             )
+            # Diagnostics: show what the page is actually displaying so we can tell
+            # a slow boot apart from a crashed app or a changed selector.
+            try:
+                body = (page.inner_text("body") or "").strip().replace("\n", " ")
+                print(f"  url:   {page.url}", flush=True)
+                print(f"  title: {page.title()}", flush=True)
+                print(f"  text:  {body[:400]}", flush=True)
+            except Exception as exc:  # noqa: BLE001
+                print(f"  (diagnostics failed: {exc})", flush=True)
 
         # Linger so the session is unambiguously registered before we disconnect.
         page.wait_for_timeout(5_000)
