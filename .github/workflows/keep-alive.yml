@@ -1,11 +1,43 @@
 name: Keep Streamlit Awake
+
+# Streamlit Community Cloud hibernates an app after ~12h with no REAL traffic.
+# A plain `curl` returns HTTP 200 from a static sleep shell WITHOUT booting the
+# app, so it neither keeps the app awake nor wakes it. This job instead loads the
+# app in headless Chromium (Playwright) — opening the WebSocket session that
+# actually resets the inactivity timer — and clicks "Yes, get this app back up!"
+# if it finds the app sleeping. See .github/scripts/keep_awake.py.
+
 on:
   schedule:
-    - cron: "*/5 * * * *"   # every 5 minutes
-  workflow_dispatch:          # manual run button in the Actions tab
+    # Request every 10 min. GitHub throttles scheduled runs on free public repos
+    # (often down to ~1-2h between fires), but even that is far under Streamlit's
+    # ~12h sleep threshold, so the app stays awake with comfortable margin.
+    - cron: "*/10 * * * *"
+  workflow_dispatch:   # manual "wake now" button in the Actions tab
+
+# Never let two keep-alive runs overlap.
+concurrency:
+  group: keep-alive
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
-      - name: Ping app
-        run: curl -s -o /dev/null -w "%{http_code}\n" https://finlitpro.streamlit.app/
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright + Chromium
+        run: |
+          pip install --quiet playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Visit app and wake it if sleeping
+        run: python .github/scripts/keep_awake.py
