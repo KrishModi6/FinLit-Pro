@@ -15,3 +15,6 @@ Thumbs.db
 data/*.json
 notebooks/.ipynb_checkpoints/
 .claude/
+# keep-alive failure screenshot (generated in CI, never committed)
+app.png
+_wake_check.png

@@ -63,27 +63,25 @@ def main() -> int:
                 flush=True,
             )
 
-        # Diagnostics + a screenshot artifact so we can see exactly what rendered.
+        # Always log where we ended up. Only on the failure path do we save a
+        # screenshot (uploaded as a CI artifact) so a broken/crashed app can be
+        # inspected — healthy runs stay quiet and produce no artifact.
         try:
             print(f"  url:   {page.url}", flush=True)
             print(f"  title: {page.title()}", flush=True)
-            counts = page.evaluate(
-                """() => ({
-                    stApp: document.querySelectorAll('[data-testid=\\"stApp\\"]').length,
-                    testids: document.querySelectorAll('[data-testid]').length,
-                    iframes: document.querySelectorAll('iframe').length,
-                })"""
-            )
-            print(f"  dom:   {counts}", flush=True)
-            page.screenshot(path="app.png", full_page=False)
-            print("  saved screenshot -> app.png", flush=True)
+            if not awake:
+                page.screenshot(path="app.png", full_page=False)
+                print("  saved screenshot -> app.png", flush=True)
         except Exception as exc:  # noqa: BLE001
             print(f"  (diagnostics failed: {exc})", flush=True)
 
         # Linger so the session is unambiguously registered before we disconnect.
         page.wait_for_timeout(5_000)
         browser.close()
-    return 0 if awake else 0  # never fail the run on detection alone
+
+    # Exit 0 even if we couldn't confirm the UI: the wake click + real session
+    # still happened, and we don't want slow cold boots to spam failure emails.
+    return 0
 
 
 if __name__ == "__main__":
