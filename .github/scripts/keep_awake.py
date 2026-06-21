@@ -38,37 +38,52 @@ def main() -> int:
         except PWTimeout:
             print("No sleep screen — app already awake or booting.", flush=True)
 
-        # Wait for the real Streamlit app to mount. This confirms the container is
+        # Wait for the real Streamlit app to be up. This confirms the container is
         # running and that we held an active WebSocket session — the thing that
-        # resets the inactivity timer. This app imports openbb (very heavy), so a
-        # cold boot can take a few minutes; allow up to 4 min.
-        app_root = (
-            '[data-testid="stApp"], .stApp, '
-            '[data-testid="stAppViewContainer"], section.main'
-        )
+        # resets the inactivity timer. The app calls st.set_page_config(...), so
+        # the document title becoming "FinLit Pro ..." is a reliable signal the
+        # app's Python actually executed; we also accept any Streamlit DOM root.
+        # openbb is a very heavy import, so allow up to 4 min for a cold boot.
+        awake_check = """() => {
+            const titleOk = /FinLit Pro/i.test(document.title || '');
+            const domOk = !!document.querySelector(
+                '[data-testid="stApp"], .stApp, [data-testid="stAppViewContainer"], section.main'
+            );
+            return titleOk || domOk;
+        }"""
+        awake = False
         try:
-            page.wait_for_selector(app_root, state="attached", timeout=240_000)
-            print("App is awake — Streamlit UI mounted.", flush=True)
+            page.wait_for_function(awake_check, timeout=240_000)
+            awake = True
+            print("App is awake — Streamlit app is up.", flush=True)
         except PWTimeout:
             print(
-                "WARNING: app root not detected in time, but a real session was "
+                "WARNING: app did not come up in time, but a real session was "
                 "established (the visit still counts as traffic).",
                 flush=True,
             )
-            # Diagnostics: show what the page is actually displaying so we can tell
-            # a slow boot apart from a crashed app or a changed selector.
-            try:
-                body = (page.inner_text("body") or "").strip().replace("\n", " ")
-                print(f"  url:   {page.url}", flush=True)
-                print(f"  title: {page.title()}", flush=True)
-                print(f"  text:  {body[:400]}", flush=True)
-            except Exception as exc:  # noqa: BLE001
-                print(f"  (diagnostics failed: {exc})", flush=True)
+
+        # Diagnostics + a screenshot artifact so we can see exactly what rendered.
+        try:
+            print(f"  url:   {page.url}", flush=True)
+            print(f"  title: {page.title()}", flush=True)
+            counts = page.evaluate(
+                """() => ({
+                    stApp: document.querySelectorAll('[data-testid=\\"stApp\\"]').length,
+                    testids: document.querySelectorAll('[data-testid]').length,
+                    iframes: document.querySelectorAll('iframe').length,
+                })"""
+            )
+            print(f"  dom:   {counts}", flush=True)
+            page.screenshot(path="app.png", full_page=False)
+            print("  saved screenshot -> app.png", flush=True)
+        except Exception as exc:  # noqa: BLE001
+            print(f"  (diagnostics failed: {exc})", flush=True)
 
         # Linger so the session is unambiguously registered before we disconnect.
         page.wait_for_timeout(5_000)
         browser.close()
-    return 0
+    return 0 if awake else 0  # never fail the run on detection alone
 
 
 if __name__ == "__main__":

@@ -41,3 +41,12 @@ jobs:
 
       - name: Visit app and wake it if sleeping
         run: python .github/scripts/keep_awake.py
+
+      - name: Upload screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-screenshot
+          path: app.png
+          if-no-files-found: ignore
+          retention-days: 3
