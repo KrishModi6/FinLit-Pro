@@ -25,30 +25,24 @@ def main() -> int:
         print(f"Visiting {URL}", flush=True)
         page.goto(URL, wait_until="domcontentloaded", timeout=60_000)
 
-        # If the hibernation screen is up, click the wake button. Try the precise
-        # button role first, then a looser text match in case the wording shifts.
-        clicked = False
-        for locator in (
-            page.get_by_role("button", name="Yes, get this app back up!"),
-            page.get_by_text("get this app back up", exact=False),
-        ):
-            try:
-                if locator.count() > 0:
-                    locator.first.click(timeout=10_000)
-                    clicked = True
-                    print("App was asleep — clicked the wake button.", flush=True)
-                    break
-            except PWTimeout:
-                pass
-
-        if not clicked:
-            print("No sleep screen detected (app already awake or booting).", flush=True)
+        # The hibernation screen is ITSELF client-rendered, so the "Yes, get this
+        # app back up!" button does not exist in the DOM the instant the page
+        # loads — checking too early would miss it and leave the app asleep. Wait
+        # up to 25s for the wake button to appear: if it does, the app is asleep
+        # and we click it; if it never appears, the app is already awake/booting.
+        wake = page.get_by_text("get this app back up", exact=False)
+        try:
+            wake.first.wait_for(state="visible", timeout=25_000)
+            print("App was asleep — clicking the wake button.", flush=True)
+            wake.first.click()
+        except PWTimeout:
+            print("No sleep screen — app already awake or booting.", flush=True)
 
         # Wait for the real Streamlit app to mount. This confirms the container is
         # running and that we held an active WebSocket session — the thing that
-        # resets the inactivity timer. Booting from cold can take ~1-2 min.
+        # resets the inactivity timer. A cold boot (heavy imports) can take a while.
         try:
-            page.wait_for_selector('[data-testid="stApp"]', timeout=120_000)
+            page.wait_for_selector('[data-testid="stApp"]', state="visible", timeout=180_000)
             print("App is awake — Streamlit UI mounted.", flush=True)
         except PWTimeout:
             print(
