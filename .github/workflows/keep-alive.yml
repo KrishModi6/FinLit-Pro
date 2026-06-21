@@ -9,10 +9,12 @@ name: Keep Streamlit Awake
 
 on:
   schedule:
-    # Request every 10 min. GitHub throttles scheduled runs on free public repos
-    # (often down to ~1-2h between fires), but even that is far under Streamlit's
+    # Request every 10 min, offset off round-ten boundaries (:03,:13,... instead
+    # of :00,:10,...). GitHub throttles scheduled runs on free public repos and
+    # drops more of them at congested round-number minutes; the offset reduces
+    # that. Actual cadence is still often ~1-2h, but that's far under Streamlit's
     # ~12h sleep threshold, so the app stays awake with comfortable margin.
-    - cron: "*/10 * * * *"
+    - cron: "3,13,23,33,43,53 * * * *"
   workflow_dispatch:   # manual "wake now" button in the Actions tab
 
 # Never let two keep-alive runs overlap.
@@ -50,3 +52,21 @@ jobs:
           path: app.png
           if-no-files-found: ignore
           retention-days: 3
+
+  # Keep THIS scheduled workflow permanently enabled. GitHub auto-disables
+  # scheduled workflows in a PUBLIC repo after 60 days with no repository
+  # activity (official, documented behavior — there is no opt-out toggle, and a
+  # disabled workflow stops firing until manually re-enabled). This job
+  # pre-emptively re-enables the workflow via the Actions REST API on every run,
+  # using only the built-in GITHUB_TOKEN — no commits, no PAT, no external
+  # service. It runs independently of whether the app-wake step above succeeds.
+  # Action pinned to a commit SHA (v1.2.1) for supply-chain safety.
+  # See https://github.com/liskin/gh-workflow-keepalive
+  keepalive:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - uses: liskin/gh-workflow-keepalive@f72ff1a1336129f29bf0166c0fd0ca6cf1bcb38c  # v1.2.1
