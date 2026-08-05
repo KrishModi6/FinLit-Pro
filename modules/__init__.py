@@ -1,3 +1,0 @@
-"""
-CAS Finance App Modules
-"""

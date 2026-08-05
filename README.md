@@ -135,6 +135,19 @@ sell any security. Company and ticker names appear only as real-world illustrati
 Investing involves risk, including the permanent loss of capital. Do your own research and consult a
 licensed financial professional before investing.
 
+## The previous version
+
+finlitpro.org used to serve a Streamlit app, also called FinLit Pro, with a different set of
+features: an AI Predictor built on Monte Carlo simulation, a GPT-backed AI Advisor, live technical
+analysis charts, and a portfolio tracker.
+
+That app is not gone. It has been archived, intact and still runnable, in a separate private
+repository: **[KrishModi6/finlit-pro-legacy](https://github.com/KrishModi6/finlit-pro-legacy)**.
+The Playwright keep-alive that stops Streamlit Community Cloud hibernating it moved there too, so
+`finlitpro.streamlit.app` keeps running independently of this site.
+
+Nothing Python remains in this repository.
+
 ## 🎓 IB CAS
 
 - **Creativity**: designing and building the platform

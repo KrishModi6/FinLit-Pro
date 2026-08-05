@@ -1,25 +1,20 @@
-.git/
-__pycache__/
-*.pyc
-*.pyo
-.env
-.streamlit/secrets.toml
-.venv/
-venv/
-*.egg-info/
+# build output
 dist/
 build/
+
+# dependencies
+node_modules/
+
+# tooling caches
+.vite/
+.vercel/
+.claude/
+
+# local env
+.env
+.env.local
+
+# os cruft
 .DS_Store
 Thumbs.db
 *.log
-data/*.json
-notebooks/.ipynb_checkpoints/
-.claude/
-# keep-alive failure screenshot (generated in CI, never committed)
-app.png
-_wake_check.png
-
-# node / vite
-node_modules/
-.vite/
-.vercel/
