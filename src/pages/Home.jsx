@@ -54,7 +54,12 @@ export default function Home() {
             </blockquote>
           </div>
 
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          <p className="mt-6 text-sm font-medium text-ink-500 dark:text-ink-400">
+            Made by <span className="font-bold text-ink-800 dark:text-ink-200">Krish Modi</span>, a student,
+            as an IB CAS project. Free, with no sign-up.
+          </p>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link to="/beginner" className="btn-primary px-6 py-3 text-base">
               Start Learning
               <ArrowRightIcon className="h-4 w-4" />

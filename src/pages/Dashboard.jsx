@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ALL_MODULES, TRACKS } from '../data/curriculum.js'
-import { STATUS_ORDER, getStatusMeta } from '../data/statuses.js'
+import { getStatusMeta } from '../data/statuses.js'
 import { useProgress } from '../context/ProgressContext.jsx'
 import ProgressBar, { ProgressRing } from '../components/ui/ProgressBar.jsx'
+import ActivityHeatmap from '../components/ui/ActivityHeatmap.jsx'
+import StatCard from '../components/ui/StatCard.jsx'
 import { ArrowRightIcon } from '../components/ui/Icons.jsx'
 
-/** Everything the site knows about you, and that is only what’s in this browser. */
+/** Everything the site knows about you, and that is only what is in this browser. */
 export default function Dashboard() {
-  const { stats, nextModule, getStatus, getQuiz, resetAll } = useProgress()
+  const { stats, quizStats, streak, activity, nextModule, getStatus, getQuiz, resetAll } = useProgress()
   const [confirmingReset, setConfirmingReset] = useState(false)
 
   const quizzesTaken = ALL_MODULES.map((m) => ({ mod: m, quiz: getQuiz(m.id) })).filter((r) => r.quiz)
@@ -31,15 +33,14 @@ export default function Dashboard() {
           <ProgressRing percent={stats.overall.percent} />
         </div>
 
-        <div className="rounded-2xl border border-ink-200 p-6 dark:border-ink-800">
+        <div className="min-w-0 rounded-2xl border border-ink-200 p-6 dark:border-ink-800">
           <p className="text-2xl font-bold text-ink-900 dark:text-white">
             {stats.overall.done} of {stats.overall.total} lessons complete
           </p>
 
           {quizzesTaken.length > 0 && (
             <p className="mt-2 text-ink-600 dark:text-ink-400">
-              Quiz score across {quizzesTaken.length}{' '}
-              {quizzesTaken.length === 1 ? 'quiz' : 'quizzes'}:{' '}
+              Quiz score across {quizzesTaken.length} {quizzesTaken.length === 1 ? 'quiz' : 'quizzes'}:{' '}
               <strong className="font-bold text-ink-900 dark:text-white">
                 {quizCorrect}/{quizTotal}
               </strong>{' '}
@@ -60,36 +61,113 @@ export default function Dashboard() {
                 <ArrowRightIcon className="h-4 w-4 self-center" />
               </Link>
               <p className="mt-1 text-sm text-ink-500 dark:text-ink-400">
-                {nextModule.trackName} track · {nextModule.minutes} min
+                {nextModule.trackName} track, {nextModule.minutes} min
               </p>
             </div>
           ) : (
             <p className="mt-6 rounded-lg bg-emerald-50 px-4 py-3 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">
-              Every lesson is marked complete. Go back through the Hard track once more before you put real
-              money anywhere near a speculative position.
+              Every lesson is settled. Go back through the Hard track once more before you put real money
+              anywhere near a speculative position.
             </p>
           )}
         </div>
       </div>
 
-      {/* --- Status legend --------------------------------------------- */}
-      <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 rounded-xl border border-ink-200 px-5 py-4 dark:border-ink-800">
-        {STATUS_ORDER.map((id) => {
-          const meta = getStatusMeta(id)
-          return (
-            <span key={id} className="inline-flex items-center gap-2 text-sm">
-              <span className={`h-2.5 w-2.5 rounded-full ${meta.dot}`} />
-              <span className="text-ink-600 dark:text-ink-400">{meta.label}</span>
-              <span className="font-semibold tabular-nums text-ink-900 dark:text-white">
-                {stats.overall.counts[id]}
-              </span>
-            </span>
-          )
-        })}
+      {/* --- Activity -------------------------------------------------- */}
+      <h2 className="mt-14 text-2xl font-extrabold tracking-tight text-ink-900 dark:text-white">Activity</h2>
+      <div className="mt-5">
+        <ActivityHeatmap activity={activity} />
+      </div>
+
+      {/* --- Statistics ------------------------------------------------ */}
+      <h2 className="mt-14 text-2xl font-extrabold tracking-tight text-ink-900 dark:text-white">
+        Statistics
+      </h2>
+
+      <div className="mt-5 grid gap-6 lg:grid-cols-2">
+        <StatCard
+          title="Lesson Progress, all tracks"
+          total={stats.overall.total}
+          items={[
+            {
+              label: 'Completed',
+              value: stats.overall.counts.complete,
+              disc: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
+              bar: 'bg-emerald-500',
+            },
+            {
+              label: 'In progress',
+              value: stats.overall.inProgress,
+              disc: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
+              bar: 'bg-amber-500',
+            },
+            {
+              label: 'Skipped',
+              value: stats.overall.counts.skipped,
+              disc: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',
+              bar: 'bg-sky-500',
+            },
+            {
+              label: 'Not started',
+              value: stats.overall.counts['not-started'],
+              disc: 'bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-300',
+              bar: 'bg-ink-300 dark:bg-ink-600',
+            },
+          ]}
+        />
+
+        <StatCard
+          title="Quiz Progress, all tracks"
+          total={quizStats.total}
+          items={[
+            {
+              label: 'Passed',
+              value: quizStats.passed,
+              disc: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
+              bar: 'bg-emerald-500',
+            },
+            {
+              label: 'Attempted',
+              value: quizStats.attempted,
+              disc: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
+              bar: 'bg-amber-500',
+            },
+            {
+              label: 'Skipped',
+              value: quizStats.skipped,
+              disc: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',
+              bar: 'bg-sky-500',
+            },
+            {
+              label: 'Not started',
+              value: quizStats.notStarted,
+              disc: 'bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-300',
+              bar: 'bg-ink-300 dark:bg-ink-600',
+            },
+          ]}
+        />
+      </div>
+
+      {/* --- Streak ---------------------------------------------------- */}
+      <div className="mt-6 rounded-2xl border border-ink-200 bg-white p-6 text-center dark:border-ink-800 dark:bg-ink-900/40">
+        <p className="text-lg font-bold text-ink-900 dark:text-white">
+          <span aria-hidden="true">🔥</span> {streak.current} day streak
+          {streak.current > 1 ? ': keep it going' : ''}
+        </p>
+        <p className="mt-2 text-sm text-ink-500 dark:text-ink-400">
+          {streak.current <= 1
+            ? 'Come back tomorrow to start a streak. Consistency matters far more here than intensity.'
+            : `You have opened this guide ${streak.current} days in a row.`}
+          {streak.longest > streak.current && ` Your longest run so far is ${streak.longest} days.`}
+        </p>
+        <p className="mt-2 text-sm text-ink-500 dark:text-ink-400">
+          Twenty minutes a day for a month will teach you more than one panicked afternoon before you buy
+          something.
+        </p>
       </div>
 
       {/* --- Per-track breakdown -------------------------------------- */}
-      <h2 className="mt-14 text-xl font-bold text-ink-900 dark:text-white">By track</h2>
+      <h2 className="mt-14 text-2xl font-extrabold tracking-tight text-ink-900 dark:text-white">By track</h2>
       <div className="mt-5 space-y-8">
         {TRACKS.map((track) => {
           const s = stats.byTrack[track.slug]
@@ -151,7 +229,8 @@ export default function Dashboard() {
       <div className="mt-14 rounded-xl border border-ink-200 p-5 dark:border-ink-800">
         <p className="font-semibold text-ink-900 dark:text-white">Reset progress</p>
         <p className="mt-1 text-sm text-ink-500 dark:text-ink-400">
-          Clears every completed lesson and quiz score from this browser. Your saved “Try it” notes are kept.
+          Clears every lesson status, quiz score and activity square from this browser. Your saved notes in
+          the "Try it" boxes are kept.
         </p>
 
         {confirmingReset ? (
@@ -176,6 +255,10 @@ export default function Dashboard() {
           </button>
         )}
       </div>
+
+      <p className="mt-10 text-center text-sm text-ink-400 dark:text-ink-500">
+        Stock Guide is made by Krish Modi.
+      </p>
     </div>
   )
 }
