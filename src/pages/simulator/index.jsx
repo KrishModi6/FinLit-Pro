@@ -4,6 +4,9 @@ import NotFound from '../NotFound.jsx'
 
 /** Tool slug to component. Code-split so the course never pays for the simulator. */
 const REGISTRY = {
+  market: lazy(() => import('./MarketExplorer.jsx')),
+  predictor: lazy(() => import('./AiPredictor.jsx')),
+  advisor: lazy(() => import('./AiAdvisor.jsx')),
   growth: lazy(() => import('./GrowthCalculator.jsx')),
   portfolio: lazy(() => import('./PortfolioBuilder.jsx')),
   analyzer: lazy(() => import('./StockAnalyzer.jsx')),

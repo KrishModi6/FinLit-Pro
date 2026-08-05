@@ -18,3 +18,7 @@ node_modules/
 .DS_Store
 Thumbs.db
 *.log
+
+# local env (API keys)
+.env.local
+.env*.local

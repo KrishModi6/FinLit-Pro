@@ -11,6 +11,36 @@
 
 export const TOOLS = [
   {
+    slug: 'market',
+    name: 'Market Explorer',
+    blurb:
+      'Real price history for any ticker, with moving averages, RSI, volatility and the worst drawdown in the range.',
+    tag: 'Live data',
+    accent: 'from-emerald-500 to-lime-600',
+    lesson: '/intermediate/technical-analysis',
+    lessonName: 'Technical Analysis',
+  },
+  {
+    slug: 'predictor',
+    name: 'AI Predictor',
+    blurb:
+      'Thousands of randomised futures for a real stock, built from its own historical volatility. A spread of outcomes, never a forecast.',
+    tag: 'Modelling',
+    accent: 'from-fuchsia-500 to-purple-600',
+    lesson: '/beginner/why-prices-move',
+    lessonName: 'Why Prices Move',
+  },
+  {
+    slug: 'advisor',
+    name: 'AI Advisor',
+    blurb:
+      'Ask questions about anything in the course and get an answer grounded in it. Explains how things work; will not tell you what to buy.',
+    tag: 'Ask',
+    accent: 'from-teal-500 to-emerald-600',
+    lesson: '/beginner/what-is-a-stock',
+    lessonName: 'What Is a Stock?',
+  },
+  {
     slug: 'growth',
     name: 'Growth Calculator',
     blurb:

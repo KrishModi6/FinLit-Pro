@@ -35,6 +35,9 @@ entirely in the browser.
 
 | Tool | What it does |
 | --- | --- |
+| Market Explorer | Real price history for any ticker, with moving averages, RSI, volatility and max drawdown |
+| AI Predictor | Monte Carlo projection built from a stock's own historical drift and volatility |
+| AI Advisor | Chat grounded in the course; explains mechanics and refuses personalised advice |
 | Growth Calculator | Compound projection with monthly contributions, plus what a fee costs over decades |
 | Portfolio Builder | Weights, weighted beta, sector concentration and over-exposure warnings |
 | Stock Analyzer | A transparent six-criteria stability read from numbers off a quote page |
@@ -42,9 +45,26 @@ entirely in the browser.
 | Options Payoff | Break-even, maximum loss and the payoff ladder next to just buying shares |
 | Scenario Projector | 2,000-run Monte Carlo showing the spread of outcomes, not one tidy number |
 
-Every tool works on numbers **you type in**. Nothing fetches a live price, so there is no API key, no
-backend, and nothing that can silently break. The course teaches where to look each number up; the
-simulator shows what it implies.
+The last six work entirely on numbers **you type in**: no network, nothing that can break. The first
+three need the two serverless functions below.
+
+## Serverless functions
+
+Two endpoints in `api/`, run by Vercel. `npm run dev` serves them too, via a small middleware plugin
+in `vite.config.js`, so the market tools work locally without deploying.
+
+| Endpoint | Key required | What it does |
+| --- | --- | --- |
+| `GET /api/quote?symbol=AAPL&range=1y` | No | Proxies Yahoo Finance chart data. Exists because Yahoo sends no CORS headers, so the browser cannot call it directly. Validates the ticker against a strict pattern before building the outbound URL, and edge-caches for 5 minutes. |
+| `POST /api/advisor` | **Yes** | Streams a Claude reply. Uses `claude-opus-5` via the official `@anthropic-ai/sdk`, with a system prompt grounded in the course that refuses personalised investment advice. |
+
+### Enabling the AI Advisor
+
+Set `ANTHROPIC_API_KEY` in **Vercel → Settings → Environment Variables**. Do not put it in the repo.
+For local development, put it in `.env.local` (gitignored).
+
+Without the key the endpoint returns a clear `503` and the UI shows that message, so the rest of the
+site is unaffected.
 
 The risk-tolerance questionnaire that used to be a standalone tool now lives in the course as the
 Beginner lesson [Know Your Risk Profile](src/content/beginner/KnowYourRiskProfile.jsx), because the score
