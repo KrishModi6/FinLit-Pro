@@ -10,7 +10,7 @@ import { useProgress } from '../../context/ProgressContext.jsx'
  *   { prompt: 'What is a share?', options: ['a', 'b'], answer: 1, explanation: '…' }
  *   { prompt: 'Dividends are guaranteed.', type: 'tf', answer: false, explanation: '…' }
  *
- * A question locks as soon as it is answered — the point is to find out whether
+ * A question locks as soon as it is answered. The point is to find out whether
  * you knew it, not to let you click until something goes green. "Start over"
  * clears the lock if you want a genuine second run.
  */
@@ -64,7 +64,7 @@ export default function Quiz({ moduleId, questions }) {
             Check yourself
           </h2>
           <p className="mt-1 text-sm text-ink-500 dark:text-ink-400">
-            {items.length} questions. You get one shot at each — that is the whole point.
+            {items.length} questions. You get one shot at each. That is the whole point.
           </p>
         </div>
 
@@ -80,7 +80,7 @@ export default function Quiz({ moduleId, questions }) {
         </div>
       </header>
 
-      {/* `list-none pl-0` overrides the `.lesson ol` defaults — the quiz renders
+      {/* `list-none pl-0` overrides the `.lesson ol` defaults, the quiz renders
           its own question numbers, so the decimal markers would double up. */}
       <ol className="mt-6 list-none space-y-7 pl-0">
         {items.map((q, qi) => {

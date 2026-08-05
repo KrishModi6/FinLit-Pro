@@ -30,7 +30,7 @@ export default function Glossary() {
       </h1>
       <p className="mt-3 text-lg text-ink-600 dark:text-ink-300">
         Every term the course uses, defined in plain English. Finance vocabulary is mostly a gatekeeping
-        problem — once you know the words, the ideas underneath are not that complicated.
+        problem. Once you know the words, the ideas underneath are not that complicated.
       </p>
 
       <div className="relative mt-8">
@@ -43,7 +43,7 @@ export default function Glossary() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search terms — try “beta”, “options”, “risk”…"
+          placeholder="Search terms: try “beta”, “options”, “risk”…"
           className="w-full rounded-xl border border-ink-200 bg-white py-3.5 pl-12 pr-4 text-ink-800 placeholder:text-ink-400 focus:border-emerald-500 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100"
         />
       </div>

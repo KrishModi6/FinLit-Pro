@@ -12,7 +12,7 @@ function slugify(text) {
 }
 
 /**
- * Renders nothing — it walks the lesson DOM once it exists, gives every <h2> a
+ * Renders nothing, it walks the lesson DOM once it exists, gives every <h2> a
  * stable id, and hands the list back to the page.
  *
  * This lives INSIDE the <Suspense> boundary and after <Content />, so by the

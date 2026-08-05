@@ -14,13 +14,13 @@ const QUESTIONS = [
       'The company decided to lower its share price to attract new buyers',
     ],
     answer: 1,
-    explanation: 'Price already reflects what people expect. A record number that falls short of the expected record is a disappointment, and guidance about the future often matters more than the quarter just reported. The “take profits every time” answer is tempting because it sounds like something traders say, but plenty of strong reports are followed by strong rallies — the reaction depends on the gap between result and expectation, not on the result alone.',
+    explanation: 'Price already reflects what people expect. A record number that falls short of the expected record is a disappointment, and guidance about the future often matters more than the quarter just reported. The “take profits every time” answer is tempting because it sounds like something traders say, but plenty of strong reports are followed by strong rallies. The reaction depends on the gap between result and expectation, not on the result alone.',
   },
   {
     prompt: 'The lowest sell orders on a stock are 200 shares at $50.10, then 300 at $50.15, then 500 at $50.25. Someone buys 1,000 shares at market, filling all three levels. What is the last traded price?',
     options: ['$50.10', '$50.15', '$50.19', '$50.25'],
     answer: 3,
-    explanation: 'The last trade happened at $50.25, so that is the price you now see quoted. $50.19 is the average price the buyer paid across all 1,000 shares, which is a useful number for the buyer but is not the market price. Notice that the quote moved 15 cents with no news at all — just an order large enough to clear the cheapest sellers.',
+    explanation: 'The last trade happened at $50.25, so that is the price you now see quoted. $50.19 is the average price the buyer paid across all 1,000 shares, which is a useful number for the buyer but is not the market price. Notice that the quote moved 15 cents with no news at all, just an order large enough to clear the cheapest sellers.',
   },
   {
     prompt: 'The company itself decides the price at which its shares trade each day.',
@@ -50,7 +50,7 @@ const QUESTIONS = [
 export default function WhyPricesMove({ moduleId }) {
   return (
     <>
-      <p className="lead">There is no committee that decides what a stock is worth this morning. No executive types a number into a screen. The price you see is just the last price at which one person agreed to sell and another agreed to buy — and understanding that one fact explains almost every confusing thing the market does.</p>
+      <p className="lead">There is no committee that decides what a stock is worth this morning. No executive types a number into a screen. The price you see is just the last price at which one person agreed to sell and another agreed to buy, and understanding that one fact explains almost every confusing thing the market does.</p>
 
       <h2>Nobody sets the price</h2>
 
@@ -83,12 +83,12 @@ export default function WhyPricesMove({ moduleId }) {
 
       <Callout variant="did-you-know">
         <p>A company can report the best quarter in its history and watch its stock fall 10% the same morning. It happens constantly, and it is not irrational.</p>
-        <p>Suppose analysts collectively expect earnings of $2.00 per share, and the company delivers $2.05 — genuinely a record. But in the same release, management guides next quarter down and mentions softening demand. The $2.05 was already assumed; the guidance was not. Investors are pricing the next twelve months, not the twelve weeks that just ended.</p>
+        <p>Suppose analysts collectively expect earnings of $2.00 per share, and the company delivers $2.05, genuinely a record. But in the same release, management guides next quarter down and mentions softening demand. The $2.05 was already assumed; the guidance was not. Investors are pricing the next twelve months, not the twelve weeks that just ended.</p>
       </Callout>
 
       <h2>What actually moves a price</h2>
 
-      <p>Price-moving events sort into three rough layers. Company-specific news covers earnings, product launches, guidance, management changes, lawsuits and buybacks. Sector-wide news hits every company in an industry at once: a chip shortage, an oil supply shock, a regulator opening an inquiry into an entire business model. Macro news moves nearly everything together — interest rate decisions, inflation prints, employment data, elections, wars.</p>
+      <p>Price-moving events sort into three rough layers. Company-specific news covers earnings, product launches, guidance, management changes, lawsuits and buybacks. Sector-wide news hits every company in an industry at once: a chip shortage, an oil supply shock, a regulator opening an inquiry into an entire business model. Macro news moves nearly everything together: interest rate decisions, inflation prints, employment data, elections, wars.</p>
 
       <KeyTerm term="catalyst" />
 
@@ -154,7 +154,7 @@ export default function WhyPricesMove({ moduleId }) {
 
       <h2>Price is not value</h2>
 
-      <p>Hold these two ideas separately, because everything in the Intermediate track builds on the distinction. <strong>Price</strong> is what the stock trades at right now: an auction result, sensitive to mood, headlines and who happens to need cash this week. <strong>Value</strong> is what the business is actually worth — the cash it will generate over its life, discounted to today.</p>
+      <p>Hold these two ideas separately, because everything in the Intermediate track builds on the distinction. <strong>Price</strong> is what the stock trades at right now: an auction result, sensitive to mood, headlines and who happens to need cash this week. <strong>Value</strong> is what the business is actually worth: the cash it will generate over its life, discounted to today.</p>
 
       <p>Over long horizons the two are tethered. A company that keeps earning more eventually gets repriced upward, and one whose earnings evaporate eventually gets repriced toward zero. Enron traded around $90 in mid-2000 and reached near zero when it filed for bankruptcy in December 2001, because the value was never there and price finally noticed. Over short horizons the tether is long and slack, and the two can drift absurdly far apart in either direction.</p>
 
@@ -174,7 +174,7 @@ export default function WhyPricesMove({ moduleId }) {
 
       <p>You will not win that argument by predicting next week. You win it, slowly, by understanding businesses better than the average participant and by being willing to wait for price and value to reconnect.</p>
 
-      <p>Next up: how to read a stock quote properly — bid, ask, last, volume, market cap and the numbers on a broker screen that most people scroll past without knowing what they mean.</p>
+      <p>Next up: how to read a stock quote properly: bid, ask, last, volume, market cap and the numbers on a broker screen that most people scroll past without knowing what they mean.</p>
 
       <Quiz moduleId={moduleId} questions={QUESTIONS} />
     </>

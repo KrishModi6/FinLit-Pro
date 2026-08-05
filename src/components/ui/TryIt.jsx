@@ -6,7 +6,7 @@ import { WrenchIcon } from './Icons.jsx'
  *
  * Whatever the reader types is saved to LocalStorage under the module id, so
  * their notes survive a refresh and they can come back to compare answers
- * later. Nothing is sent anywhere — this is a notebook, not a submission.
+ * later. Nothing is sent anywhere. This is a notebook, not a submission.
  */
 export default function TryIt({ moduleId, id = 'default', title = 'Try it yourself', children, placeholder }) {
   const storageKey = `stockguide:tryit:${moduleId}:${id}`
@@ -18,7 +18,7 @@ export default function TryIt({ moduleId, id = 'default', title = 'Try it yourse
     try {
       setValue(localStorage.getItem(storageKey) ?? '')
     } catch {
-      /* storage unavailable — the box still works, it just won't persist */
+      /* storage unavailable, the box still works, it just won't persist */
     }
   }, [storageKey])
 
@@ -56,7 +56,7 @@ export default function TryIt({ moduleId, id = 'default', title = 'Try it yourse
         rows={3}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder={placeholder ?? 'Write your answer here — it saves automatically.'}
+        placeholder={placeholder ?? 'Write your answer here. It saves automatically.'}
         className="mt-4 w-full resize-y rounded-lg border border-emerald-200 bg-white px-3.5 py-2.5 text-[0.95rem] text-ink-800 placeholder:text-ink-400 focus:border-emerald-500 dark:border-emerald-500/30 dark:bg-ink-900 dark:text-ink-100 dark:placeholder:text-ink-500"
       />
 

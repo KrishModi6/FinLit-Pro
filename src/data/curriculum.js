@@ -58,6 +58,7 @@ const RAW_TRACKS = [
       'Explain what owning a share actually gets you',
       'Read a stock quote without Googling every number',
       'Tell the difference between an index, an exchange and a broker',
+      'Work out your own risk tolerance and risk capacity',
       'Walk through a first purchase end to end',
     ],
     modules: [
@@ -88,7 +89,7 @@ const RAW_TRACKS = [
       {
         slug: 'indices-and-market-cycles',
         title: 'Indices, Bull Markets and Bear Markets',
-        blurb: 'The S&P 500, the Dow, the NASDAQ Composite — and what "the market is down" means.',
+        blurb: 'The S&P 500, the Dow, the NASDAQ Composite, and what "the market is down" means.',
         minutes: 9,
       },
       {
@@ -96,6 +97,12 @@ const RAW_TRACKS = [
         title: 'Dividends and the Long Game',
         blurb: 'Getting paid to hold, compounding, and why your time horizon changes everything.',
         minutes: 9,
+      },
+      {
+        slug: 'know-your-risk-profile',
+        title: 'Know Your Risk Profile',
+        blurb: 'Risk tolerance versus risk capacity, and a seven-question assessment that tells you how much volatility to build in.',
+        minutes: 10,
       },
       {
         slug: 'your-first-share',
@@ -122,7 +129,7 @@ const RAW_TRACKS = [
       {
         slug: 'stable-vs-unstable',
         title: 'What Makes a Stock Stable or Unstable',
-        blurb: 'Blue chips, dividend aristocrats, small caps and speculative names — and the traits that separate them.',
+        blurb: 'Blue chips, dividend aristocrats, small caps and speculative names, and the traits that separate them.',
         minutes: 12,
       },
       {
@@ -140,7 +147,7 @@ const RAW_TRACKS = [
       {
         slug: 'technical-analysis',
         title: 'Technical Analysis: Candlesticks, Moving Averages and RSI',
-        blurb: 'Reading a chart honestly — what these tools show, and what they cannot tell you.',
+        blurb: 'Reading a chart honestly: what these tools show, and what they cannot tell you.',
         minutes: 11,
       },
       {
@@ -157,7 +164,7 @@ const RAW_TRACKS = [
       },
       {
         slug: 'case-study-and-tools',
-        title: 'Case Study: GameStop vs Boring — and Your Research Toolkit',
+        title: 'Case Study: GameStop vs Boring, and Your Research Toolkit',
         blurb: 'GME in 2021 next to J&J and VOO over a decade, plus how to look all of this up yourself.',
         minutes: 12,
       },
@@ -180,7 +187,7 @@ const RAW_TRACKS = [
       {
         slug: 'what-high-risk-means',
         title: 'What High-Risk Investing Actually Is',
-        blurb: 'Penny stocks, options, leveraged ETFs, meme stocks and crypto-adjacent plays — defined properly.',
+        blurb: 'Penny stocks, options, leveraged ETFs, meme stocks and crypto-adjacent plays, defined properly.',
         minutes: 11,
       },
       {
@@ -204,7 +211,7 @@ const RAW_TRACKS = [
       {
         slug: 'when-bets-go-bad',
         title: 'When It Goes Wrong: GameStop and Enron',
-        blurb: 'Two failures, two different lessons — one about timing, one about trusting the story.',
+        blurb: 'Two failures, two different lessons: one about timing, one about trusting the story.',
         minutes: 12,
       },
       {
@@ -237,7 +244,7 @@ export const TRACKS = RAW_TRACKS.map((track, trackIndex) => ({
   path: `/${track.slug}`,
   modules: track.modules.map((mod, modIndex) => ({
     ...mod,
-    // Global, stable id — also the LocalStorage key for progress.
+    // Global, stable id, also the LocalStorage key for progress.
     id: `${track.slug}/${mod.slug}`,
     number: modIndex + 1,
     trackSlug: track.slug,

@@ -11,7 +11,7 @@ export default function ScrollToTop() {
 
   useEffect(() => {
     if (hash) return
-    // Jump, don't animate — the smooth-scroll in index.css is for anchors.
+    // Jump, don't animate, the smooth-scroll in index.css is for anchors.
     window.scrollTo(0, 0)
   }, [pathname, hash])
 

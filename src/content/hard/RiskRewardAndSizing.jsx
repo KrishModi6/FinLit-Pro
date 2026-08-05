@@ -31,7 +31,7 @@ const QUESTIONS = [
       '2% of $500, which is $10',
     ],
     answer: 1,
-    explanation: 'Risk means the money you would actually lose in your realistic downside scenario. For a stock you would exit at −20%, that is a fifth of the position. For an option that can go to zero, the realistic downside is the entire premium, so the whole $500 counts — which is 5% of a $10,000 account and already breaks the rule.',
+    explanation: 'Risk means the money you would actually lose in your realistic downside scenario. For a stock you would exit at −20%, that is a fifth of the position. For an option that can go to zero, the realistic downside is the entire premium, so the whole $500 counts, which is 5% of a $10,000 account and already breaks the rule.',
   },
   {
     prompt: 'You hold five speculative positions, each risking 2% of your portfolio, and all five are in the same sector and tend to move together. What are you actually risking on that theme?',
@@ -48,7 +48,7 @@ const QUESTIONS = [
     prompt: 'If you risk 2% of your portfolio per idea, ten losses in a row would cut your account roughly in half.',
     type: 'tf',
     answer: false,
-    explanation: 'Each loss takes 2% of what remains, so ten of them leave 0.98 to the tenth power, about 0.82 — roughly 82% of the account. That is an 18% hole needing about a 22% gain to fill. Painful, survivable, and nothing like the 50% loss that would need a 100% gain.',
+    explanation: 'Each loss takes 2% of what remains, so ten of them leave 0.98 to the tenth power, about 0.82, or roughly 82% of the account. That is an 18% hole needing about a 22% gain to fill. Painful, survivable, and nothing like the 50% loss that would need a 100% gain.',
   },
 ]
 
@@ -87,13 +87,13 @@ export default function RiskRewardAndSizing({ moduleId }) {
       <ol>
         <li>Start: $1,000.</li>
         <li>One loss: $500 left.</li>
-        <li>Two losses: $250 left — a quarter of where you began.</li>
+        <li>Two losses: $250 left, a quarter of where you began.</li>
         <li>To get back to $1,000 from $250 you now need a 300% gain.</li>
       </ol>
 
       <p>Two bad calls. Not ten, not a crash, not fraud. Two. And the required recovery is something most professional investors never achieve in a decade.</p>
 
-      <p>Now risk 2% instead. Ten consecutive losses leave you with 0.98 to the tenth power of the account, which is about 0.817 — roughly $817 of the original $1,000. You need about a 22% gain to be whole. Ten losses in a row is a genuinely brutal streak, and the 2% version of you is still trading, still solvent, still able to be right later.</p>
+      <p>Now risk 2% instead. Ten consecutive losses leave you with 0.98 to the tenth power of the account, which is about 0.817, or roughly $817 of the original $1,000. You need about a 22% gain to be whole. Ten losses in a row is a genuinely brutal streak, and the 2% version of you is still trading, still solvent, still able to be right later.</p>
 
       <Callout variant="did-you-know">
         <p>GameStop went from under $20 at the start of January 2021 to an intraday high near $483 on 28 January 2021, then fell roughly 90% within weeks. A 90% loss requires a 900% gain to recover. Someone who sized that position at 2% of their portfolio has an interesting story; someone who sized it at 40% has a different kind of story.</p>
@@ -107,7 +107,7 @@ export default function RiskRewardAndSizing({ moduleId }) {
 
       <h3>Deployed is not the same as risked</h3>
 
-      <p>The word “risk” in the rule means the money you would actually lose in your realistic downside scenario — not the money you put in. Those are different numbers, and confusing them is the most common way people think they are following the rule while breaking it.</p>
+      <p>The word “risk” in the rule means the money you would actually lose in your realistic downside scenario, not the money you put in. Those are different numbers, and confusing them is the most common way people think they are following the rule while breaking it.</p>
 
       <p>A $500 stock position where you have genuinely decided to exit at a 20% loss risks $100. A $500 options position where expiring worthless is a real, ordinary outcome risks $500. Same cash deployed, five times the risk.</p>
 
@@ -160,7 +160,7 @@ export default function RiskRewardAndSizing({ moduleId }) {
       <p>Read the top row carefully, because it is the one that applies to most students. On a $500 account, 2% is $10, and a single option contract covering 100 shares will cost more than that at almost any premium worth trading. The rule is telling you something true: at that account size, options positions cannot be sized responsibly. That is real information about what your capital can and cannot do yet, not a reason to decide the rule does not apply to you.</p>
 
       <TryIt moduleId={moduleId} placeholder="Portfolio value: $___. 1% = $___. 2% = $___. My idea risks $___ in the realistic bad case, which is ___% of the portfolio. Passes / fails, and what I would change.">
-        <p>Take your real portfolio value, or a realistic number you expect to have within a year, and write down your 1% and 2% figures in dollars. Then take your most recent speculative idea, or the one you are most tempted by right now, and open its actual page on Yahoo Finance or your broker. Work out what the position would cost and what you would genuinely lose in the bad case — the full premium for an option, the distance to your exit for a stock. Compare that number to your 1% and 2% figures and write one sentence saying whether it passes, and if it fails, what size would make it pass.</p>
+        <p>Take your real portfolio value, or a realistic number you expect to have within a year, and write down your 1% and 2% figures in dollars. Then take your most recent speculative idea, or the one you are most tempted by right now, and open its actual page on Yahoo Finance or your broker. Work out what the position would cost and what you would genuinely lose in the bad case: the full premium for an option, the distance to your exit for a stock. Compare that number to your 1% and 2% figures and write one sentence saying whether it passes, and if it fails, what size would make it pass.</p>
       </TryIt>
 
       <h2>Why sizing dominates selection</h2>
@@ -179,7 +179,7 @@ export default function RiskRewardAndSizing({ moduleId }) {
 
       <h2>The formal answer you probably cannot use</h2>
 
-      <p>There is a mathematically optimal bet size. The Kelly criterion computes the fraction of capital that maximises long-run growth, given your edge and your odds. It is elegant and it is correct. It is also close to unusable for a retail investor, because it requires you to know your true probability of being right and your true payoff ratio, and you do not know either — you have estimates, and overconfident ones. Kelly is extremely sensitive to those inputs: overestimate your edge slightly and it tells you to bet an amount that will eventually ruin you. Professionals who use it routinely trade a half or a quarter of the Kelly size for exactly that reason. Treat it as evidence that a right answer exists and that it is smaller than your instinct, not as a formula to plug numbers into.</p>
+      <p>There is a mathematically optimal bet size. The Kelly criterion computes the fraction of capital that maximises long-run growth, given your edge and your odds. It is elegant and it is correct. It is also close to unusable for a retail investor, because it requires you to know your true probability of being right and your true payoff ratio, and you do not know either. You have estimates, and overconfident ones. Kelly is extremely sensitive to those inputs: overestimate your edge slightly and it tells you to bet an amount that will eventually ruin you. Professionals who use it routinely trade a half or a quarter of the Kelly size for exactly that reason. Treat it as evidence that a right answer exists and that it is smaller than your instinct, not as a formula to plug numbers into.</p>
 
       <h2>What to carry forward</h2>
 
@@ -189,7 +189,7 @@ export default function RiskRewardAndSizing({ moduleId }) {
         <p>Position sizing is the only part of investing you fully control. Not the earnings report, not the Fed, not the guy on a forum who moved the stock 8% with a screenshot. The size of the position is yours, entirely, decided by you before anything happens, and it is the single input that determines whether a bad year is a setback or an ending.</p>
       </Callout>
 
-      <p>Every number in this lesson rests on one honest estimate: your realistic downside. Get that wrong and the 2% rule quietly becomes the 15% rule while you congratulate yourself on your discipline. That is what comes next — how to decide in advance what your exit actually is, and why the exit has to be defined before the entry rather than negotiated with yourself while you are losing money.</p>
+      <p>Every number in this lesson rests on one honest estimate: your realistic downside. Get that wrong and the 2% rule quietly becomes the 15% rule while you congratulate yourself on your discipline. That is what comes next: how to decide in advance what your exit actually is, and why the exit has to be defined before the entry rather than negotiated with yourself while you are losing money.</p>
 
       <Quiz moduleId={moduleId} questions={QUESTIONS} />
     </>

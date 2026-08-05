@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Stock Guide — a free, structured stock market course for students.",
+  "description": "Stock Guide: a free, structured stock market course for students.",
   "scripts": {
     "dev": "vite",
     "build": "node scripts/generate-sitemap.mjs && vite build",

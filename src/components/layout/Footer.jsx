@@ -23,7 +23,7 @@ export default function Footer() {
                     to={t.path}
                     className="text-sm text-ink-600 transition hover:text-ink-900 dark:text-ink-400 dark:hover:text-white"
                   >
-                    {t.name} — {t.title}
+                    {t.name}: {t.title}
                   </Link>
                 </li>
               ))}
@@ -49,12 +49,20 @@ export default function Footer() {
                   Glossary
                 </Link>
               </li>
+              <li>
+                <Link
+                  to="/simulator"
+                  className="text-sm text-ink-600 transition hover:text-ink-900 dark:text-ink-400 dark:hover:text-white"
+                >
+                  Simulator
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
 
         {/* This has to be unmissable on a site that talks about options and
-            speculative bets. It is not boilerplate — it is the point. */}
+            speculative bets. It is not boilerplate. It is the point. */}
         <div className="mt-10 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 dark:border-amber-500/30 dark:bg-amber-500/10">
           <p className="text-[0.8125rem] leading-relaxed text-amber-900 dark:text-amber-200">
             <strong className="font-bold">This is education, not financial advice.</strong> Nothing here is a
@@ -65,7 +73,7 @@ export default function Footer() {
         </div>
 
         <p className="mt-8 text-xs text-ink-400 dark:text-ink-600">
-          Built as an IB CAS project by Krish Modi. Progress is stored in your browser only — nothing is
+          Built as an IB CAS project by Krish Modi. Progress is stored in your browser only, nothing is
           uploaded anywhere.
         </p>
       </div>

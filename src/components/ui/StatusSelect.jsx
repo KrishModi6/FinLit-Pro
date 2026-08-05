@@ -7,7 +7,7 @@ import { useProgress } from '../../context/ProgressContext.jsx'
  * The module status control, modelled on USACO Guide's.
  *
  * A single dropdown at the top of each lesson that records where the reader
- * actually is — Not Started, Reading, Practicing, Complete or Skipped — rather
+ * actually is, Not Started, Reading, Practicing, Complete or Skipped, rather
  * than a binary checkbox. The chosen state colours the dot in the sidebar so
  * the whole course tree is legible at a glance.
  */

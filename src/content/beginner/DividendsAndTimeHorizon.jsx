@@ -14,7 +14,7 @@ const QUESTIONS = [
       'For at least one full quarter',
     ],
     answer: 1,
-    explanation: 'Ownership has to be established before the ex-dividend date. Buying on or after the ex-date means the seller keeps the payment, no matter that the cash has not gone out yet — the payment date is just when the money moves.',
+    explanation: 'Ownership has to be established before the ex-dividend date. Buying on or after the ex-date means the seller keeps the payment, no matter that the cash has not gone out yet. The payment date is just when the money moves.',
   },
   {
     prompt: 'A share trades at $50 and pays a quarterly dividend of $0.25. What is the dividend yield?',
@@ -116,7 +116,7 @@ export default function DividendsAndTimeHorizon({ moduleId }) {
       <p>Now watch what happens to that ratio when the business gets into trouble. The dividend stays at $1.20 for the moment, but bad news drags the price from $40 down to $12. The yield is now $1.20 ÷ $12, or 10%. Nothing improved. The company got worse and the arithmetic made it look generous.</p>
 
       <Callout variant="warning" title="The yield trap">
-        <p>An unusually high yield is usually a forecast, not a bargain. When a stock yields far more than its industry peers, the market is typically pricing in a dividend cut that has not been announced yet. If the cut comes, you lose the income and hold a share that has already fallen — losses on both sides of the ratio.</p>
+        <p>An unusually high yield is usually a forecast, not a bargain. When a stock yields far more than its industry peers, the market is typically pricing in a dividend cut that has not been announced yet. If the cut comes, you lose the income and hold a share that has already fallen: losses on both sides of the ratio.</p>
         <p>Yield alone tells you almost nothing. Before treating a number as attractive, look at whether earnings and free cash flow actually cover the payment, and why the price fell in the first place.</p>
       </Callout>
 
@@ -126,7 +126,7 @@ export default function DividendsAndTimeHorizon({ moduleId }) {
 
       <p>So the pattern tends to follow the stage of the business. A young company with more opportunities than cash reinvests everything. A mature company with a dominant position and limited room to expand generates more cash than it can sensibly deploy, and starts returning it. Amazon paid no dividend for its first three decades as a public company while it built out the business. Johnson &amp; Johnson, operating in a slower and more settled market, has paid and raised one for many years.</p>
 
-      <p>Neither model is superior. They are different points on the same lifecycle, and total return — price change plus dividends — is what actually lands in your account.</p>
+      <p>Neither model is superior. They are different points on the same lifecycle, and total return (price change plus dividends) is what actually lands in your account.</p>
 
       <h3>Reinvesting what you receive</h3>
 
@@ -162,22 +162,22 @@ export default function DividendsAndTimeHorizon({ moduleId }) {
       <p>Look at the last row against the one above it. Years 30 to 40 add about $23,300, while the entire first thirty years added $18,125. The final decade out-earns the first three combined, using the same money and the same rate. That is the whole argument for starting early: the last decade is the valuable one, and you only get it by having started.</p>
 
       <Callout variant="note">
-        <p>The 8% here is an illustration, not a promise. Real returns swing enormously from year to year — some years are up 25%, some are down 35%, and almost none land on the average. Long-run US stock market returns are commonly cited near 10% a year before inflation, but that is a historical average over a very long window, not a rate anyone is entitled to going forward.</p>
+        <p>The 8% here is an illustration, not a promise. Real returns swing enormously from year to year: some years are up 25%, some are down 35%, and almost none land on the average. Long-run US stock market returns are commonly cited near 10% a year before inflation, but that is a historical average over a very long window, not a rate anyone is entitled to going forward.</p>
       </Callout>
 
       <h2>What actually changes over decades</h2>
 
-      <p>Here is the part worth internalising: the stock does not behave differently for a long-term investor. What changes is your relationship to <Term k="volatility">volatility</Term>. Over a single day, price movement is mostly noise — a headline, a nervous fund manager, an algorithm rebalancing. Over decades, that noise averages out and what dominates is whether the underlying businesses actually grew earnings.</p>
+      <p>Here is the part worth internalising: the stock does not behave differently for a long-term investor. What changes is your relationship to <Term k="volatility">volatility</Term>. Over a single day, price movement is mostly noise: a headline, a nervous fund manager, an algorithm rebalancing. Over decades, that noise averages out and what dominates is whether the underlying businesses actually grew earnings.</p>
 
-      <p>The concrete implication is unglamorous and important. Money you will need within the next few years — tuition, a deposit, anything with a date attached — should not be in stocks at all. Not because stocks are bad, but because a 30% drawdown in the wrong eighteen months forces you to sell at the worst possible moment. Time horizon is not a preference. It is the thing that decides whether an asset is appropriate for you.</p>
+      <p>The concrete implication is unglamorous and important. Money you will need within the next few years (tuition, a deposit, anything with a date attached) should not be in stocks at all. Not because stocks are bad, but because a 30% drawdown in the wrong eighteen months forces you to sell at the worst possible moment. Time horizon is not a preference. It is the thing that decides whether an asset is appropriate for you.</p>
 
       <h2>Buying on a schedule</h2>
 
-      <p><Term k="dollar cost averaging">Dollar-cost averaging</Term> means investing a fixed amount at fixed intervals — say $100 on the first of every month — regardless of price. When prices are low your $100 buys more units; when prices are high it buys fewer.</p>
+      <p><Term k="dollar cost averaging">Dollar-cost averaging</Term> means investing a fixed amount at fixed intervals (say $100 on the first of every month) regardless of price. When prices are low your $100 buys more units; when prices are high it buys fewer.</p>
 
       <Callout variant="real-talk">
         <p>You will see this sold as a mathematical edge. It is not one. Historically, investing a lump sum immediately has often beaten spreading it out, for the boring reason that markets rise more often than they fall.</p>
-        <p>What dollar-cost averaging actually does is remove the decision people get wrong most reliably: when to buy. Left to judgement, investors buy after good news and freeze after bad news, which is precisely backwards. A schedule takes the judgement out. That is a behavioural tool, and it is worth a great deal — just be honest about which kind of tool it is.</p>
+        <p>What dollar-cost averaging actually does is remove the decision people get wrong most reliably: when to buy. Left to judgement, investors buy after good news and freeze after bad news, which is precisely backwards. A schedule takes the judgement out. That is a behavioural tool, and it is worth a great deal. Just be honest about which kind of tool it is.</p>
       </Callout>
 
       <p>Taxes and fees are real, and they differ enormously by country. Dividends may be taxed as ordinary income or at a lower rate, tax-advantaged accounts change the picture completely, and some countries withhold tax on foreign dividends before the money ever reaches you. This lesson does not cover any of that, deliberately, because getting it wrong for your jurisdiction would be worse than not stating it. Check your local rules, or ask someone qualified in your country.</p>
@@ -192,7 +192,7 @@ export default function DividendsAndTimeHorizon({ moduleId }) {
 
       <p>The second idea is that time does the work you cannot. Nobody controls next year’s return. You do control how early you start, whether the money you invest is money you can leave alone, and whether you keep buying on a schedule when the news is bad. Those three choices explain more real-world outcomes than any stock-picking skill.</p>
 
-      <p>Next up: portfolio construction — how <Term k="diversification">diversification</Term> works, why owning thirty stocks in the same industry is not diversified, and how index funds solve most of this problem in one purchase.</p>
+      <p>Next up is portfolio construction: how <Term k="diversification">diversification</Term> works, why owning thirty stocks in the same industry is not diversified, and how index funds solve most of this problem in one purchase.</p>
 
       <Quiz moduleId={moduleId} questions={QUESTIONS} />
     </>

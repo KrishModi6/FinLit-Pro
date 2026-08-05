@@ -4,11 +4,11 @@ import { AlertIcon, ChartIcon, LightbulbIcon, ScaleIcon, WrenchIcon } from './Ic
  * Highlighted aside inside a lesson.
  *
  * Five deliberately distinct voices:
- *  - `did-you-know` — a surprising but true fact
- *  - `real-talk`    — the honest, slightly uncomfortable version
- *  - `warning`      — something that can genuinely cost you money
- *  - `example`      — a worked number or scenario
- *  - `note`         — a clarification or footnote
+ *  - `did-you-know`: a surprising but true fact
+ *  - `real-talk`:    the honest, slightly uncomfortable version
+ *  - `warning`:      something that can genuinely cost you money
+ *  - `example`:      a worked number or scenario
+ *  - `note`:         a clarification or footnote
  *
  * Each variant carries an icon and a label as well as a colour, so the meaning
  * survives for colour-blind readers and in printouts.

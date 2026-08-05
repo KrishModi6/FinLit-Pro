@@ -1,6 +1,6 @@
 # 📈 Stock Guide
 
-A free, structured stock market course for students — built as an IB CAS project and live at
+A free, structured stock market course for students, built as an IB CAS project and live at
 **[finlitpro.org](https://www.finlitpro.org/)**.
 
 > "I made this course to help my fellow classmates and other students across the world learn about stocks."
@@ -27,13 +27,36 @@ tracks, open navigation, a quiz at the bottom of every lesson, and progress that
 
 Nothing is gated. The recommended order is conveyed by numbering, not by locking doors.
 
+## The Simulator
+
+A separate section at `/simulator`, deliberately outside the course: no progress tracking, its own
+sub-nav. Six tools, each carried over from the previous Streamlit version of the app and rebuilt to run
+entirely in the browser.
+
+| Tool | What it does |
+| --- | --- |
+| Growth Calculator | Compound projection with monthly contributions, plus what a fee costs over decades |
+| Portfolio Builder | Weights, weighted beta, sector concentration and over-exposure warnings |
+| Stock Analyzer | A transparent six-criteria stability read from numbers off a quote page |
+| Compare | Two companies side by side with a plain-English read of each gap |
+| Options Payoff | Break-even, maximum loss and the payoff ladder next to just buying shares |
+| Scenario Projector | 2,000-run Monte Carlo showing the spread of outcomes, not one tidy number |
+
+Every tool works on numbers **you type in**. Nothing fetches a live price, so there is no API key, no
+backend, and nothing that can silently break. The course teaches where to look each number up; the
+simulator shows what it implies.
+
+The risk-tolerance questionnaire that used to be a standalone tool now lives in the course as the
+Beginner lesson [Know Your Risk Profile](src/content/beginner/KnowYourRiskProfile.jsx), because the score
+means nothing without the lesson explaining tolerance versus capacity around it.
+
 ## Tech stack
 
-- **React 18** + **React Router 6** — SPA, no backend
-- **Vite 5** — dev server and build
-- **Tailwind CSS 3** — styling, with a `.lesson` typography layer so lesson content is written as plain
+- **React 18** + **React Router 6**: SPA, no backend
+- **Vite 5**: dev server and build
+- **Tailwind CSS 3**: styling, with a `.lesson` typography layer so lesson content is written as plain
   semantic HTML
-- **LocalStorage** — all progress, quiz scores, saved exercise answers and the theme preference
+- **LocalStorage**: all progress, quiz scores, saved exercise answers and the theme preference
 
 There is no server, no database, no account, and no analytics beyond Vercel's page-view counter. Progress
 never leaves the reader's browser.
@@ -70,7 +93,7 @@ src/
     ThemeContext.jsx           Light/dark, persisted
   data/
     curriculum.js              Single source of truth: tracks, modules, order, colours
-    glossary.js                Every key term — powers /glossary and inline hover popovers
+    glossary.js                Every key term, powers /glossary and inline hover popovers
   components/
     layout/
       SiteLayout.jsx           Navbar + footer (home, dashboard, glossary, 404)
@@ -114,9 +137,9 @@ licensed financial professional before investing.
 
 ## 🎓 IB CAS
 
-- **Creativity** — designing and building the platform
-- **Activity** — ongoing research into markets and writing the curriculum
-- **Service** — free, open financial education for other students
+- **Creativity**: designing and building the platform
+- **Activity**: ongoing research into markets and writing the curriculum
+- **Service**: free, open financial education for other students
 
 ## License
 

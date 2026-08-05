@@ -2,7 +2,7 @@ import { useId, useState } from 'react'
 import { defineTerm } from '../../data/glossary.js'
 
 /**
- * Inline glossary term with a hover/focus definition — the Grammarly-style
+ * Inline glossary term with a hover/focus definition, the Grammarly-style
  * "what does that word mean" pattern, without leaving the sentence.
  *
  *   You are buying <Term k="equity">a slice of the business</Term>.
@@ -16,7 +16,7 @@ export default function Term({ k, children }) {
   const [open, setOpen] = useState(false)
   const id = useId()
 
-  // Unknown key — render the text plainly rather than a broken tooltip.
+  // Unknown key, render the text plainly rather than a broken tooltip.
   if (!entry) return <>{children ?? k}</>
 
   return (

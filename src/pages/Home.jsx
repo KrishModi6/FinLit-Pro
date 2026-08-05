@@ -10,7 +10,7 @@ const TRACK_PITCH = {
   beginner:
     'What a share actually is, where it trades, why the price moves, and how you would buy your first one. No jargon assumed.',
   intermediate:
-    'How to tell a boring compounder from a coin flip — beta, P/E, ETFs, diversification, and why part of your money should always be somewhere dull.',
+    'How to tell a boring compounder from a coin flip: beta, P/E, ETFs, diversification, and why part of your money should always be somewhere dull.',
   hard:
     'Options, leverage and speculation, explained honestly. What the upside really looks like, what a total loss really looks like, and how to size a bet you can survive.',
 }
@@ -132,7 +132,7 @@ export default function Home() {
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-ink-600 dark:text-ink-300">
             Work through them in order if you’re starting from zero, or jump straight to whatever you
-            actually need. Nothing is locked — the order is a recommendation, not a gate.
+            actually need. Nothing is locked. The order is a recommendation, not a gate.
           </p>
         </div>
 
@@ -199,7 +199,7 @@ export default function Home() {
               {
                 Icon: BookIcon,
                 title: 'Read the concept',
-                body: 'Every lesson is written to be read once, properly — real definitions, real numbers, and a worked example rather than a vague summary.',
+                body: 'Every lesson is written to be read once, properly: real definitions, real numbers, and a worked example rather than a vague summary.',
               },
               {
                 Icon: ChartIcon,
@@ -231,7 +231,7 @@ export default function Home() {
         </h2>
         <p className="mt-4 text-lg leading-relaxed text-ink-600 dark:text-ink-300">
           Most people’s first exposure to investing is a screenshot of somebody’s gains. That’s a terrible
-          place to start. Begin with what a share actually is — it takes nine minutes.
+          place to start. Begin with what a share actually is. It takes nine minutes.
         </p>
         <Link to="/beginner/what-is-a-stock" className="btn-primary mt-8 px-6 py-3 text-base">
           Lesson 1: What Is a Stock?

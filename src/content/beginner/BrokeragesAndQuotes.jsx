@@ -15,7 +15,7 @@ const QUESTIONS = [
     ],
     answer: 1,
     explanation:
-      'SIPC exists for one scenario: the broker goes under and your assets need to be recovered or transferred. The tempting wrong answer is the first one — plenty of people assume SIPC is insurance against a bad investment. It is not. If you buy a stock and it drops 60%, that loss is entirely yours.',
+      'SIPC exists for one scenario: the broker goes under and your assets need to be recovered or transferred. The tempting wrong answer is the first one; plenty of people assume SIPC is insurance against a bad investment. It is not. If you buy a stock and it drops 60%, that loss is entirely yours.',
   },
   {
     prompt: 'A stock trading at $600 a share must be a larger company than one trading at $12 a share.',
@@ -34,13 +34,13 @@ const QUESTIONS = [
     ],
     answer: 2,
     explanation:
-      'The gap between bid and ask is the spread, and a wide spread is a liquidity signal. Here you would buy at $4.35 and could only sell instantly at $4.10 — down about 5.7% the moment you own it. Nothing about the spread says the stock is cheap or expensive; it says the stock is hard to get in and out of.',
+      'The gap between bid and ask is the spread, and a wide spread is a liquidity signal. Here you would buy at $4.35 and could only sell instantly at $4.10, down about 5.7% the moment you own it. Nothing about the spread says the stock is cheap or expensive; it says the stock is hard to get in and out of.',
   },
   {
     prompt: 'Today a stock trades 9 million shares against an average volume of 1.2 million. The most reasonable reading is:',
     options: [
       'The stock is going up, because heavy volume means buying',
-      'Something happened — news, earnings or an index change — and unusual attention is on the stock',
+      'Something happened (news, earnings or an index change) and unusual attention is on the stock',
       'The company has issued 7.8 million new shares',
       'The market cap has increased roughly sevenfold',
     ],
@@ -64,13 +64,13 @@ export default function BrokeragesAndQuotes({ moduleId }) {
 
       <h2>What a brokerage is for</h2>
       <p>A <Term k="brokerage">brokerage</Term> is a licensed firm that holds your cash and your securities, routes your orders to an exchange or a market maker, and keeps the records that prove what you own. It also handles the plumbing you never see: settlement, tax forms, dividend payments landing in your account, corporate actions like stock splits.</p>
-      <p>That is the whole job. A broker is not a fund manager and not your advisor. It is closer to a bank with a trading window attached — and like a bank, the interesting questions are about safety, cost and access rather than about excitement.</p>
+      <p>That is the whole job. A broker is not a fund manager and not your advisor. It is closer to a bank with a trading window attached, and like a bank, the interesting questions are about safety, cost and access rather than about excitement.</p>
 
       <h2>Three brokers as three archetypes</h2>
       <p>It helps to look at real firms, not because you should pick one of them, but because they illustrate the trade-offs.</p>
-      <p><strong>Robinhood</strong> is the mobile-first archetype. It launched with a deliberately stripped-down phone interface, popularised commission-free trading in the US, and built its revenue model substantially on payment for order flow — market makers pay the broker to send them customer orders to execute. Onboarding is fast and the app is easy to use, which is both the selling point and, as you will see below, the thing to watch.</p>
+      <p><strong>Robinhood</strong> is the mobile-first archetype. It launched with a deliberately stripped-down phone interface, popularised commission-free trading in the US, and built its revenue model substantially on payment for order flow: market makers pay the broker to send them customer orders to execute. Onboarding is fast and the app is easy to use, which is both the selling point and, as you will see below, the thing to watch.</p>
       <p><strong>Fidelity</strong> and <strong>Charles Schwab</strong> are the full-service archetype. Both are very large, long-established firms with decades of track record. They offer retirement accounts, custodial accounts, their own index funds, substantial research and screening tools, branch offices in Schwab’s case, and phone support with actual humans. The interfaces are denser, because they are built for someone who may hold a dozen account types over forty years.</p>
-      <p>All three offer commission-free US stock trading. For a beginner buying a broad index fund once a month, the practical difference between them is small — smaller than most online arguments suggest.</p>
+      <p>All three offer commission-free US stock trading. For a beginner buying a broad index fund once a month, the practical difference between them is small, smaller than most online arguments suggest.</p>
 
       <Callout variant="real-talk">
         <p>I am not going to tell you which one to open, and you should be a little suspicious of anyone who does without asking about your situation first. Brokers pay referral bounties, and a startling amount of “best broker” content on the internet is affiliate marketing wearing a lab coat.</p>
@@ -82,7 +82,7 @@ export default function BrokeragesAndQuotes({ moduleId }) {
       <ol>
         <li><strong>Fractional shares.</strong> Can you buy $25 of a stock trading at $300, or must you buy whole shares? If you are investing small amounts regularly, this matters more than anything else on the list.</li>
         <li><strong>Account minimums.</strong> Some accounts require an opening deposit. Many now require nothing. Check rather than assume.</li>
-        <li><strong>Account types.</strong> Does the broker support the specific account you need — a taxable account, a retirement account, a custodial account for a minor? A broker that does not offer the account type you need is disqualified regardless of how good the app looks.</li>
+        <li><strong>Account types.</strong> Does the broker support the specific account you need: a taxable account, a retirement account, a custodial account for a minor? A broker that does not offer the account type you need is disqualified regardless of how good the app looks.</li>
         <li><strong>Research tools.</strong> Screeners, analyst reports, fund comparison tools, historical financials. Full-service brokers generally win here; whether you will use any of it is a fair question to ask yourself honestly.</li>
         <li><strong>Getting a human.</strong> Find the support page before you need it. Is there a phone number, a chat, a branch? When something goes wrong with an account holding your money, response time stops being an abstraction.</li>
         <li><strong>SIPC membership.</strong> Non-negotiable for a US broker, and it should be stated plainly at the bottom of the homepage.</li>
@@ -90,17 +90,17 @@ export default function BrokeragesAndQuotes({ moduleId }) {
 
       <Callout variant="warning" title="What SIPC does and does not do">
         <p>SIPC covers up to $500,000 per brokerage customer, including up to $250,000 in cash. It protects you if the brokerage firm fails and your assets go missing or need to be transferred to another firm.</p>
-        <p>It does not protect you against your investments losing value. If you put $10,000 into a stock and it falls to $3,000, SIPC owes you nothing — the system worked exactly as designed. This distinction is widely misunderstood, and misunderstanding it makes people feel safer than they are.</p>
+        <p>It does not protect you against your investments losing value. If you put $10,000 into a stock and it falls to $3,000, SIPC owes you nothing; the system worked exactly as designed. This distinction is widely misunderstood, and misunderstanding it makes people feel safer than they are.</p>
       </Callout>
 
       <Callout variant="warning" title="On confetti and streaks">
         <p>Some apps celebrate a trade with animation, track daily login streaks, and put buying one tap away from the home screen. These are product decisions, and their measurable effect is to increase how often people trade.</p>
-        <p>That direction is the wrong one. Research on individual investors has consistently found that the most active traders tend to underperform less active ones once costs are counted, and the gap is not small. You do not need to be scandalised by a nice interface — just notice when an app is nudging you toward frequency, and treat frequency as a cost.</p>
+        <p>That direction is the wrong one. Research on individual investors has consistently found that the most active traders tend to underperform less active ones once costs are counted, and the gap is not small. You do not need to be scandalised by a nice interface. Just notice when an app is nudging you toward frequency, and treat frequency as a cost.</p>
       </Callout>
 
       <Callout variant="note" title="If you are under 18">
         <p>In the US, a minor generally cannot open a brokerage account alone. The normal route is a custodial account opened by a parent or guardian, who controls it until you reach the age of transfer set by your state. Some brokers also offer teen-branded accounts with a linked adult.</p>
-        <p>Rules differ by country — minimum age, account types, and the tax treatment of everything inside them. Check the rules where you actually live rather than assuming the US version applies.</p>
+        <p>Rules differ by country: minimum age, account types, and the tax treatment of everything inside them. Check the rules where you actually live rather than assuming the US version applies.</p>
       </Callout>
 
       <h2>Reading a quote, field by field</h2>
@@ -119,7 +119,7 @@ export default function BrokeragesAndQuotes({ moduleId }) {
             <tr>
               <td>Last price</td>
               <td>$42.04</td>
-              <td>The price of the most recent completed trade. It is history, not a promise — the next trade can happen anywhere.</td>
+              <td>The price of the most recent completed trade. It is history, not a promise. The next trade can happen anywhere.</td>
             </tr>
             <tr>
               <td>Change / % change</td>
@@ -134,7 +134,7 @@ export default function BrokeragesAndQuotes({ moduleId }) {
             <tr>
               <td>52-week range</td>
               <td>28.40 – 51.90</td>
-              <td>The past year’s extremes. Useful for context, misleading as a signal — “near the low” is not the same as “cheap”, and plenty of stocks set new lows all the way down.</td>
+              <td>The past year’s extremes. Useful for context, misleading as a signal: “near the low” is not the same as “cheap”, and plenty of stocks set new lows all the way down.</td>
             </tr>
             <tr>
               <td>Open / previous close</td>
@@ -149,7 +149,7 @@ export default function BrokeragesAndQuotes({ moduleId }) {
             <tr>
               <td>Volume</td>
               <td>2.1 million</td>
-              <td>Shares traded so far today. Activity, not direction — every buy was also a sell.</td>
+              <td>Shares traded so far today. Activity, not direction: every buy was also a sell.</td>
             </tr>
             <tr>
               <td>Average volume</td>
@@ -159,7 +159,7 @@ export default function BrokeragesAndQuotes({ moduleId }) {
             <tr>
               <td>Market cap</td>
               <td>$6.3 billion</td>
-              <td>Price multiplied by shares outstanding — here, $42.04 across about 150 million shares. This is the company’s size in the market’s eyes.</td>
+              <td>Price multiplied by shares outstanding: here, $42.04 across about 150 million shares. This is the company’s size in the market’s eyes.</td>
             </tr>
             <tr>
               <td>P/E ratio</td>
@@ -169,7 +169,7 @@ export default function BrokeragesAndQuotes({ moduleId }) {
             <tr>
               <td>EPS</td>
               <td>$2.27</td>
-              <td>Annual profit attributable to each share. Note that 42.04 divided by 2.27 gives the 18.5 above — the two fields are locked together.</td>
+              <td>Annual profit attributable to each share. Note that 42.04 divided by 2.27 gives the 18.5 above; the two fields are locked together.</td>
             </tr>
             <tr>
               <td>Dividend and yield</td>
@@ -196,7 +196,7 @@ export default function BrokeragesAndQuotes({ moduleId }) {
 
       <h3>Volume is a liquidity signal</h3>
       <KeyTerm term="Volume" />
-      <p>Volume is how you judge <Term k="liquidity">liquidity</Term> — how easily you can convert between shares and cash without moving the price against yourself. The visible cost of poor liquidity is the <Term k="spread">spread</Term>, the gap between bid and ask.</p>
+      <p>Volume is how you judge <Term k="liquidity">liquidity</Term>, how easily you can convert between shares and cash without moving the price against yourself. The visible cost of poor liquidity is the <Term k="spread">spread</Term>, the gap between bid and ask.</p>
 
       <Callout variant="example">
         <p>Northwind trades 1.4 million shares on a typical day, bid 41.98 and ask 42.04. Buy 100 shares at the ask for $4,204. If you changed your mind one second later and sold at the bid, you would receive $4,198. The 6-cent spread cost you $6, or about 0.14% of the position.</p>
@@ -212,7 +212,7 @@ export default function BrokeragesAndQuotes({ moduleId }) {
       </TryIt>
 
       <h2>The one thing to carry forward</h2>
-      <p>A broker is infrastructure. Choose it on account types, fractional shares, support and SIPC membership, then stop thinking about it — the choice matters far less than what you do afterwards, and the app that makes trading feel most fun is not automatically the one that serves you best.</p>
+      <p>A broker is infrastructure. Choose it on account types, fractional shares, support and SIPC membership, then stop thinking about it. The choice matters far less than what you do afterwards, and the app that makes trading feel most fun is not automatically the one that serves you best.</p>
       <p>On the quote screen, the number everyone stares at is the one that carries the least information. Last price tells you what somebody paid a moment ago. Market cap tells you how big the company is. Volume and the spread tell you what it will cost you to change your mind. Read those three before the price, and you are already reading a quote better than most people who have been doing it for years.</p>
       <p>Next up: actually placing the order. Market orders versus limit orders, what happens between clicking buy and owning the share, and why the price you see is not always the price you get.</p>
 

@@ -99,7 +99,7 @@ export default function ModulePage() {
 
           <hr className="mt-8 border-ink-200 dark:border-ink-800" />
 
-          {/* Contents, inline — the right rail is hidden on narrower screens. */}
+          {/* Contents, inline, the right rail is hidden on narrower screens. */}
           {headings.length > 1 && (
             <details className="mt-8 rounded-xl border border-ink-200 px-4 py-3 dark:border-ink-800 xl:hidden">
               <summary className="cursor-pointer text-sm font-semibold text-ink-700 dark:text-ink-200">

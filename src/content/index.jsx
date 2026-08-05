@@ -17,6 +17,7 @@ const registry = {
   'beginner/brokerages-and-quotes': lazy(() => import('./beginner/BrokeragesAndQuotes.jsx')),
   'beginner/indices-and-market-cycles': lazy(() => import('./beginner/IndicesAndMarketCycles.jsx')),
   'beginner/dividends-and-time-horizon': lazy(() => import('./beginner/DividendsAndTimeHorizon.jsx')),
+  'beginner/know-your-risk-profile': lazy(() => import('./beginner/KnowYourRiskProfile.jsx')),
   'beginner/your-first-share': lazy(() => import('./beginner/YourFirstShare.jsx')),
 
   // ---- Intermediate: Stable vs Unstable Stocks ------------------------
@@ -43,7 +44,7 @@ const registry = {
 function MissingContent() {
   return (
     <p>
-      This lesson’s content could not be loaded. Please pick another lesson from the sidebar — the rest of
+      This lesson’s content could not be loaded. Please pick another lesson from the sidebar. The rest of
       the course is unaffected.
     </p>
   )

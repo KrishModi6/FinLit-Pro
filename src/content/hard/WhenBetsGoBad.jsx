@@ -9,13 +9,13 @@ const QUESTIONS = [
     prompt: 'In a short squeeze, where does the money that late buyers lose actually go?',
     options: [
       'It is destroyed, because the company never issued those shares',
-      'To the people who sold to them — earlier buyers and, eventually, the shorts who covered lowest',
+      'To the people who sold to them: earlier buyers and, eventually, the shorts who covered lowest',
       'To the exchange, which collects it as a squeeze fee',
       'To the company, which receives the proceeds of every trade in its stock',
     ],
     answer: 1,
     explanation:
-      'A squeeze does not create wealth; it moves it. Every share bought near $400 was sold by someone at $400, and that seller banked the gain. The company itself gets nothing from secondary-market trading — it was paid once, at issuance — which is why “the stock went up so the company made money” is wrong.',
+      'A squeeze does not create wealth; it moves it. Every share bought near $400 was sold by someone at $400, and that seller banked the gain. The company itself gets nothing from secondary-market trading (it was paid once, at issuance), which is why “the stock went up so the company made money” is wrong.',
   },
   {
     prompt:
@@ -49,7 +49,7 @@ const QUESTIONS = [
     ],
     answer: 1,
     explanation:
-      'The problem is correlation. If the company fails, you lose income and savings in the same week, at the moment you most need the savings. Volatility is not the issue — a low-volatility employer creates the same trap.',
+      'The problem is correlation. If the company fails, you lose income and savings in the same week, at the moment you most need the savings. Volatility is not the issue; a low-volatility employer creates the same trap.',
   },
   {
     prompt:
@@ -81,7 +81,7 @@ export default function WhenBetsGoBad({ moduleId }) {
       <p>
         Start with what GameStop actually was. A mall-based video game retailer with declining
         revenue, in a business being eaten alive by digital downloads. Not a fraud, not a
-        scandal — just a company that a lot of professional investors had concluded was going
+        scandal, just a company that a lot of professional investors had concluded was going
         to keep shrinking. So they bet against it, heavily, and that bet showed up in the
         stock’s <Term k="short interest">short interest</Term>: the fraction of shares that had
         been borrowed and sold, waiting to be bought back cheaper.
@@ -91,7 +91,7 @@ export default function WhenBetsGoBad({ moduleId }) {
         has nothing to do with whether the bet is correct. Anyone who is short must eventually
         buy the shares back. If the price rises instead of falling, their losses grow without a
         ceiling and their broker starts demanding more collateral. At some point they stop
-        arguing with the market and buy — which pushes the price up further, which forces the
+        arguing with the market and buy, which pushes the price up further, which forces the
         next short to buy, and so on.
       </p>
 
@@ -122,7 +122,7 @@ export default function WhenBetsGoBad({ moduleId }) {
         No wealth was manufactured in January 2021. GameStop did not suddenly start selling more
         games. Every share someone sold at $300 was bought by someone else at $300. For the
         person who bought near the top to have made money, another person would have had to buy
-        even higher — and eventually, inevitably, there was no one left willing to.
+        even higher, and eventually, inevitably, there was no one left willing to.
       </p>
       <p>
         That is why the same event was simultaneously the best trade and the worst trade of many
@@ -171,7 +171,7 @@ export default function WhenBetsGoBad({ moduleId }) {
       <p>
         So the GameStop lesson is about sequencing, not stock picking. Being right about the
         setup gets you nothing on its own. You also have to be right about the timing, and about
-        the exit — and the exit is the half of the trade that almost nobody writes down in
+        the exit. And the exit is the half of the trade that almost nobody writes down in
         advance.
       </p>
 
@@ -186,7 +186,7 @@ export default function WhenBetsGoBad({ moduleId }) {
         Underneath, the reported picture was being managed. Enron used accounting arrangements
         that pushed debt and losses off its own balance sheet and into related entities, which
         made the business look far more profitable and far less indebted than it actually was.
-        The auditor, Arthur Andersen — one of the largest accounting firms in the world — was
+        The auditor, Arthur Andersen (one of the largest accounting firms in the world), was
         implicated in the collapse and was effectively destroyed by it. Enron filed for
         bankruptcy in December 2001. The stock went to near zero.
       </p>
@@ -235,8 +235,8 @@ export default function WhenBetsGoBad({ moduleId }) {
 
       <h3>Why analysis could not save you</h3>
       <p>
-        Every fundamental tool you have learned — <Term k="pe ratio">price-to-earnings</Term>,{' '}
-        <Term k="debt to equity">debt-to-equity</Term>, margin trends, free cash flow — takes
+        Every fundamental tool you have learned (<Term k="pe ratio">price-to-earnings</Term>,{' '}
+        <Term k="debt to equity">debt-to-equity</Term>, margin trends, free cash flow) takes
         reported numbers as its input. If the reported numbers are false, the ratios are false
         too, and the more carefully you compute them the more confident you become in an answer
         that is wrong. There is no ratio that detects a lie in its own denominator.
@@ -274,8 +274,8 @@ export default function WhenBetsGoBad({ moduleId }) {
             </tr>
             <tr>
               <td>Could analysis have caught it?</td>
-              <td>Partly — the crowded short was public, but the top was not knowable</td>
-              <td>No — the inputs to every ratio were false</td>
+              <td>Partly: the crowded short was public, but the top was not knowable</td>
+              <td>No: the inputs to every ratio were false</td>
             </tr>
             <tr>
               <td>Who lost</td>
@@ -306,14 +306,14 @@ export default function WhenBetsGoBad({ moduleId }) {
         placeholder="Company, the specific 80% scenario, and what that loss would do to your total portfolio…"
       >
         <p>
-          Pick a company you would describe as obviously safe — the kind you would name without
+          Pick a company you would describe as obviously safe, the kind you would name without
           hesitating. Look it up on Yahoo Finance or its own investor-relations page and skim the
           most recent annual report’s risk factors section.
         </p>
         <p>
           Then write down three things: the specific scenario in which that company’s stock falls
-          80% (a real mechanism — lost lawsuit, obsolete product, accounting restatement, key
-          market closed — not just “the market crashes”); what percentage of a hypothetical
+          80% (a real mechanism: lost lawsuit, obsolete product, accounting restatement, key
+          market closed; not just “the market crashes”); what percentage of a hypothetical
           portfolio you would have put in it; and whether that portfolio survives the scenario you
           just described. If the answer is no, the position was too big, regardless of how safe
           the company looked.
@@ -336,7 +336,7 @@ export default function WhenBetsGoBad({ moduleId }) {
         The mistake was the same size. The sizing was not.
       </p>
       <p>
-        Next up: how to actually build that sizing rule — how much of a portfolio a single
+        Next up, how to actually build that sizing rule: how much of a portfolio a single
         speculative idea should ever occupy, how to set the number before you are emotionally
         involved, and why the rule has to be written down while you are calm to survive the day
         you are not.

@@ -8,7 +8,7 @@ import { useProgress } from '../../context/ProgressContext.jsx'
 /**
  * Full course tree.
  *
- * Every module is always reachable — nothing is gated behind completing
+ * Every module is always reachable, nothing is gated behind completing
  * something else. The recommended order is conveyed by numbering and layout,
  * not by locking doors.
  */
@@ -62,7 +62,7 @@ function Tree({ onNavigate }) {
                         }`
                       }
                     >
-                      {/* Status dot — colour carries the state, the title
+                      {/* Status dot, colour carries the state, the title
                           attribute carries it for screen readers and hover. */}
                       <span
                         className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${meta.dot}`}

@@ -15,7 +15,7 @@ const QUESTIONS = [
     ],
     answer: 1,
     explanation:
-      'A share is a unit of ownership, not a loan. One share out of a million is a one-millionth claim on the business — its assets, its future profits, and its problems. Nothing about it is guaranteed.',
+      'A share is a unit of ownership, not a loan. One share out of a million is a one-millionth claim on the business: its assets, its future profits, and its problems. Nothing about it is guaranteed.',
   },
   {
     prompt:
@@ -23,14 +23,14 @@ const QUESTIONS = [
     options: ['$140 million', '$340 million', 'Nothing', 'It depends on trading volume'],
     answer: 2,
     explanation:
-      'Nothing. The company was paid at the IPO. After that, shares trade between investors — money moves from buyer to seller, not to the company. A rising price helps the company indirectly (cheaper future fundraising, valuable stock compensation), but no cash arrives.',
+      'Nothing. The company was paid at the IPO. After that, shares trade between investors. Money moves from buyer to seller, not to the company. A rising price helps the company indirectly (cheaper future fundraising, valuable stock compensation), but no cash arrives.',
   },
   {
     prompt: 'Shareholders are paid before bondholders if a company goes bankrupt.',
     type: 'tf',
     answer: false,
     explanation:
-      'The opposite. Shareholders sit last in the queue — behind lenders, bondholders and suppliers. That last-in-line position is exactly why stocks return more than bonds over time: you are being paid to take the worst seat.',
+      'The opposite. Shareholders sit last in the queue, behind lenders, bondholders and suppliers. That last-in-line position is exactly why stocks return more than bonds over time: you are being paid to take the worst seat.',
   },
   {
     prompt: 'Which of these is the strongest reason a healthy, profitable company might still issue stock?',
@@ -42,7 +42,7 @@ const QUESTIONS = [
     ],
     answer: 1,
     explanation:
-      'Equity is capital you never have to repay. A loan demands interest every quarter regardless of how business is going; selling ownership does not. The cost is dilution — the founders now own a smaller slice.',
+      'Equity is capital you never have to repay. A loan demands interest every quarter regardless of how business is going; selling ownership does not. The cost is dilution: the founders now own a smaller slice.',
   },
   {
     prompt: 'If a stock’s price doubles, the company has definitely become twice as profitable.',
@@ -65,8 +65,8 @@ export default function WhatIsAStock({ moduleId }) {
       <h2>A stock is a slice of a company</h2>
 
       <p>
-        Imagine your school runs a genuinely good bubble tea stand. It takes ₹100,000 to set up — equipment,
-        supplies, a licence — and you have ₹20,000. So you find nine friends with ₹20,000 each, but there’s a
+        Imagine your school runs a genuinely good bubble tea stand. It takes ₹100,000 to set up (equipment,
+        supplies, a licence), and you have ₹20,000. So you find nine friends with ₹20,000 each, but there’s a
         catch: none of you wants to <em>lend</em> the money, because a loan has to be repaid whether the stand
         works or not.
       </p>
@@ -79,7 +79,7 @@ export default function WhatIsAStock({ moduleId }) {
       </p>
 
       <p>
-        That is a stock. The only difference between your bubble tea stand and Apple is the number of slices —
+        That is a stock. The only difference between your bubble tea stand and Apple is the number of slices:
         Apple’s business is divided into roughly 15 billion of them instead of 10.
       </p>
 
@@ -123,7 +123,7 @@ export default function WhatIsAStock({ moduleId }) {
         <li>
           <strong>The right to sell.</strong> You can convert your slice back into cash at whatever price
           somebody will pay you today. This is called <Term k="liquidity">liquidity</Term> and it is genuinely
-          valuable — try selling one-tenth of a private bubble tea stand.
+          valuable. Try selling one-tenth of a private bubble tea stand.
         </li>
         <li>
           <strong>A residual claim in bankruptcy.</strong> If the company is wound up, you get whatever is
@@ -134,7 +134,7 @@ export default function WhatIsAStock({ moduleId }) {
       <Callout variant="real-talk" title="The part that gets skipped">
         <p>
           That fourth point is the whole deal. In a bankruptcy, the queue runs: tax authorities, secured
-          lenders, bondholders, suppliers, employees — and <em>then</em> shareholders. You are last.
+          lenders, bondholders, suppliers, employees, and <em>then</em> shareholders. You are last.
         </p>
         <p>
           This is not a flaw in the system; it is the trade. Bondholders get paid first and earn a modest
@@ -154,7 +154,7 @@ export default function WhatIsAStock({ moduleId }) {
       <h3>1. To raise money that never has to be repaid</h3>
 
       <p>
-        A company that wants to build a new factory has two options. It can borrow — and then owe interest
+        A company that wants to build a new factory has two options. It can borrow, and then owe interest
         every quarter forever, in good years and bad, with the lender able to force bankruptcy if a payment is
         missed. Or it can sell ownership. Equity capital comes with no repayment schedule and no interest. If
         the factory fails, the shareholders simply lose value; nobody sends bailiffs.
@@ -169,7 +169,7 @@ export default function WhatIsAStock({ moduleId }) {
 
       <p>
         The engineer who joined in year two and took shares instead of a proper salary has, on paper, a
-        fortune — and no way to spend it. Going public converts paper into money that can buy a house. This
+        fortune, and no way to spend it. Going public converts paper into money that can buy a house. This
         is a large part of why companies list at all.
       </p>
 
@@ -177,7 +177,7 @@ export default function WhatIsAStock({ moduleId }) {
 
       <p>
         Public companies pay staff partly in shares. It costs no cash, and it means the people building the
-        company are owners of it. A startup competing with a giant for engineers cannot match the salary — but
+        company are owners of it. A startup competing with a giant for engineers cannot match the salary, but
         it can offer a slice of what the company might become.
       </p>
 
@@ -186,13 +186,13 @@ export default function WhatIsAStock({ moduleId }) {
       <Callout variant="did-you-know">
         <p>
           When a stock rises 40% in a month, the company receives <strong>none</strong> of that money. After
-          the IPO, shares change hands between investors — your money goes to whoever sold you the share, not
+          the IPO, shares change hands between investors: your money goes to whoever sold you the share, not
           to the business.
         </p>
         <p>
           Apple has not received a cent from anyone buying AAPL on the open market in decades. A high price
-          still helps a company — it makes future share issues more lucrative, makes employee stock more
-          valuable, and makes hostile takeovers harder — but no cash arrives from your purchase.
+          still helps a company (it makes future share issues more lucrative, makes employee stock more
+          valuable, and makes hostile takeovers harder), but no cash arrives from your purchase.
         </p>
       </Callout>
 
@@ -225,7 +225,7 @@ export default function WhatIsAStock({ moduleId }) {
           <strong>Not a bet against another person.</strong> Buying a share is not a wager where someone must
           lose for you to win. Over long periods, shareholders as a group can all do well, because the
           underlying businesses genuinely produce more value. (Options and futures, in the Hard track, are a
-          different story — those <em>are</em> zero-sum.)
+          different story: those <em>are</em> zero-sum.)
         </li>
         <li>
           <strong>Not a number on a screen.</strong> This is the one to hold onto. Behind every ticker is a
@@ -236,7 +236,7 @@ export default function WhatIsAStock({ moduleId }) {
 
       <TryIt moduleId={moduleId} placeholder="Company, share price, market cap, and what surprised you…">
         <p>
-          Pick a company whose products you personally use — a phone, a game, a drink, a shoe brand. Search “
+          Pick a company whose products you personally use: a phone, a game, a drink, a shoe brand. Search “
           <em>[company name]</em> stock” and find two numbers: the share price, and the market cap.
         </p>
         <p>
@@ -249,7 +249,7 @@ export default function WhatIsAStock({ moduleId }) {
 
       <p>
         A stock is <strong>ownership of a real business</strong>, priced by whatever the last two people
-        agreed on. Every other concept in this course — dividends, volatility, P/E ratios, even options — is
+        agreed on. Every other concept in this course (dividends, volatility, P/E ratios, even options) is
         built on top of that single sentence.
       </p>
 

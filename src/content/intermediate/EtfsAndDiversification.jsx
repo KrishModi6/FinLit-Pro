@@ -14,7 +14,7 @@ const QUESTIONS = [
       'The risk that one factory burns down',
     ],
     answer: 2,
-    explanation: 'A recession, a rate shock or a war moves nearly everything at once — that is systematic risk, and spreading across 500 names does not remove it. The other three are company-specific (idiosyncratic) events, and those are exactly what diversification dilutes.',
+    explanation: 'A recession, a rate shock or a war moves nearly everything at once. That is systematic risk, and spreading across 500 names does not remove it. The other three are company-specific (idiosyncratic) events, and those are exactly what diversification dilutes.',
   },
   {
     prompt: 'Two funds track the same index. Fund A charges 0.03% and Fund B charges 0.75%. Over 30 years on the same $10,000, the most accurate statement is:',
@@ -25,7 +25,7 @@ const QUESTIONS = [
       'The fee only applies to profits, so it costs nothing in a flat market',
     ],
     answer: 1,
-    explanation: 'The fee is charged on the whole balance every year, so it compounds against you. In the worked example the gap is close to $18,000 — larger than the original investment. Fund B charging more is not evidence of skill, and the expense ratio is deducted from assets whether or not the fund made money.',
+    explanation: 'The fee is charged on the whole balance every year, so it compounds against you. In the worked example the gap is close to $18,000, larger than the original investment. Fund B charging more is not evidence of skill, and the expense ratio is deducted from assets whether or not the fund made money.',
   },
   {
     prompt: 'Owning a market-cap-weighted S&P 500 index fund means your money is spread evenly across 500 companies.',
@@ -63,7 +63,7 @@ export default function EtfsAndDiversification({ moduleId }) {
 
       <p>The second is <strong>systematic risk</strong>, also called market risk: recessions, interest-rate shocks, wars, pandemics. These move nearly everything at once. You cannot own your way out of them, because there is no set of stocks that stays up when the entire market goes down.</p>
 
-      <p>Here is the part worth memorising. Idiosyncratic risk is not compensated — the market does not pay you extra for taking a risk you could have removed for free. Systematic risk is the risk you are actually paid to bear. So <Term k="diversification">spreading your money across many companies</Term> is not a compromise or a way of playing it safe. It is deleting a risk that was never earning you anything.</p>
+      <p>Here is the part worth memorising. Idiosyncratic risk is not compensated: the market does not pay you extra for taking a risk you could have removed for free. Systematic risk is the risk you are actually paid to bear. So <Term k="diversification">spreading your money across many companies</Term> is not a compromise or a way of playing it safe. It is deleting a risk that was never earning you anything.</p>
 
       <Callout variant="did-you-know">
         <p>Most of the benefit arrives faster than people expect. Moving from one stock to twenty removes a large share of company-specific risk. Moving from twenty to five hundred removes some more, but the curve flattens hard. The first twenty positions do the heavy lifting.</p>
@@ -73,7 +73,7 @@ export default function EtfsAndDiversification({ moduleId }) {
 
       <KeyTerm term="ETF" />
 
-      <p>The mechanics are simpler than the acronym suggests. A fund manager assembles a basket of assets — say, every company in a broad US <Term k="index">market index</Term> — and then that basket itself is listed on an <Term k="exchange">exchange</Term> and trades under a ticker like any ordinary share. You place one order for one ticker, and you own a proportional slice of everything inside.</p>
+      <p>The mechanics are simpler than the acronym suggests. A fund manager assembles a basket of assets (say, every company in a broad US <Term k="index">market index</Term>), and then that basket itself is listed on an <Term k="exchange">exchange</Term> and trades under a ticker like any ordinary share. You place one order for one ticker, and you own a proportional slice of everything inside.</p>
 
       <p>That is genuinely new in historical terms. Building a five-hundred-company portfolio yourself would mean five hundred orders, five hundred commissions, and a rebalancing job you would never finish. An <Term k="etf">exchange-traded fund</Term> collapses that into a single line on your brokerage screen.</p>
 
@@ -100,7 +100,7 @@ export default function EtfsAndDiversification({ moduleId }) {
         <li>Expensive fund after 30 years: 10,000 multiplied by 1.0725 raised to the 30th power, which is roughly $81,600.</li>
       </ol>
 
-      <p>The gap is close to $18,000 — more than the amount you originally invested — produced by a fee difference of 0.72 percentage points a year. It compounds because the fee is charged on the entire balance annually, including on the growth you would otherwise have kept, and then on the growth that growth would have produced.</p>
+      <p>The gap is close to $18,000 (more than the amount you originally invested), produced by a fee difference of 0.72 percentage points a year. It compounds because the fee is charged on the entire balance annually, including on the growth you would otherwise have kept, and then on the growth that growth would have produced.</p>
 
       <p>Treat those figures as an illustration of the mechanism rather than a forecast. Returns are not a smooth 8%, and no fund guarantees anything. But the direction is not in doubt: fees are the one input to your return that you can know in advance and control exactly.</p>
 
@@ -153,7 +153,7 @@ export default function EtfsAndDiversification({ moduleId }) {
       </Callout>
 
       <TryIt moduleId={moduleId} placeholder="Ticker, expense ratio, number of holdings, top-10 combined weight, and one sentence on whether that surprised you.">
-        <p>Pick one broad index ETF — a total-market or large-cap US fund is ideal. Open its official fund page on the issuer’s site, or look it up on Yahoo Finance, and find three things: the expense ratio, the number of holdings, and the combined weight of the top ten holdings. Write all three down, then add one sentence answering whether that last number was higher or lower than you expected, and what it tells you about how concentrated the fund really is.</p>
+        <p>Pick one broad index ETF. A total-market or large-cap US fund is ideal. Open its official fund page on the issuer’s site, or look it up on Yahoo Finance, and find three things: the expense ratio, the number of holdings, and the combined weight of the top ten holdings. Write all three down, then add one sentence answering whether that last number was higher or lower than you expected, and what it tells you about how concentrated the fund really is.</p>
       </TryIt>
 
       <h2>The outer layer: beyond stocks entirely</h2>
@@ -162,7 +162,7 @@ export default function EtfsAndDiversification({ moduleId }) {
 
       <Callout variant="warning">
         <p>Two failure modes to watch. The first is over-diversification: owning eight funds that hold largely the same companies adds fees and confusion without adding a single new bet. Check overlap before you add anything.</p>
-        <p>The second is more expensive. Plenty of products are shaped like ETFs and sold with the vocabulary of diversification while being concentrated, fragile bets — single-sector funds, narrow thematic funds built around a story, and leveraged or inverse ETFs that use derivatives to multiply daily moves. Leveraged funds in particular reset their exposure daily, so in a choppy market they can lose value even when the thing they track ends up flat. The Hard track takes these apart properly. Until then, the safe assumption is that a fund is exactly as diversified as its actual holdings list, not as its name.</p>
+        <p>The second is more expensive. Plenty of products are shaped like ETFs and sold with the vocabulary of diversification while being concentrated, fragile bets: single-sector funds, narrow thematic funds built around a story, and leveraged or inverse ETFs that use derivatives to multiply daily moves. Leveraged funds in particular reset their exposure daily, so in a choppy market they can lose value even when the thing they track ends up flat. The Hard track takes these apart properly. Until then, the safe assumption is that a fund is exactly as diversified as its actual holdings list, not as its name.</p>
       </Callout>
 
       <h2>What to carry forward</h2>

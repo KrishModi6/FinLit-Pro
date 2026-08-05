@@ -6,7 +6,7 @@ import { defineTerm } from '../../data/glossary.js'
  * of jargon appears.
  *
  * Pass children to write a bespoke definition, or omit them and the shared
- * glossary definition is used — so a term reads identically everywhere.
+ * glossary definition is used, so a term reads identically everywhere.
  *
  *   <KeyTerm term="Beta" />                        // uses glossary.js
  *   <KeyTerm term="Beta">Custom wording here</KeyTerm>

@@ -65,7 +65,7 @@ export function ProgressProvider({ children }) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     } catch {
-      // Storage full or blocked — progress just won't survive a refresh.
+      // Storage full or blocked, progress just won't survive a refresh.
     }
   }, [state])
 

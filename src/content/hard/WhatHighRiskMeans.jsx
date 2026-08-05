@@ -14,7 +14,7 @@ const QUESTIONS = [
       'Down exactly 30%, because the first day’s loss is permanent',
     ],
     answer: 2,
-    explanation: 'The fund goes 0.70 × 1.333 = 0.9331, so it is down about 6.7%. The tempting answer is “flat”, because we assume the fund tracks the index over the period. It does not — it targets 3x the DAILY return and rebalances every day, so the second day’s gain is calculated on a base that already shrank by 30%.',
+    explanation: 'The fund goes 0.70 × 1.333 = 0.9331, so it is down about 6.7%. The tempting answer is “flat”, because we assume the fund tracks the index over the period. It does not. It targets 3x the DAILY return and rebalances every day, so the second day’s gain is calculated on a base that already shrank by 30%.',
   },
   {
     prompt: 'Because a 3x leveraged ETF is designed to deliver three times the daily move, holding it for a full year should deliver roughly three times that year’s index return.',
@@ -31,7 +31,7 @@ const QUESTIONS = [
       'It means the share price updates only once per day',
     ],
     answer: 1,
-    explanation: 'A quote is only meaningful if there is a buyer behind it. With few buyers and a wide spread, selling a real position pushes the price down as you go, so the screen price and your exit price can differ enormously. The dividend answer is tempting but irrelevant — plenty of perfectly liquid stocks pay nothing.',
+    explanation: 'A quote is only meaningful if there is a buyer behind it. With few buyers and a wide spread, selling a real position pushes the price down as you go, so the screen price and your exit price can differ enormously. The dividend answer is tempting but irrelevant: plenty of perfectly liquid stocks pay nothing.',
   },
   {
     prompt: 'Which of these positions can leave you owing money beyond what you originally put in?',
@@ -42,7 +42,7 @@ const QUESTIONS = [
       'Buying shares of a 3x leveraged ETF',
     ],
     answer: 2,
-    explanation: 'Margin is a loan, and the loan does not shrink when the position does. If the collateral falls far enough the broker liquidates, and any shortfall is a debt you owe. A bought option and a leveraged ETF are both brutal — you can lose everything you paid — but neither can take more than 100% of that amount.',
+    explanation: 'Margin is a loan, and the loan does not shrink when the position does. If the collateral falls far enough the broker liquidates, and any shortfall is a debt you owe. A bought option and a leveraged ETF are both brutal (you can lose everything you paid), but neither can take more than 100% of that amount.',
   },
   {
     prompt: 'In this course, “high risk” is defined as a wide distribution of outcomes with meaningful probability of total loss, rather than simply “the price moves around a lot”.',
@@ -95,7 +95,7 @@ export default function WhatHighRiskMeans({ moduleId }) {
         <li>Day one, the index falls 10%. A $100 index position becomes $90. The 3x fund falls 30%, so $100 becomes $70.</li>
         <li>Day two, the index rises 11.1%. The index position goes from $90 to about $100, so over two days the index is flat.</li>
         <li>The 3x fund rises 33.3% that same day: $70 × 1.333 = $93.31.</li>
-        <li>The index ended flat. The leveraged fund ended down about 6.7%, and nothing went wrong. No fees, no tracking error, no bad luck — just compounding.</li>
+        <li>The index ended flat. The leveraged fund ended down about 6.7%, and nothing went wrong. No fees, no tracking error, no bad luck. Just compounding.</li>
       </ol>
 
       <p>This effect is called volatility decay, and it gets worse as <Term k="volatility">volatility</Term> rises and as the holding period lengthens. A choppy sideways market is the specific environment in which a leveraged fund bleeds while the thing it tracks does nothing.</p>
@@ -203,7 +203,7 @@ export default function WhatHighRiskMeans({ moduleId }) {
       </div>
 
       <TryIt moduleId={moduleId} placeholder="Instrument, what the holder owns, and the exact path to zero…">
-        <p>Pick one instrument from this lesson that you have personally seen promoted online — a specific ticker, fund or contract, not a category. Look it up on Yahoo Finance or the issuer’s own fact sheet, then write three things: what a holder of it literally owns, the specific mechanism by which it could go to zero, and one number from the page that surprised you. If you cannot find a clear answer to the first question in five minutes, that is itself the finding, and worth writing down.</p>
+        <p>Pick one instrument from this lesson that you have personally seen promoted online: a specific ticker, fund or contract, not a category. Look it up on Yahoo Finance or the issuer’s own fact sheet, then write three things: what a holder of it literally owns, the specific mechanism by which it could go to zero, and one number from the page that surprised you. If you cannot find a clear answer to the first question in five minutes, that is itself the finding, and worth writing down.</p>
       </TryIt>
 
       <h2>What high risk actually means</h2>
@@ -211,7 +211,7 @@ export default function WhatHighRiskMeans({ moduleId }) {
       <p>Here is the definition worth keeping. High risk does not mean “the price moves around a lot”. It means the distribution of possible outcomes is wide <em>and</em> a meaningful share of that distribution ends at total loss. An index fund moves plenty and has never gone to zero. A single pre-revenue biotech can move less on a quiet week and still have a real chance of being worth nothing within two years. Movement is not the variable that matters; the fat part of the left tail is.</p>
 
       <Callout variant="warning">
-        <p>One rule holds up the entire rest of this track: never put money into any of these instruments that you cannot afford to lose entirely. And be honest about what that phrase means. It does not mean the loss would sting. It means the loss changes nothing about your life — not your rent, not your tuition, not your relationship with the person who lent you the money, not your sleep.</p>
+        <p>One rule holds up the entire rest of this track: never put money into any of these instruments that you cannot afford to lose entirely. And be honest about what that phrase means. It does not mean the loss would sting. It means the loss changes nothing about your life: not your rent, not your tuition, not your relationship with the person who lent you the money, not your sleep.</p>
       </Callout>
 
       <p>If that condition is not met, no amount of research fixes it, because the problem is not your analysis. It is your position size relative to your life. That is a topic we return to in detail, and it is the single most reliable difference between people who survive this part of the market and people who do not.</p>

@@ -11,7 +11,7 @@ export const GLOSSARY = {
   share: {
     term: 'Share',
     short: 'One unit of ownership in a company.',
-    long: 'A single unit of ownership in a company. Own one share out of a billion and you own one-billionth of the business — its assets, its profits, and its problems.',
+    long: 'A single unit of ownership in a company. Own one share out of a billion and you own one-billionth of the business: its assets, its profits, and its problems.',
     tags: ['basics'],
   },
   equity: {
@@ -22,7 +22,7 @@ export const GLOSSARY = {
   },
   ipo: {
     term: 'IPO',
-    short: 'Initial Public Offering — the first sale of a company’s shares to the public.',
+    short: 'Initial Public Offering: the first sale of a company’s shares to the public.',
     long: 'Initial Public Offering. The first time a private company sells shares to the general public, turning it into a publicly traded company. The company receives the money raised in the IPO itself; after that, shares change hands between investors.',
     tags: ['basics'],
   },
@@ -35,19 +35,19 @@ export const GLOSSARY = {
   brokerage: {
     term: 'Brokerage',
     short: 'The company that places your trades on an exchange for you.',
-    long: 'A licensed firm that places orders on an exchange on your behalf and holds the shares in your account. You cannot walk up to the NYSE yourself — a broker such as Fidelity, Schwab or Robinhood is the door.',
+    long: 'A licensed firm that places orders on an exchange on your behalf and holds the shares in your account. You cannot walk up to the NYSE yourself: a broker such as Fidelity, Schwab or Robinhood is the door.',
     tags: ['basics'],
   },
   ticker: {
     term: 'Ticker',
     short: 'The short code that identifies a stock, like AAPL for Apple.',
-    long: 'The short symbol that uniquely identifies a security on an exchange — AAPL for Apple, MSFT for Microsoft, VOO for Vanguard’s S&P 500 ETF. Tickers are how orders are routed, so getting one character wrong buys a different company.',
+    long: 'The short symbol that uniquely identifies a security on an exchange: AAPL for Apple, MSFT for Microsoft, VOO for Vanguard’s S&P 500 ETF. Tickers are how orders are routed, so getting one character wrong buys a different company.',
     tags: ['basics'],
   },
   'market cap': {
     term: 'Market Capitalisation',
     short: 'Share price × total shares. The market’s price tag on the whole company.',
-    long: 'Share price multiplied by the number of shares outstanding — what the market currently says the entire company is worth. A $10 stock is not "cheaper" than a $500 stock; market cap is the number that lets you compare company sizes.',
+    long: 'Share price multiplied by the number of shares outstanding: what the market currently says the entire company is worth. A $10 stock is not "cheaper" than a $500 stock; market cap is the number that lets you compare company sizes.',
     tags: ['basics', 'analysis'],
   },
   volume: {
@@ -59,7 +59,7 @@ export const GLOSSARY = {
   liquidity: {
     term: 'Liquidity',
     short: 'How easily you can sell without moving the price.',
-    long: 'How quickly an asset can be converted to cash near its quoted price. Apple is extremely liquid — you can sell instantly at roughly the screen price. A thinly traded penny stock is illiquid: your sell order itself can push the price down.',
+    long: 'How quickly an asset can be converted to cash near its quoted price. Apple is extremely liquid; you can sell instantly at roughly the screen price. A thinly traded penny stock is illiquid: your sell order itself can push the price down.',
     tags: ['risk'],
   },
   spread: {
@@ -71,7 +71,7 @@ export const GLOSSARY = {
   dividend: {
     term: 'Dividend',
     short: 'A cash payment a company makes to shareholders out of profits.',
-    long: 'A cash payment made to shareholders, usually quarterly, out of company profits. Dividends are decided by the board and can be cut at any time — they are a signal of confidence, not a guarantee.',
+    long: 'A cash payment made to shareholders, usually quarterly, out of company profits. Dividends are decided by the board and can be cut at any time. They are a signal of confidence, not a guarantee.',
     tags: ['income'],
   },
   'dividend yield': {
@@ -88,14 +88,14 @@ export const GLOSSARY = {
   },
   etf: {
     term: 'ETF',
-    short: 'Exchange-Traded Fund — a basket of assets that trades like one stock.',
+    short: 'Exchange-Traded Fund: a basket of assets that trades like one stock.',
     long: 'Exchange-Traded Fund. A fund holding many underlying assets that itself trades on an exchange like a single stock. One share of VOO gives you a slice of all ~500 companies in the S&P 500.',
     tags: ['funds'],
   },
   'index fund': {
     term: 'Index Fund',
     short: 'A fund that simply copies an index instead of picking stocks.',
-    long: 'A fund that mechanically tracks an index rather than employing managers to pick winners. Because there is little to decide, fees are very low — often under 0.05% a year.',
+    long: 'A fund that mechanically tracks an index rather than employing managers to pick winners. Because there is little to decide, fees are very low, often under 0.05% a year.',
     tags: ['funds'],
   },
   'expense ratio': {
@@ -107,19 +107,19 @@ export const GLOSSARY = {
   'blue chip': {
     term: 'Blue Chip',
     short: 'A large, long-established, financially solid company.',
-    long: 'An informal label for a large, long-established company with reliable earnings and a strong balance sheet. Blue chips still fall in crashes — they simply tend to fall less and recover more reliably.',
+    long: 'An informal label for a large, long-established company with reliable earnings and a strong balance sheet. Blue chips still fall in crashes; they simply tend to fall less and recover more reliably.',
     tags: ['stability'],
   },
   'dividend aristocrat': {
     term: 'Dividend Aristocrat',
     short: 'An S&P 500 company that has raised its dividend 25+ years running.',
-    long: 'A company in the S&P 500 that has increased its dividend every year for at least 25 consecutive years. The streak is evidence of durable cash flow across multiple recessions — though past streaks guarantee nothing.',
+    long: 'A company in the S&P 500 that has increased its dividend every year for at least 25 consecutive years. The streak is evidence of durable cash flow across multiple recessions, though past streaks guarantee nothing.',
     tags: ['stability', 'income'],
   },
   volatility: {
     term: 'Volatility',
     short: 'How violently a price swings around, up or down.',
-    long: 'A measure of how much and how quickly a price moves in either direction. Volatility is not the same as loss — but high volatility means larger possible losses over any short window.',
+    long: 'A measure of how much and how quickly a price moves in either direction. Volatility is not the same as loss, but high volatility means larger possible losses over any short window.',
     tags: ['risk'],
   },
   beta: {
@@ -130,32 +130,32 @@ export const GLOSSARY = {
   },
   'pe ratio': {
     term: 'P/E Ratio',
-    short: 'Price ÷ earnings per share — what you pay per $1 of profit.',
+    short: 'Price ÷ earnings per share. What you pay per $1 of profit.',
     long: 'Price-to-Earnings ratio: share price divided by earnings per share. A P/E of 25 means you are paying $25 for each $1 of annual profit. High P/E means the market expects growth; it is only meaningful compared with peers in the same industry.',
     tags: ['analysis'],
   },
   eps: {
     term: 'EPS',
-    short: 'Earnings per share — company profit split across all shares.',
+    short: 'Earnings per share: company profit split across all shares.',
     long: 'Earnings Per Share: net profit divided by shares outstanding. It is the per-share slice of profit, and the denominator of the P/E ratio. Rising EPS over years is one of the cleanest signs of a healthy business.',
     tags: ['analysis'],
   },
   'debt to equity': {
     term: 'Debt-to-Equity',
     short: 'Total debt ÷ shareholder equity. How leveraged a company is.',
-    long: 'Total debt divided by shareholder equity — how much of the business is funded by borrowing. Heavy debt magnifies both good and bad years, and makes a company far more fragile when interest rates rise.',
+    long: 'Total debt divided by shareholder equity: how much of the business is funded by borrowing. Heavy debt magnifies both good and bad years, and makes a company far more fragile when interest rates rise.',
     tags: ['analysis', 'risk'],
   },
   'moving average': {
     term: 'Moving Average',
     short: 'The average closing price over the last N days, plotted as a line.',
-    long: 'The average closing price over a rolling window — the 50-day and 200-day are the common ones. It smooths daily noise so a trend is visible. It is descriptive, not predictive.',
+    long: 'The average closing price over a rolling window. The 50-day and 200-day are the common ones. It smooths daily noise so a trend is visible. It is descriptive, not predictive.',
     tags: ['technical'],
   },
   rsi: {
     term: 'RSI',
     short: 'A 0–100 momentum gauge; above 70 "overbought", below 30 "oversold".',
-    long: 'Relative Strength Index. A momentum indicator scaled 0–100 comparing recent gains to recent losses. Above 70 is conventionally called overbought and below 30 oversold — but a strong stock can sit above 70 for months.',
+    long: 'Relative Strength Index. A momentum indicator scaled 0–100 comparing recent gains to recent losses. Above 70 is conventionally called overbought and below 30 oversold, but a strong stock can sit above 70 for months.',
     tags: ['technical'],
   },
   candlestick: {
@@ -196,7 +196,7 @@ export const GLOSSARY = {
   },
   option: {
     term: 'Option',
-    short: 'A contract giving the right — not the obligation — to trade at a set price.',
+    short: 'A contract giving the right, not the obligation, to trade at a set price.',
     long: 'A contract giving the buyer the right, but not the obligation, to buy (call) or sell (put) 100 shares at a set strike price before an expiration date. Buyers pay a premium; if the option expires worthless, the entire premium is lost.',
     tags: ['options', 'risk'],
   },
@@ -220,20 +220,20 @@ export const GLOSSARY = {
   },
   premium: {
     term: 'Premium',
-    short: 'The price paid for an option contract — the maximum a buyer can lose.',
+    short: 'The price paid for an option contract. The maximum a buyer can lose.',
     long: 'The price paid to buy an option, quoted per share but sold in contracts of 100. A $2.50 premium costs $250 per contract, and that $250 is the entire amount a buyer can lose.',
     tags: ['options'],
   },
   'theta decay': {
     term: 'Theta Decay',
     short: 'The daily loss of an option’s value as expiration approaches.',
-    long: 'The erosion of an option’s value as time passes, accelerating near expiration. It is why an option buyer can be right about direction and still lose money — the stock has to move enough, and soon enough.',
+    long: 'The erosion of an option’s value as time passes, accelerating near expiration. It is why an option buyer can be right about direction and still lose money: the stock has to move enough, and soon enough.',
     tags: ['options', 'risk'],
   },
   leverage: {
     term: 'Leverage',
     short: 'Using borrowed money or derivatives to amplify exposure.',
-    long: 'Amplifying exposure using borrowed money or derivatives, so gains and losses are both multiplied. Leverage does not change whether you are right — it changes whether you survive being wrong.',
+    long: 'Amplifying exposure using borrowed money or derivatives, so gains and losses are both multiplied. Leverage does not change whether you are right; it changes whether you survive being wrong.',
     tags: ['risk'],
   },
   'short interest': {
@@ -263,12 +263,12 @@ export const GLOSSARY = {
   'asymmetric bet': {
     term: 'Asymmetric Bet',
     short: 'A position where the possible upside far outweighs the capped downside.',
-    long: 'A position where the realistic upside is several times larger than the maximum downside. Buying an option is structurally asymmetric — you can lose 100% of a small premium, or make several times it — which is only useful if the position is genuinely small.',
+    long: 'A position where the realistic upside is several times larger than the maximum downside. Buying an option is structurally asymmetric (you can lose 100% of a small premium, or make several times it), which is only useful if the position is genuinely small.',
     tags: ['strategy', 'risk'],
   },
   fomo: {
     term: 'FOMO',
-    short: 'Fear of missing out — buying because something already went up.',
+    short: 'Fear of missing out: buying because something already went up.',
     long: 'Fear Of Missing Out: the urge to buy because a price has already risen sharply and others are profiting. It reliably produces buying near tops, because the feeling is strongest exactly when a move is most extended.',
     tags: ['psychology'],
   },

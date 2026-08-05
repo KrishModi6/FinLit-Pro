@@ -14,7 +14,7 @@ const QUESTIONS = [
       'It rose about 12%, because high beta hedges declines',
     ],
     answer: 2,
-    explanation: 'Beta scales the market move in both directions: 1.5 × 8% = 12%. The tempting wrong answer is that beta only amplifies the upside — it does not. A beta above 1 historically meant harder falls as well as bigger rallies.',
+    explanation: 'Beta scales the market move in both directions: 1.5 × 8% = 12%. The tempting wrong answer is that beta only amplifies the upside; it does not. A beta above 1 historically meant harder falls as well as bigger rallies.',
   },
   {
     prompt: 'A stock with a beta of 0.4 is a low-risk investment.',
@@ -37,7 +37,7 @@ const QUESTIONS = [
     prompt: 'A portfolio holds 50% in a stock with beta 1.4, 30% in a stock with beta 1.8, and 20% in a stock with beta 0.7. What is the weighted-average portfolio beta?',
     options: ['1.30', '1.38', '1.63', '0.97'],
     answer: 1,
-    explanation: '(0.50 × 1.4) + (0.30 × 1.8) + (0.20 × 0.7) = 0.70 + 0.54 + 0.14 = 1.38. Averaging the three betas without weighting them gives 1.30, which is the common mistake — position size matters as much as the beta itself.',
+    explanation: '(0.50 × 1.4) + (0.30 × 1.8) + (0.20 × 0.7) = 0.70 + 0.54 + 0.14 = 1.38. Averaging the three betas without weighting them gives 1.30, which is the common mistake: position size matters as much as the beta itself.',
   },
   {
     prompt: 'Standard deviation of returns measures how much a stock moves relative to the market.',
@@ -56,7 +56,7 @@ export default function BetaAndVolatility({ moduleId }) {
 
       <p>When the market moves 1%, how much has this stock historically moved? That is the whole question. <Term k="beta">Beta</Term> is the answer, compressed into one number, and once you read it that way it stops feeling like statistics jargon.</p>
 
-      <p>A beta of 1.0 means the stock has historically tracked the market roughly one-for-one. A beta of 1.5 means it swung about 50% harder — in both directions, which is the part people forget. A beta of 0.6 means it was steadier than the market, moving about six-tenths as much on an average move. Utilities and consumer-staples companies often sit below 1. High-growth technology names often sit above it.</p>
+      <p>A beta of 1.0 means the stock has historically tracked the market roughly one-for-one. A beta of 1.5 means it swung about 50% harder, in both directions, which is the part people forget. A beta of 0.6 means it was steadier than the market, moving about six-tenths as much on an average move. Utilities and consumer-staples companies often sit below 1. High-growth technology names often sit above it.</p>
 
       <KeyTerm term="Beta" />
 
@@ -64,7 +64,7 @@ export default function BetaAndVolatility({ moduleId }) {
 
       <p>Formally, beta is the slope of a regression of the stock’s returns against a market index’s returns over some historical window. Plot the index return on one axis and the stock return on the other, one dot per period, and draw the best-fit line through the cloud. The steepness of that line is beta.</p>
 
-      <p>Two choices go into that calculation, and neither is usually displayed anywhere near the number itself. First, which index you regress against — the S&amp;P 500 is common in the US, but not universal. Second, the lookback window and the return frequency, most often three or five years of monthly returns. Change either input and the slope changes.</p>
+      <p>Two choices go into that calculation, and neither is usually displayed anywhere near the number itself. First, which index you regress against: the S&amp;P 500 is common in the US, but not universal. Second, the lookback window and the return frequency, most often three or five years of monthly returns. Change either input and the slope changes.</p>
 
       <Callout variant="note">
         <p>This is why two reputable websites can show different betas for the same company on the same day and both be right. Yahoo Finance labels its figure “Beta (5Y Monthly)” precisely because the label is part of the number. When you write a beta down, write down the window too, or you are recording half a fact.</p>
@@ -125,18 +125,18 @@ export default function BetaAndVolatility({ moduleId }) {
       <ul>
         <li>It is not a measure of business quality. A wonderful company with rising profits can have a beta of 1.6, and a struggling one can have a beta of 0.8.</li>
         <li>It is not a prediction. It is a backward-looking description of returns that already happened.</li>
-        <li>It is not stable. As a company changes — takes on debt, enters a new market, matures from growth into a slow compounder — its beta drifts. A five-year beta is partly a description of a company that no longer exists.</li>
+        <li>It is not stable. As a company changes (takes on debt, enters a new market, matures from growth into a slow compounder), its beta drifts. A five-year beta is partly a description of a company that no longer exists.</li>
         <li>It is close to meaningless for a stock with a short trading history. Fifteen months of data since an <Term k="ipo">IPO</Term> is not enough to fit a stable slope, and any beta you see for such a name deserves suspicion.</li>
       </ul>
 
       <h3>The limitation that costs people money</h3>
 
-      <p>Beta only captures the part of a stock’s movement that moves with the market. Everything else — the lawsuit, the failed product, the accounting scandal, the trial result — is invisible to it.</p>
+      <p>Beta only captures the part of a stock’s movement that moves with the market. Everything else (the lawsuit, the failed product, the accounting scandal, the trial result) is invisible to it.</p>
 
       <p>Picture a small pharmaceutical company whose entire value rests on one drug in late-stage trials. Its share price barely reacts to macro news, so its measured beta might come out around 0.5. On the day results are announced, the stock could double or lose three-quarters of its value. The risk is enormous, but it is idiosyncratic rather than market-driven, so beta never saw it coming and never claimed to.</p>
 
       <Callout variant="warning">
-        <p>Low beta gets read as “safe” constantly, and it is not the same claim. Enron’s stock went from around 90 dollars in mid-2000 to essentially nothing when the company filed for bankruptcy in December 2001 — a collapse driven by fraud inside one company, exactly the kind of risk beta cannot see.</p>
+        <p>Low beta gets read as “safe” constantly, and it is not the same claim. Enron’s stock went from around 90 dollars in mid-2000 to essentially nothing when the company filed for bankruptcy in December 2001, a collapse driven by fraud inside one company, exactly the kind of risk beta cannot see.</p>
         <p>If you are using a low beta to justify a large position, stop and ask a different question: what would have to go wrong at this specific company, and how much of my money is standing in front of that answer?</p>
       </Callout>
 
@@ -158,7 +158,7 @@ export default function BetaAndVolatility({ moduleId }) {
         <li>20% in a stock with beta 0.7, contributing 0.20 × 0.7 = 0.14</li>
       </ol>
 
-      <p>Add the contributions: 0.70 + 0.54 + 0.14 = 1.38. If the market falls 20%, this portfolio would historically have fallen closer to 28%. On a 10,000 dollar balance, that is roughly a 2,800 dollar decline against the market’s 2,000 dollars — an extra 800 dollars of <Term k="drawdown">drawdown</Term> that came from the portfolio’s construction rather than from any single decision you remember making.</p>
+      <p>Add the contributions: 0.70 + 0.54 + 0.14 = 1.38. If the market falls 20%, this portfolio would historically have fallen closer to 28%. On a 10,000 dollar balance, that is roughly a 2,800 dollar decline against the market’s 2,000 dollars, an extra 800 dollars of <Term k="drawdown">drawdown</Term> that came from the portfolio’s construction rather than from any single decision you remember making.</p>
 
       <Callout variant="real-talk">
         <p>Almost nobody builds a high-beta portfolio on purpose. It happens one reasonable decision at a time: you research companies you find interesting, the interesting ones are growth companies, growth companies tend to carry higher betas, and eight individually defensible picks turn into one portfolio that will fall much harder than the market in a bad year.</p>
@@ -171,16 +171,16 @@ export default function BetaAndVolatility({ moduleId }) {
 
       <TryIt moduleId={moduleId} placeholder="Company 1, beta and window… Company 2, beta and window… why the gap exists…">
         <p>Pick one utility or consumer-staples company and one high-growth technology company. Look up the beta for each on Yahoo Finance or your broker, and write down three things per company: the ticker, the beta, and the exact lookback window shown next to it.</p>
-        <p>Then explain the gap in two or three sentences. What is it about each business — customer demand, revenue predictability, how much of the valuation rests on profits years away — that would make its share price more or less sensitive to the market as a whole?</p>
+        <p>Then explain the gap in two or three sentences. What is it about each business (customer demand, revenue predictability, how much of the valuation rests on profits years away) that would make its share price more or less sensitive to the market as a whole?</p>
       </TryIt>
 
       <h2>The single idea to keep</h2>
 
       <p>Beta tells you how much of a stock’s past movement came from the market moving, and nothing else. It is a description, not a forecast, computed over a window someone else chose, on a business that has since changed.</p>
 
-      <p>Use it as a dial for the whole portfolio rather than a verdict on one company. If your weighted-average beta drifts well above 1, you have taken on more market sensitivity than you probably intended, and no amount of confidence in the individual businesses changes the arithmetic of a bad year. If it sits below 1, you have given up some of the upside in exchange for a shallower fall — a real trade-off, not a free lunch.</p>
+      <p>Use it as a dial for the whole portfolio rather than a verdict on one company. If your weighted-average beta drifts well above 1, you have taken on more market sensitivity than you probably intended, and no amount of confidence in the individual businesses changes the arithmetic of a bad year. If it sits below 1, you have given up some of the upside in exchange for a shallower fall: a real trade-off, not a free lunch.</p>
 
-      <p>Next up: valuation ratios, starting with the P/E ratio and the earnings-per-share figure sitting underneath it — a number that describes what you are paying rather than how much the price moves.</p>
+      <p>Next up: valuation ratios, starting with the P/E ratio and the earnings-per-share figure sitting underneath it, a number that describes what you are paying rather than how much the price moves.</p>
 
       <Quiz moduleId={moduleId} questions={QUESTIONS} />
     </>

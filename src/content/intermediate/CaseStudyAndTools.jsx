@@ -15,7 +15,7 @@ const QUESTIONS = [
     ],
     answer: 1,
     explanation:
-      'A short seller who borrowed and sold shares must buy them back to exit. As the price rose, losses mounted and forced buying added to demand, pushing the price higher still. The tempting wrong answer is earnings: GameStop’s business was shrinking, not booming. That is the point of the case study — the move came from positioning, not from results.',
+      'A short seller who borrowed and sold shares must buy them back to exit. As the price rose, losses mounted and forced buying added to demand, pushing the price higher still. The tempting wrong answer is earnings: GameStop’s business was shrinking, not booming. That is the point of the case study: the move came from positioning, not from results.',
   },
   {
     prompt: 'Someone bought GameStop at roughly $350 on 28 January 2021 because it was the top story everywhere. What does the case study say about that decision?',
@@ -27,7 +27,7 @@ const QUESTIONS = [
     ],
     answer: 1,
     explanation:
-      'Every share bought near the top came from someone selling it. A squeeze transfers money from late buyers to early ones. By the time a story is the top headline, the information is already reflected in the price, so the news is not an edge — it is the crowd you are trading against.',
+      'Every share bought near the top came from someone selling it. A squeeze transfers money from late buyers to early ones. By the time a story is the top headline, the information is already reflected in the price, so the news is not an edge; it is the crowd you are trading against.',
   },
   {
     prompt: 'A stock’s 10-K annual report is written by the company, so its Risk Factors section is just marketing.',
@@ -46,7 +46,7 @@ const QUESTIONS = [
     ],
     answer: 1,
     explanation:
-      'A screener narrows the universe. You set filters — market cap above a threshold, P/E below one, a sector, a country — and it returns the list that matches. It generates candidates for research; it does not do the research, and it certainly does not forecast. The prediction answer is the seductive one, and it is wrong.',
+      'A screener narrows the universe. You set filters (market cap above a threshold, P/E below one, a sector, a country) and it returns the list that matches. It generates candidates for research; it does not do the research, and it certainly does not forecast. The prediction answer is the seductive one, and it is wrong.',
   },
   {
     prompt: 'During extreme volatility, some brokers restricted buying in GameStop and a few other stocks.',
@@ -72,7 +72,7 @@ export default function CaseStudyAndTools({ moduleId }) {
         Strip away the mythology and start with the business. GameStop sold video games and consoles
         out of physical stores, most of them in shopping malls, at the exact moment the industry was
         moving to digital downloads. Revenue was shrinking. Stores were closing. This was not a
-        misunderstood gem — by conventional measures it was a retailer in structural decline, and
+        misunderstood gem: by conventional measures it was a retailer in structural decline, and
         professional investors said so openly.
       </p>
 
@@ -115,8 +115,8 @@ export default function CaseStudyAndTools({ moduleId }) {
 
       <p>
         Now the honest version of the same sentence. The winners were overwhelmingly the people who
-        bought early — in December or the first half of January, when the position was unpopular and
-        genuinely uncomfortable — and who then sold into the spike. Selling is the part that gets
+        bought early (in December or the first half of January, when the position was unpopular and
+        genuinely uncomfortable) and who then sold into the spike. Selling is the part that gets
         skipped in the retellings, and it is the part that determined who kept the money.
       </p>
 
@@ -142,7 +142,7 @@ export default function CaseStudyAndTools({ moduleId }) {
 
       <p>
         Put a different kind of investment next to it. Johnson &amp; Johnson is a{' '}
-        <Term k="dividend aristocrat">dividend aristocrat</Term> — an S&amp;P 500 company that has
+        <Term k="dividend aristocrat">dividend aristocrat</Term>, an S&amp;P 500 company that has
         raised its dividend every year for more than 60 consecutive years. VOO is an{' '}
         <Term k="etf">ETF</Term> tracking the S&amp;P 500, holding roughly 500 large US companies at
         an expense ratio around 0.03%. Neither has ever been anyone’s favourite story at a party.
@@ -158,7 +158,7 @@ export default function CaseStudyAndTools({ moduleId }) {
       </p>
 
       <p>
-        Go and get the real numbers yourself — the tools in the second half of this lesson will have
+        Go and get the real numbers yourself. The tools in the second half of this lesson will have
         you doing it in about four minutes. Looking it up will teach you more than a figure I hand
         you, and it builds exactly the habit this lesson is trying to install.
       </p>
@@ -192,12 +192,12 @@ export default function CaseStudyAndTools({ moduleId }) {
             </tr>
             <tr>
               <td>Did timing matter</td>
-              <td>Enormously — days and sometimes hours changed everything</td>
+              <td>Enormously: days and sometimes hours changed everything</td>
               <td>Barely, over a long enough horizon</td>
             </tr>
             <tr>
               <td>Could you always transact</td>
-              <td>No — some brokers restricted buying at the peak</td>
+              <td>No: some brokers restricted buying at the peak</td>
               <td>Yes, in normal conditions, with deep liquidity</td>
             </tr>
             <tr>
@@ -249,7 +249,7 @@ export default function CaseStudyAndTools({ moduleId }) {
         tabs worth knowing: <strong>Statistics</strong> gives you{' '}
         <Term k="market cap">market cap</Term>, P/E ratio, beta, margins and share count in one
         screen. <strong>Financials</strong> shows several years of income statement, balance sheet
-        and cash flow. <strong>Holders</strong> shows institutional ownership and — relevant here —
+        and cash flow. <strong>Holders</strong> shows institutional ownership and, relevant here,
         short interest figures. <strong>Analysis</strong> collects Wall Street estimates, which are
         useful as a sentiment gauge rather than as truth.
       </p>
@@ -260,7 +260,7 @@ export default function CaseStudyAndTools({ moduleId }) {
         Finviz is where you meet the screener. A screener is a filter over the entire listed universe:
         you specify numeric conditions and it returns only the companies that satisfy all of them.
         Market cap above $10 billion, P/E under 20, dividend yield above 2%, US-listed, healthcare
-        sector — run it and thousands of companies become eleven.
+        sector. Run it and thousands of companies become eleven.
       </p>
 
       <p>
@@ -291,7 +291,7 @@ export default function CaseStudyAndTools({ moduleId }) {
         <p>
           Section 1A of the 10-K is called Risk Factors, and it is the one place a company is legally
           obliged to argue against itself. Competition, dependence on a single customer, regulatory
-          exposure, debt covenants — it is all disclosed there, in plain language, because omitting a
+          exposure, debt covenants: it is all disclosed there, in plain language, because omitting a
           known risk carries legal liability.
         </p>
         <p>
@@ -366,7 +366,7 @@ export default function CaseStudyAndTools({ moduleId }) {
         <p>
           Pick two companies: one speculative name you have heard people talk about online, and one
           large established blue chip. Using Yahoo Finance’s Statistics tab or a Finviz screen, pull
-          the same three metrics for each — market cap, P/E ratio, and beta.
+          the same three metrics for each: market cap, P/E ratio, and beta.
         </p>
         <p>
           Write all six numbers down, then answer one question in a sentence: which of the three
@@ -394,8 +394,8 @@ export default function CaseStudyAndTools({ moduleId }) {
 
       <p>
         Next lesson we build the discipline that makes all of this survivable: position sizing and
-        risk management — how much of your money any single idea is allowed to touch, and why that
-        number matters more than the idea itself.
+        risk management (how much of your money any single idea is allowed to touch, and why that
+        number matters more than the idea itself).
       </p>
 
       <Quiz moduleId={moduleId} questions={QUESTIONS} />

@@ -119,33 +119,33 @@ export default function HowTheMarketWorks({ moduleId }) {
           <tbody>
             <tr>
               <td>$50.15</td>
-              <td>—</td>
+              <td>n/a</td>
               <td>900</td>
             </tr>
             <tr>
               <td>$50.12</td>
-              <td>—</td>
+              <td>n/a</td>
               <td>400</td>
             </tr>
             <tr>
               <td>$50.10</td>
-              <td>—</td>
+              <td>n/a</td>
               <td>250</td>
             </tr>
             <tr>
               <td>$50.04</td>
               <td>300</td>
-              <td>—</td>
+              <td>n/a</td>
             </tr>
             <tr>
               <td>$50.02</td>
               <td>700</td>
-              <td>—</td>
+              <td>n/a</td>
             </tr>
             <tr>
               <td>$49.98</td>
               <td>1,200</td>
-              <td>—</td>
+              <td>n/a</td>
             </tr>
           </tbody>
         </table>

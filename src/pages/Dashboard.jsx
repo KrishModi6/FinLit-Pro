@@ -6,7 +6,7 @@ import { useProgress } from '../context/ProgressContext.jsx'
 import ProgressBar, { ProgressRing } from '../components/ui/ProgressBar.jsx'
 import { ArrowRightIcon } from '../components/ui/Icons.jsx'
 
-/** Everything the site knows about you — which is only what’s in this browser. */
+/** Everything the site knows about you, and that is only what’s in this browser. */
 export default function Dashboard() {
   const { stats, nextModule, getStatus, getQuiz, resetAll } = useProgress()
   const [confirmingReset, setConfirmingReset] = useState(false)
@@ -100,7 +100,7 @@ export default function Dashboard() {
                   to={track.path}
                   className={`text-sm font-bold uppercase tracking-wider ${track.theme.label} hover:underline`}
                 >
-                  {track.name} — {track.title}
+                  {track.name}: {track.title}
                 </Link>
                 <span className="text-sm tabular-nums text-ink-500 dark:text-ink-400">
                   {s.done}/{s.total} · {s.percent}%

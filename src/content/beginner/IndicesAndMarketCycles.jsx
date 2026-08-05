@@ -14,7 +14,7 @@ const QUESTIONS = [
       'Neither, because the Dow gives every member an equal weight',
     ],
     answer: 1,
-    explanation: 'The Dow is price weighted, so it reacts to dollars per share, not percentages and not company size. A 1% move on a $400 stock is $4; on a $40 stock it is 40 cents. Option C is the tempting one because market-cap weighting is what the S&P 500 does — but the Dow has never worked that way.',
+    explanation: 'The Dow is price weighted, so it reacts to dollars per share, not percentages and not company size. A 1% move on a $400 stock is $4; on a $40 stock it is 40 cents. Option C is the tempting one because market-cap weighting is what the S&P 500 does, but the Dow has never worked that way.',
   },
   {
     prompt: 'The S&P 500 holds exactly 500 companies and gives each of them an equal weight.',
@@ -24,7 +24,7 @@ const QUESTIONS = [
   },
   {
     prompt: 'A major US index closes 14% below its record high. What is that conventionally called?',
-    options: ['A bear market', 'A correction', 'A recession', 'Nothing — declines are unnamed until they pass 5%'],
+    options: ['A bear market', 'A correction', 'A recession', 'Nothing: declines are unnamed until they pass 5%'],
     answer: 1,
     explanation: 'A correction is a decline of roughly 10% to 20% from a high; a bear market starts at 20%. A recession is a description of the economy, measured from output and employment data, not a threshold on an index chart.',
   },
@@ -32,13 +32,13 @@ const QUESTIONS = [
     prompt: 'Your portfolio falls 50%. What percentage gain from that lower level gets you back to where you started?',
     options: ['50%', '75%', '100%', '150%'],
     answer: 2,
-    explanation: '$100 that falls 50% is $50, and $50 has to double to reach $100 again — a 100% gain. The instinct to answer 50% is exactly the arithmetic trap that makes deep losses so expensive.',
+    explanation: '$100 that falls 50% is $50, and $50 has to double to reach $100 again, a 100% gain. The instinct to answer 50% is exactly the arithmetic trap that makes deep losses so expensive.',
   },
   {
     prompt: 'Because the US market has recovered from every bear market so far, a recovery from any future bear market is guaranteed.',
     type: 'tf',
     answer: false,
-    explanation: 'The historical record is real, and it is also not a promise. A perfect track record over one country and a few centuries is evidence, not a law of nature — and it says nothing about how long any particular recovery takes.',
+    explanation: 'The historical record is real, and it is also not a promise. A perfect track record over one country and a few centuries is evidence, not a law of nature, and it says nothing about how long any particular recovery takes.',
   },
 ]
 
@@ -59,7 +59,7 @@ export default function IndicesAndMarketCycles({ moduleId }) {
 
       <h3>S&amp;P 500</h3>
 
-      <p>Roughly 500 large US companies, weighted by float-adjusted market capitalisation — meaning each company counts in proportion to the market value of its shares that are actually available to trade. The consequence matters more than the definition. Apple, when it sits near the top of the list, can move the index more in a single day than a large group of the smallest members combined. The 400th-largest member is technically in the index and practically invisible in it.</p>
+      <p>Roughly 500 large US companies, weighted by float-adjusted market capitalisation, meaning each company counts in proportion to the market value of its shares that are actually available to trade. The consequence matters more than the definition. Apple, when it sits near the top of the list, can move the index more in a single day than a large group of the smallest members combined. The 400th-largest member is technically in the index and practically invisible in it.</p>
 
       <p>Those 500 companies represent something on the order of 80% of total US stock market value. That is why the S&amp;P 500 is the default answer to “how did the market do today.” It is not the whole market, but it is close enough that professionals treat it as the benchmark and measure their own results against it.</p>
 
@@ -68,7 +68,7 @@ export default function IndicesAndMarketCycles({ moduleId }) {
       <p>Thirty companies. Not five hundred, not a thousand. Thirty. And here is the part almost nobody knows: the Dow is <em>price weighted</em>, so a company influences it based on its share price, not its size.</p>
 
       <Callout variant="did-you-know">
-        <p>Suppose one Dow member trades at $500 and another at $50, and both rise 1% today. The first stock gains $5 per share, the second gains 50 cents. The Dow adds up dollars, so the $500 stock counts ten times as much — even if the $50 company is worth three times more as a business.</p>
+        <p>Suppose one Dow member trades at $500 and another at $50, and both rise 1% today. The first stock gains $5 per share, the second gains 50 cents. The Dow adds up dollars, so the $500 stock counts ten times as much, even if the $50 company is worth three times more as a business.</p>
         <p>A stock split changes nothing about a company but instantly changes its influence on the Dow. That should tell you how much the index really measures.</p>
       </Callout>
 
@@ -76,7 +76,7 @@ export default function IndicesAndMarketCycles({ moduleId }) {
 
       <h3>NASDAQ Composite</h3>
 
-      <p>Essentially every stock listed on the NASDAQ exchange — thousands of them — weighted by market cap. Because NASDAQ has been the listing home for so many technology companies, the Composite leans heavily toward tech. That tilt is the whole personality of the index: it swings harder than the S&amp;P 500 in both directions. From its March 2000 peak, the Composite fell roughly 78% over the following bust and did not regain that level until 2015. Fifteen years is a long time to be told that the market always comes back.</p>
+      <p>Essentially every stock listed on the NASDAQ exchange, thousands of them, weighted by market cap. Because NASDAQ has been the listing home for so many technology companies, the Composite leans heavily toward tech. That tilt is the whole personality of the index: it swings harder than the S&amp;P 500 in both directions. From its March 2000 peak, the Composite fell roughly 78% over the following bust and did not regain that level until 2015. Fifteen years is a long time to be told that the market always comes back.</p>
 
       <h2>The rest of the map</h2>
 
@@ -131,7 +131,7 @@ export default function IndicesAndMarketCycles({ moduleId }) {
 
       <h2>How you actually own one</h2>
 
-      <p>Since the index itself is just arithmetic, ownership happens through a fund that buys the components and charges you a small annual fee for the trouble. VOO, SPY and IVV are three well-known funds tracking the S&amp;P 500 — same index, three different providers, and their returns land in nearly the same place before fees. QQQ is a familiar NASDAQ-linked example, though it tracks the NASDAQ-100 rather than the full Composite, which is a distinction the ticker does not advertise.</p>
+      <p>Since the index itself is just arithmetic, ownership happens through a fund that buys the components and charges you a small annual fee for the trouble. VOO, SPY and IVV are three well-known funds tracking the S&amp;P 500: same index, three different providers, and their returns land in nearly the same place before fees. QQQ is a familiar NASDAQ-linked example, though it tracks the NASDAQ-100 rather than the full Composite, which is a distinction the ticker does not advertise.</p>
 
       <p>Those are illustrations of the mechanism, not picks. The Intermediate lesson on the <Term k="etf">exchange-traded fund</Term> covers how these funds are constructed, what an expense ratio quietly removes from your returns each year, and how to compare two funds that claim to track the same thing.</p>
 
@@ -139,7 +139,7 @@ export default function IndicesAndMarketCycles({ moduleId }) {
 
       <p>Prices do not rise in a straight line, so the industry invented labels for the phases. A <Term k="bull market">bull market</Term> is a sustained stretch of rising prices; the label is used loosely, though a 20% rise off a low is a common marker. A <Term k="bear market">bear market</Term> is a decline of 20% or more from a recent high. A <Term k="correction">correction</Term> is a decline of roughly 10% to 20%.</p>
 
-      <p>These are conventions, not laws of physics. No committee rings a bell at exactly minus 20%, and nothing mechanical changes as an index crosses that line. The thresholds exist because journalists and analysts needed shared vocabulary, and shared vocabulary is genuinely useful — as long as you remember it was chosen by people rather than discovered in nature.</p>
+      <p>These are conventions, not laws of physics. No committee rings a bell at exactly minus 20%, and nothing mechanical changes as an index crosses that line. The thresholds exist because journalists and analysts needed shared vocabulary, and shared vocabulary is genuinely useful, as long as you remember it was chosen by people rather than discovered in nature.</p>
 
       <Callout variant="note">
         <p>Corrections have historically shown up about once a year on average. Not every year, and never on schedule, but often enough that a 10% drop is ordinary weather rather than evidence that something has broken.</p>
@@ -165,7 +165,7 @@ export default function IndicesAndMarketCycles({ moduleId }) {
 
       <TryIt moduleId={moduleId} placeholder="Paste your three numbers, then write two or three sentences comparing them.">
         <p>Go to Yahoo Finance and look up three symbols: ^GSPC for the S&amp;P 500, ^DJI for the Dow, and ^IXIC for the NASDAQ Composite. Record the one-year percentage change for each one, along with the date you checked.</p>
-        <p>Then answer in a few sentences: which of the three moved most over that year, and does the weighting rule you learned above help explain why? If the three numbers are close, say so — that is a real finding too.</p>
+        <p>Then answer in a few sentences: which of the three moved most over that year, and does the weighting rule you learned above help explain why? If the three numbers are close, say so. That is a real finding too.</p>
       </TryIt>
 
       <h2>The one thing to keep</h2>
@@ -174,7 +174,7 @@ export default function IndicesAndMarketCycles({ moduleId }) {
 
       <p>The cycle vocabulary works the same way. Correction, bear market, bull market are conventions worth knowing precisely, so that a 12% drop registers as a named and ordinary event instead of a reason to panic. What history offers is context, not a guarantee, and the drawdown arithmetic is the reason that distinction is worth money.</p>
 
-      <p>Next up: how to read a stock quote line by line — bid, ask, volume and the rest of the numbers your broker shows you the moment you type in a ticker.</p>
+      <p>Next up: how to read a stock quote line by line: bid, ask, volume and the rest of the numbers your broker shows you the moment you type in a ticker.</p>
 
       <Quiz moduleId={moduleId} questions={QUESTIONS} />
     </>

@@ -8,7 +8,7 @@ const ThemeContext = createContext(null)
  * Light/dark theme, persisted to LocalStorage.
  *
  * The *initial* value is read from the class that the inline script in
- * index.html already put on <html> — that script runs before first paint so
+ * index.html already put on <html>, that script runs before first paint so
  * dark-mode users never get a white flash. This provider just keeps React and
  * the DOM in sync from then on.
  */
@@ -24,7 +24,7 @@ export function ThemeProvider({ children }) {
     try {
       localStorage.setItem(STORAGE_KEY, theme)
     } catch {
-      // Private browsing / storage disabled — the theme still works this session.
+      // Private browsing / storage disabled, the theme still works this session.
     }
   }, [theme])
 

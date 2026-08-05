@@ -13,7 +13,7 @@ const linkIdle = 'text-ink-600 dark:text-ink-400'
 /**
  * Sticky top bar.
  *
- * `onMenuClick` is only supplied by CourseLayout — on pages with no sidebar the
+ * `onMenuClick` is only supplied by CourseLayout, on pages with no sidebar the
  * hamburger opens this component's own nav dropdown instead.
  */
 export default function Navbar({ onMenuClick }) {
@@ -24,7 +24,7 @@ export default function Navbar({ onMenuClick }) {
   return (
     <header className="sticky top-0 z-40 border-b border-ink-200 bg-white/85 backdrop-blur-md dark:border-ink-800 dark:bg-ink-950/85">
       <div className="mx-auto flex h-16 max-w-[110rem] items-center gap-3 px-4 sm:px-6">
-        {/* Sidebar toggle — course pages only, phones/tablets only */}
+        {/* Sidebar toggle, course pages only, phones/tablets only */}
         {onMenuClick && (
           <button
             type="button"
@@ -59,6 +59,9 @@ export default function Navbar({ onMenuClick }) {
           ))}
           <NavLink to="/glossary" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}>
             Glossary
+          </NavLink>
+          <NavLink to="/simulator" className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}>
+            Simulator
           </NavLink>
         </nav>
 
@@ -105,7 +108,7 @@ export default function Navbar({ onMenuClick }) {
               className="flex items-center gap-2.5 rounded-lg px-2 py-2.5 text-sm font-medium text-ink-700 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-ink-800"
             >
               <span className={`h-1.5 w-1.5 rounded-full ${track.theme.dot}`} />
-              {track.name} — {track.title}
+              {track.name}: {track.title}
             </NavLink>
           ))}
           <NavLink
@@ -114,6 +117,13 @@ export default function Navbar({ onMenuClick }) {
             className="block rounded-lg px-2 py-2.5 text-sm font-medium text-ink-700 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-ink-800"
           >
             Glossary
+          </NavLink>
+          <NavLink
+            to="/simulator"
+            onClick={() => setNavOpen(false)}
+            className="block rounded-lg px-2 py-2.5 text-sm font-medium text-ink-700 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-ink-800"
+          >
+            Simulator
           </NavLink>
           <NavLink
             to="/dashboard"

@@ -9,6 +9,7 @@ import { writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { TRACKS } from '../src/data/curriculum.js'
+import { TOOLS } from '../src/data/simulator.js'
 
 const ORIGIN = 'https://www.finlitpro.org'
 const here = dirname(fileURLToPath(import.meta.url))
@@ -21,6 +22,8 @@ const routes = [
     { loc: track.path, priority: '0.9', changefreq: 'monthly' },
     ...track.modules.map((mod) => ({ loc: mod.path, priority: '0.8', changefreq: 'monthly' })),
   ]),
+  { loc: '/simulator', priority: '0.8', changefreq: 'monthly' },
+  ...TOOLS.map((tool) => ({ loc: `/simulator/${tool.slug}`, priority: '0.6', changefreq: 'monthly' })),
 ]
 
 // /dashboard is intentionally absent: it renders per-browser LocalStorage state
