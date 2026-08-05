@@ -1,71 +1,123 @@
-# 📈 FinLit Pro - Financial Literacy App
+# 📈 Stock Guide
 
-A stunning, professional financial literacy web application built for IB CAS.
+A free, structured stock market course for students — built as an IB CAS project and live at
+**[finlitpro.org](https://www.finlitpro.org/)**.
 
-![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.31+-red.svg)
+> "I made this course to help my fellow classmates and other students across the world learn about stocks."
+>
+> "This website I created has the potential to help you learn what I've learned in my time and more."
+
+Modelled on the open, module-based structure of [USACO Guide](https://usaco.guide/): three difficulty
+tracks, open navigation, a quiz at the bottom of every lesson, and progress that follows you around.
+
+![React](https://img.shields.io/badge/React-18-61dafb.svg)
+![Vite](https://img.shields.io/badge/Vite-5-646cff.svg)
+![Tailwind](https://img.shields.io/badge/Tailwind-3-38bdf8.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
-
-## 🌟 Features
-
-- **📚 Learn** - Comprehensive financial education modules
-- **📈 Stock Analysis** - Real-time data with technical indicators
-- **⚖️ Compare** - Side-by-side stock comparison
-- **🧮 Calculator** - Compound interest & investment projections
-- **🎭 Risk Profile** - Discover your investor personality
-- **₿ Crypto** - Cryptocurrency analysis
-- **💼 Portfolio** - Track your investments
-- **🎯 Quiz** - Test your financial knowledge
-
-## 🚀 Live Demo
-
-[finlitpro.org 
-](finlitpro.org)
-## 🛠️ Tech Stack
-
-- **Python** - Core programming
-- **Streamlit** - Web framework
-- **Plotly** - Interactive charts
-- **OpenBB** - Market data (Free Bloomberg alternative)
-- **Pandas/NumPy** - Data processing
-
-## 📦 Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/cas-finance-app.git
-cd cas-finance-app
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the app
-streamlit run app.py
-```
-
-## 📱 Install as Mobile App (PWA)
-
-1. Open the app in your mobile browser
-2. Tap "Share" → "Add to Home Screen"
-3. The app will work like a native app!
-
-## 🎓 IB CAS Project
-
-This application was developed as an **IB CAS (Creativity, Activity, Service)** project to promote financial literacy among students.
-
-### Learning Outcomes
-- **Creativity** - Designing & building a web application
-- **Activity** - Active engagement with financial markets
-- **Service** - Sharing financial education with peers
-
-## ⚠️ Disclaimer
-
-This application is for **educational purposes only**. Nothing in this app constitutes financial advice. Always do your own research and consult with qualified financial advisors before making any investment decisions.
-
-## 📄 License
-
-MIT License - feel free to use this for your own projects!
 
 ---
 
-Made with ❤️ for IB CAS
+## The course
+
+| Track | Title | Covers |
+| --- | --- | --- |
+| **Beginner** | How Stocks Actually Work | What a share is, exchanges, why prices move, brokerages, quotes, indices, market cycles, dividends, and a full walkthrough of buying a first share |
+| **Intermediate** | Stable vs Unstable Stocks | Blue chips and dividend aristocrats, beta, fundamental analysis, technical analysis, ETFs and diversification, why you keep a stable core, and a GameStop-vs-boring case study |
+| **Hard** | Risky Bets: When to Take Them, When to Walk Away | High-risk instruments, options mechanics, position sizing, when a bet is defensible, GameStop and Enron post-mortems, investor psychology, and one options trade run to both endings |
+
+Nothing is gated. The recommended order is conveyed by numbering, not by locking doors.
+
+## Tech stack
+
+- **React 18** + **React Router 6** — SPA, no backend
+- **Vite 5** — dev server and build
+- **Tailwind CSS 3** — styling, with a `.lesson` typography layer so lesson content is written as plain
+  semantic HTML
+- **LocalStorage** — all progress, quiz scores, saved exercise answers and the theme preference
+
+There is no server, no database, no account, and no analytics beyond Vercel's page-view counter. Progress
+never leaves the reader's browser.
+
+## Running it
+
+```bash
+npm install
+npm run dev
+```
+
+Then open the URL Vite prints (default `http://localhost:5173`).
+
+```bash
+npm run build     # regenerates the sitemap, then builds to dist/
+npm run preview   # serve the production build locally
+```
+
+## Project structure
+
+```
+index.html                     Vite entry + all SEO metadata + pre-paint theme script
+vercel.json                    Vite build config + SPA rewrites
+tailwind.config.js             Design tokens (ink scale, track colours)
+scripts/
+  generate-sitemap.mjs         Builds public/sitemap.xml from the curriculum
+public/                        Static assets copied verbatim (robots, sitemap, og-image)
+src/
+  main.jsx                     Root render, providers, router
+  App.jsx                      Route table
+  index.css                    Tailwind layers + `.lesson` typography
+  context/
+    ProgressContext.jsx        Completion, quiz scores, per-track stats (LocalStorage)
+    ThemeContext.jsx           Light/dark, persisted
+  data/
+    curriculum.js              Single source of truth: tracks, modules, order, colours
+    glossary.js                Every key term — powers /glossary and inline hover popovers
+  components/
+    layout/
+      SiteLayout.jsx           Navbar + footer (home, dashboard, glossary, 404)
+      CourseLayout.jsx         Navbar + sidebar + footer (tracks and lessons)
+      Navbar.jsx  Sidebar.jsx  Footer.jsx  ScrollToTop.jsx
+    ui/
+      Quiz.jsx                 End-of-lesson quiz with instant feedback
+      Callout.jsx              did-you-know / real-talk / warning / example / note
+      KeyTerm.jsx              Inline definition card
+      Term.jsx                 Hover-to-define inline glossary term
+      TryIt.jsx                Hands-on exercise with an auto-saving answer box
+      ProgressBar.jsx          Bar + ring variants
+      Icons.jsx                Inline SVG icon set
+  pages/
+    Home.jsx  Dashboard.jsx  TrackPage.jsx  ModulePage.jsx  Glossary.jsx  NotFound.jsx
+  content/
+    index.js                   Module id → lazily-imported lesson component
+    beginner/  intermediate/  hard/    One .jsx file per lesson
+```
+
+### Adding a lesson
+
+1. Add an entry to the relevant track's `modules` array in `src/data/curriculum.js`.
+2. Create `src/content/<track>/<Component>.jsx`.
+3. Register it in `src/content/index.js` under the module id (`<track>/<slug>`).
+
+A lesson component receives one prop, `moduleId`, and forwards it to `<Quiz>` and `<TryIt>` so their
+saved state is scoped correctly. It ends with `<Quiz moduleId={moduleId} questions={QUESTIONS} />`.
+
+## Deployment
+
+Vercel builds from this repo and serves `dist/`. The SPA rewrite in `vercel.json` sends every
+non-file path to `index.html` so deep links like `/hard/options-basics` work on a hard refresh.
+
+## ⚠️ Disclaimer
+
+This site is **educational material, not financial advice**. Nothing in it is a recommendation to buy or
+sell any security. Company and ticker names appear only as real-world illustrations of concepts.
+Investing involves risk, including the permanent loss of capital. Do your own research and consult a
+licensed financial professional before investing.
+
+## 🎓 IB CAS
+
+- **Creativity** — designing and building the platform
+- **Activity** — ongoing research into markets and writing the curriculum
+- **Service** — free, open financial education for other students
+
+## License
+
+MIT.

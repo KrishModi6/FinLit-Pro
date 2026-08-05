@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* The sticky header would otherwise cover anchored headings. */
+    scroll-padding-top: 5.5rem;
+  }
+
+  body {
+    @apply bg-white text-ink-800 antialiased;
+    @apply dark:bg-ink-950 dark:text-ink-200;
+  }
+
+  /* Visible, consistent focus ring for keyboard users across the whole site. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-emerald-500 ring-offset-2 ring-offset-white dark:ring-offset-ink-950;
+  }
+
+  ::selection {
+    @apply bg-emerald-200 text-ink-900 dark:bg-emerald-500/40 dark:text-white;
+  }
+}
+
+@layer components {
+  /* ---------------------------------------------------------------------
+     Lesson typography.
+
+     Every module's content is wrapped in `.lesson`, which lets the content
+     components be written as plain semantic HTML (<h2>, <p>, <ul>, <table>)
+     instead of carrying a wall of Tailwind classes on every element. Custom
+     components (Callout, KeyTerm, Quiz) opt out by styling themselves.
+     --------------------------------------------------------------------- */
+  .lesson {
+    @apply text-[1.0625rem] leading-[1.75] text-ink-700 dark:text-ink-300;
+  }
+
+  .lesson h2 {
+    @apply mt-12 mb-4 scroll-mt-24 text-2xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-[1.65rem];
+  }
+
+  .lesson h3 {
+    @apply mt-8 mb-3 scroll-mt-24 text-lg font-semibold text-ink-900 dark:text-ink-100;
+  }
+
+  .lesson p {
+    @apply mt-5;
+  }
+
+  .lesson .lead {
+    @apply mt-0 text-lg leading-relaxed text-ink-600 dark:text-ink-300 sm:text-xl sm:leading-relaxed;
+  }
+
+  .lesson ul,
+  .lesson ol {
+    @apply mt-5 space-y-2 pl-6;
+  }
+
+  .lesson ul {
+    @apply list-disc marker:text-ink-300 dark:marker:text-ink-600;
+  }
+
+  .lesson ol {
+    @apply list-decimal marker:font-semibold marker:text-ink-400 dark:marker:text-ink-500;
+  }
+
+  .lesson li > ul,
+  .lesson li > ol {
+    @apply mt-2;
+  }
+
+  .lesson strong {
+    @apply font-semibold text-ink-900 dark:text-white;
+  }
+
+  .lesson em {
+    @apply italic;
+  }
+
+  .lesson a {
+    @apply font-medium text-emerald-700 underline decoration-emerald-300 underline-offset-2 transition hover:decoration-emerald-500 dark:text-emerald-400 dark:decoration-emerald-500/50;
+  }
+
+  .lesson code {
+    @apply rounded bg-ink-100 px-1.5 py-0.5 font-mono text-[0.85em] text-ink-800 dark:bg-ink-800 dark:text-ink-100;
+  }
+
+  .lesson blockquote {
+    @apply mt-6 border-l-4 border-ink-200 pl-5 italic text-ink-600 dark:border-ink-700 dark:text-ink-400;
+  }
+
+  .lesson hr {
+    @apply my-10 border-ink-200 dark:border-ink-800;
+  }
+
+  /* Tables scroll horizontally on phones rather than blowing out the page. */
+  .lesson .table-wrap {
+    @apply -mx-4 mt-6 overflow-x-auto px-4 sm:mx-0 sm:px-0;
+  }
+
+  .lesson table {
+    @apply w-full min-w-[34rem] border-collapse text-left text-[0.95rem];
+  }
+
+  .lesson thead th {
+    @apply border-b border-ink-200 pb-2.5 pr-4 text-xs font-semibold uppercase tracking-wide text-ink-500 dark:border-ink-700 dark:text-ink-400;
+  }
+
+  .lesson tbody td {
+    @apply border-b border-ink-100 py-3 pr-4 align-top dark:border-ink-800/70;
+  }
+
+  .lesson tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  /* --- Small shared chrome ------------------------------------------- */
+  .card {
+    @apply rounded-xl border border-ink-200 bg-white transition dark:border-ink-800 dark:bg-ink-900/50;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-emerald-600 text-white shadow-sm hover:bg-emerald-500 active:bg-emerald-700;
+  }
+
+  .btn-secondary {
+    @apply btn border border-ink-200 bg-white text-ink-700 hover:border-ink-300 hover:bg-ink-50 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-200 dark:hover:bg-ink-800;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbars on the sidebar without disabling scrolling. */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
