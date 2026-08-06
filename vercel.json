@@ -2,13 +2,7 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [
-    {
-      "comment": "SPA fallback. The negative lookahead keeps /api/* on the serverless functions instead of serving them index.html.",
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
-    }
-  ],
+  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
   "headers": [
     {
       "source": "/assets/(.*)",

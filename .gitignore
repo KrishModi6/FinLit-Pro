@@ -10,15 +10,12 @@ node_modules/
 .vercel/
 .claude/
 
-# local env
+# local env and API keys (ANTHROPIC_API_KEY lives in Vercel, never in the repo)
 .env
 .env.local
+.env*.local
 
 # os cruft
 .DS_Store
 Thumbs.db
 *.log
-
-# local env (API keys)
-.env.local
-.env*.local

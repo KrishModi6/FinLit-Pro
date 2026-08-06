@@ -152,6 +152,14 @@ saved state is scoped correctly. It ends with `<Quiz moduleId={moduleId} questio
 Vercel builds from this repo and serves `dist/`. The SPA rewrite in `vercel.json` sends every
 non-file path to `index.html` so deep links like `/hard/options-basics` work on a hard refresh.
 
+The rewrite source is `/((?!api/).*)` rather than `/(.*)`: the negative lookahead keeps `/api/*`
+on the serverless functions instead of handing them `index.html`.
+
+> `vercel.json` is validated against a strict schema **before** the build starts, and unknown keys
+> are rejected. A stray `"comment"` field inside a rewrite object fails the deployment with no
+> build logs at all, which looks like an outage rather than a config error. Keep it to the
+> documented keys; JSON comments are not allowed either.
+
 ## ⚠️ Disclaimer
 
 This site is **educational material, not financial advice**. Nothing in it is a recommendation to buy or
