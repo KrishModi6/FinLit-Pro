@@ -90,6 +90,10 @@ npm run dev
 
 Then open the URL Vite prints (default `http://localhost:5173`).
 
+Or open it in a **GitHub Codespace**: `.devcontainer/devcontainer.json` installs dependencies and
+starts the dev server on port 5173 automatically. It also prompts for an optional
+`ANTHROPIC_API_KEY` Codespace secret, which only the AI Advisor needs.
+
 ```bash
 npm run build     # regenerates the sitemap, then builds to dist/
 npm run preview   # serve the production build locally
