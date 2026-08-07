@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Flag, LessonLink, Panel, Stat, money, num, pct } from '../../components/ui/SimUI.jsx'
 import AdvancedChart from '../../components/ui/AdvancedChart.jsx'
-import { PERIODS_PER_YEAR, annualisedStats, fetchQuote, maxDrawdown, rsi, sma } from '../../data/market.js'
+import {
+  PERIODS_PER_YEAR,
+  annualisedStats,
+  fetchQuote,
+  isIntraday,
+  maxDrawdown,
+  rsi,
+} from '../../data/market.js'
 import { getTool } from '../../data/simulator.js'
 
 const RANGES = [
+  ['1d', '1D'],
+  ['5d', '5D'],
   ['1mo', '1M'],
   ['6mo', '6M'],
   ['1y', '1Y'],
@@ -47,22 +56,26 @@ export default function MarketExplorer() {
     const first = closes[0]
     const last = closes[closes.length - 1]
 
+    const intraday = isIntraday(data.interval)
+
     return {
-      closes,
-      sma50: sma(closes, 50),
-      sma200: sma(closes, 200),
+      intraday,
       rsiNow: rsiSeries[rsiSeries.length - 1],
       vol: vol * 100,
       drift: drift * 100,
       drawdown: maxDrawdown(closes),
       periodReturn: ((last - first) / first) * 100,
-      // Only meaningful on daily bars; on weekly or monthly data the "previous
-      // close" is a week or a month ago, which is not a day change.
+      // Meaningful on daily and intraday bars, where the API hands back a
+      // previous close that really is the prior session's. On weekly or
+      // monthly data the previous bar is a week or a month ago, which is not
+      // a day change, so there is nothing honest to show.
       dayChange:
-        data.interval === '1d' && data.previousClose && data.price
+        (data.interval === '1d' || intraday) && data.previousClose && data.price
           ? ((data.price - data.previousClose) / data.previousClose) * 100
           : null,
-      enoughFor200: closes.length >= 200,
+      // The chart draws a 50-period average, so this is the one worth flagging.
+      enoughForSma50: closes.length >= 50,
+      bars: closes.length,
     }
   }, [data])
 
@@ -224,10 +237,21 @@ export default function MarketExplorer() {
                   happened; it does not schedule a reversal.
                 </Flag>
               )}
-              {!analysis.enoughFor200 && (
-                <Flag level="info" title="Not enough history for a 200-period average">
-                  Widen the range to plot it. The 200-day average is the one most people mean when
-                  they talk about a long-term trend.
+              {!analysis.enoughForSma50 && (
+                <Flag
+                  level="info"
+                  title={`Only ${analysis.bars} bars in this range, so the 50-period average is missing`}
+                >
+                  A 50-period average needs 50 bars before it can plot a single point. Widen the
+                  range and it appears.
+                </Flag>
+              )}
+              {analysis.intraday && (
+                <Flag level="info" title="Annualised figures from a few sessions are not comparable">
+                  The volatility above scales the moves between bars minutes apart up to a yearly
+                  number. A quiet session reads low and a jumpy one reads high, and neither tells you
+                  much, because it is one or two days of evidence stretched across a year. Read it
+                  off the 1Y view if you want a figure worth quoting.
                 </Flag>
               )}
               <Flag level="info" title="Every overlay here is built from past prices">

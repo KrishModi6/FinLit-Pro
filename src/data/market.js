@@ -125,4 +125,27 @@ export function maxDrawdown(values) {
   return worst * 100
 }
 
-export const PERIODS_PER_YEAR = { '1d': 252, '1wk': 52, '1mo': 12 }
+/**
+ * Bars per year, used to annualise drift and volatility.
+ *
+ * A US regular session is 6.5 hours, so 390 minutes: 78 five-minute bars, 26
+ * fifteen-minute bars, 13 half-hours. Multiply by the 252 trading days in a
+ * year. Note that annualising from intraday bars is mathematically consistent
+ * but reads high, because bar-to-bar noise gets scaled up by the square root
+ * of a very large number. The Market Explorer says so where it shows them.
+ */
+export const PERIODS_PER_YEAR = {
+  '5m': 252 * 78,
+  '15m': 252 * 26,
+  '30m': 252 * 13,
+  '1d': 252,
+  '1wk': 52,
+  '1mo': 12,
+}
+
+const INTRADAY_INTERVALS = new Set(['1m', '2m', '5m', '15m', '30m', '60m', '90m'])
+
+/** True for bar sizes measured in minutes rather than days, weeks or months. */
+export function isIntraday(interval) {
+  return INTRADAY_INTERVALS.has(interval)
+}

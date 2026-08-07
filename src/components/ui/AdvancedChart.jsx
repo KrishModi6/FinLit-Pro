@@ -16,6 +16,8 @@ import { bollinger, rsi, sma } from '../../data/market.js'
  * are currently looking at them.
  */
 
+const DAY_MS = 86_400_000
+
 // viewBox units. Three stacked panels sharing one x axis.
 const W = 1000
 const M = { left: 56, right: 12, top: 10 }
@@ -60,6 +62,20 @@ export default function AdvancedChart({ points, currency = 'USD' }) {
       rsi: rsi(closes, 14),
     }
   }, [points])
+
+  // How far apart the bars are, taken as the median gap so a weekend or a
+  // holiday does not skew it. This drives the axis labels: five-minute bars
+  // want clock times, monthly bars want years. Deriving it from the spacing
+  // rather than the total span means zooming in does not suddenly start
+  // labelling daily bars with times they do not have.
+  const barMs = useMemo(() => {
+    if (points.length < 2) return DAY_MS
+    const gaps = []
+    for (let i = 1; i < Math.min(points.length, 60); i++) gaps.push(points[i].t - points[i - 1].t)
+    gaps.sort((a, b) => a - b)
+    return gaps[Math.floor(gaps.length / 2)] || DAY_MS
+  }, [points])
+  const intradayBars = barMs < DAY_MS
 
   const [lo, hi] = range ?? [0, points.length - 1]
   const view = useMemo(() => {
@@ -114,6 +130,8 @@ export default function AdvancedChart({ points, currency = 'USD' }) {
     return { x, y, vy, ry, band, min, max, maxVol, n }
   }, [view, on])
 
+  // Axis ticks drop the cents on anything above $10, because three whole
+  // numbers up the side read faster than three with decimals.
   const fmt = useCallback(
     (v) =>
       v.toLocaleString('en-US', {
@@ -121,6 +139,14 @@ export default function AdvancedChart({ points, currency = 'USD' }) {
         currency,
         maximumFractionDigits: v < 10 ? 2 : 0,
       }),
+    [currency]
+  )
+
+  // The OHLC readout always keeps the cents. A five-minute bar often moves
+  // less than a dollar, so rounding collapses open, high, low and close into
+  // the same number and the readout says nothing.
+  const fmtExact = useCallback(
+    (v) => v.toLocaleString('en-US', { style: 'currency', currency, minimumFractionDigits: 2 }),
     [currency]
   )
 
@@ -211,15 +237,21 @@ export default function AdvancedChart({ points, currency = 'USD' }) {
     y: scale.y(v),
   }))
 
+  // Label format follows the bar size and how much time is on screen. Times
+  // for a single intraday session, dates once it spans days, years once it
+  // spans a long stretch, so the four labels never all read the same.
+  const visibleSpan = scale.n > 1 ? view.pts[scale.n - 1].t - view.pts[0].t : 0
+  const labelFmt = intradayBars
+    ? visibleSpan <= 1.5 * DAY_MS
+      ? { hour: 'numeric', minute: '2-digit' }
+      : { month: 'short', day: 'numeric' }
+    : visibleSpan < 75 * DAY_MS
+      ? { month: 'short', day: 'numeric' }
+      : { month: 'short', year: '2-digit' }
+
   const dateLabels = [0, Math.floor(scale.n / 3), Math.floor((2 * scale.n) / 3), scale.n - 1]
     .filter((i, k, a) => a.indexOf(i) === k)
-    .map((i) => ({
-      i,
-      text: new Date(view.pts[i].t).toLocaleDateString('en-US', {
-        month: 'short',
-        year: '2-digit',
-      }),
-    }))
+    .map((i) => ({ i, text: new Date(view.pts[i].t).toLocaleString('en-US', labelFmt) }))
 
   const candleW = Math.max(1, Math.min(9, scale.band * 0.65))
   const hovered = hover != null && hover < view.pts.length ? view.pts[hover] : null
@@ -437,11 +469,12 @@ export default function AdvancedChart({ points, currency = 'USD' }) {
         </span>
         <span className="tabular-nums">
           {hovered
-            ? `${new Date(hovered.t).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })}  O ${fmt(hovered.o)}  H ${fmt(hovered.h)}  L ${fmt(hovered.l)}  C ${fmt(hovered.c)}`
+            ? `${new Date(hovered.t).toLocaleString(
+                'en-US',
+                intradayBars
+                  ? { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }
+                  : { month: 'short', day: 'numeric', year: 'numeric' }
+              )}  O ${fmtExact(hovered.o)}  H ${fmtExact(hovered.h)}  L ${fmtExact(hovered.l)}  C ${fmtExact(hovered.c)}`
             : `${scale.n} periods shown`}
         </span>
       </div>

@@ -16,13 +16,21 @@
 // Anything else is rejected rather than interpolated into an outbound URL.
 const SYMBOL_RE = /^[A-Za-z0-9.\-^=]{1,12}$/
 
+// Each range picks the coarsest interval that still gives enough bars to draw
+// the indicators. A US session is 6.5 hours, so 5m gives 78 bars in a day and
+// 15m gives 130 across five days: enough for a 50-period average to appear.
 const RANGES = {
+  '1d': { range: '1d', interval: '5m' },
+  '5d': { range: '5d', interval: '15m' },
   '1mo': { range: '1mo', interval: '1d' },
   '6mo': { range: '6mo', interval: '1d' },
   '1y': { range: '1y', interval: '1d' },
   '5y': { range: '5y', interval: '1wk' },
   max: { range: 'max', interval: '1mo' },
 }
+
+// Intervals measured in minutes, as opposed to 1d / 1wk / 1mo.
+const INTRADAY = new Set(['1m', '2m', '5m', '15m', '30m', '60m', '90m'])
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -99,8 +107,14 @@ export default async function handler(req, res) {
     }
 
     // Cache at the edge: quotes do not need to be second-accurate for a course,
-    // and this keeps us well clear of Yahoo's rate limiting.
-    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600')
+    // and this keeps us well clear of Yahoo's rate limiting. Intraday ranges
+    // get a shorter window, since a 1D chart that is five minutes stale is
+    // visibly wrong in a way a 1Y chart is not.
+    const intraday = INTRADAY.has(interval)
+    res.setHeader(
+      'Cache-Control',
+      intraday ? 's-maxage=60, stale-while-revalidate=120' : 's-maxage=300, stale-while-revalidate=600'
+    )
 
     return res.status(200).json({
       symbol: meta.symbol ?? symbol,
@@ -108,12 +122,21 @@ export default async function handler(req, res) {
       currency: meta.currency ?? 'USD',
       exchange: meta.fullExchangeName ?? meta.exchangeName ?? null,
       price: meta.regularMarketPrice ?? points[points.length - 1].c,
-      // Yahoo's `chartPreviousClose` is the close BEFORE the requested range,
-      // not the prior trading day, so it is useless for a day-change figure
-      // (on a 1y range it makes today look up 50%). The previous bar's close
-      // is the real comparison; the range-start close is returned separately
-      // for anyone who wants the period return.
-      previousClose: points[points.length - 2].c,
+      // What "the previous close" means depends on the bar size.
+      //
+      // On daily bars the previous bar IS the previous trading day, so that is
+      // the comparison. Yahoo's own `chartPreviousClose` is the close before
+      // the whole requested range, which on a 1y chart makes today look up 50%.
+      //
+      // On intraday bars the previous bar is only minutes earlier, which is not
+      // a day change at all. The right number there is `previousClose`, which
+      // is the prior session's close whatever range was asked for. It is NOT
+      // `chartPreviousClose`: that is the close before the whole window, so on
+      // a 5d range it sits five days back and reports the week's move as the
+      // day's. The range-start close is returned separately either way.
+      previousClose: intraday
+        ? (meta.previousClose ?? meta.chartPreviousClose ?? points[0].c)
+        : points[points.length - 2].c,
       rangeStartClose: meta.chartPreviousClose ?? null,
       fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? null,
       fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? null,
