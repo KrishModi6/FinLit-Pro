@@ -68,16 +68,27 @@ export default async function handler(req, res) {
     }
 
     const meta = result.meta ?? {}
-    const closes = result.indicators?.quote?.[0]?.close ?? []
-    const volumes = result.indicators?.quote?.[0]?.volume ?? []
+    const q = result.indicators?.quote?.[0] ?? {}
+    const closes = q.close ?? []
+    const opens = q.open ?? []
+    const highs = q.high ?? []
+    const lows = q.low ?? []
+    const volumes = q.volume ?? []
 
     // Yahoo pads gaps with nulls. Drop them so the client never charts a hole.
+    // Full OHLC is returned so the chart can draw candlesticks; open/high/low
+    // fall back to the close when a bar is partially missing, which keeps the
+    // candle degenerate rather than absent.
     const points = []
     for (let i = 0; i < result.timestamp.length; i++) {
       const c = closes[i]
       if (typeof c !== 'number' || !Number.isFinite(c)) continue
+      const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : c)
       points.push({
         t: result.timestamp[i] * 1000,
+        o: num(opens[i]),
+        h: num(highs[i]),
+        l: num(lows[i]),
         c,
         v: Number.isFinite(volumes[i]) ? volumes[i] : null,
       })

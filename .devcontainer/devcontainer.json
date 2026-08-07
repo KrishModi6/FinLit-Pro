@@ -46,9 +46,9 @@
   // needs it; the course, the simulator and the Yahoo quote proxy all work
   // without one. Never commit the key.
   "secrets": {
-    "ANTHROPIC_API_KEY": {
+    "OPENAI_API_KEY": {
       "description": "Optional. Enables the AI Advisor tool at /simulator/advisor. Leave blank to skip it; the endpoint returns a clear 503 and the rest of the site is unaffected.",
-      "documentationUrl": "https://platform.claude.com/settings/keys"
+      "documentationUrl": "https://platform.openai.com/api-keys"
     }
   }
 }

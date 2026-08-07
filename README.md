@@ -7,7 +7,7 @@ A free, structured stock market course for students, built as an IB CAS project 
 >
 > "This website I created has the potential to help you learn what I've learned in my time and more."
 
-Modelled on the open, module-based structure of [USACO Guide](https://usaco.guide/): three difficulty
+Modelled on the open, module-based structure of [USACO Guide](https://usaco.guide/): four difficulty
 tracks, open navigation, a quiz at the bottom of every lesson, and progress that follows you around.
 
 ![React](https://img.shields.io/badge/React-18-61dafb.svg)
@@ -23,6 +23,7 @@ tracks, open navigation, a quiz at the bottom of every lesson, and progress that
 | --- | --- | --- |
 | **Beginner** | How Stocks Actually Work | What a share is, exchanges, why prices move, brokerages, quotes, indices, market cycles, dividends, and a full walkthrough of buying a first share |
 | **Intermediate** | Stable vs Unstable Stocks | Blue chips and dividend aristocrats, beta, fundamental analysis, technical analysis, ETFs and diversification, why you keep a stable core, and a GameStop-vs-boring case study |
+| **Examples** | Real Charts, Real Lessons | Live five-year charts of real companies: Roblox's round trip, GameStop after the crowd left, and two deliberately boring charts next to them |
 | **Hard** | Risky Bets: When to Take Them, When to Walk Away | High-risk instruments, options mechanics, position sizing, when a bet is defensible, GameStop and Enron post-mortems, investor psychology, and one options trade run to both endings |
 
 Nothing is gated. The recommended order is conveyed by numbering, not by locking doors.
@@ -30,7 +31,7 @@ Nothing is gated. The recommended order is conveyed by numbering, not by locking
 ## The Simulator
 
 A separate section at `/simulator`, deliberately outside the course: no progress tracking, its own
-sub-nav. Six tools, each carried over from the previous Streamlit version of the app and rebuilt to run
+sub-nav. Nine tools, carried over from the previous Streamlit version of the app and rebuilt to run
 entirely in the browser.
 
 | Tool | What it does |
@@ -56,11 +57,11 @@ in `vite.config.js`, so the market tools work locally without deploying.
 | Endpoint | Key required | What it does |
 | --- | --- | --- |
 | `GET /api/quote?symbol=AAPL&range=1y` | No | Proxies Yahoo Finance chart data. Exists because Yahoo sends no CORS headers, so the browser cannot call it directly. Validates the ticker against a strict pattern before building the outbound URL, and edge-caches for 5 minutes. |
-| `POST /api/advisor` | **Yes** | Streams a Claude reply. Uses `claude-opus-5` via the official `@anthropic-ai/sdk`, with a system prompt grounded in the course that refuses personalised investment advice. |
+| `POST /api/advisor` | **Yes** | Streams from OpenAI via the official `openai` SDK, with a system prompt grounded in the course that refuses personalised investment advice. Model defaults to `gpt-5`, overridable with `OPENAI_MODEL`, and falls back automatically if the key lacks access. |
 
 ### Enabling the AI Advisor
 
-Set `ANTHROPIC_API_KEY` in **Vercel → Settings → Environment Variables**. Do not put it in the repo.
+Set `OPENAI_API_KEY` in **Vercel → Settings → Environment Variables**. Do not put it in the repo.
 For local development, put it in `.env.local` (gitignored).
 
 Without the key the endpoint returns a clear `503` and the UI shows that message, so the rest of the
@@ -92,7 +93,7 @@ Then open the URL Vite prints (default `http://localhost:5173`).
 
 Or open it in a **GitHub Codespace**: `.devcontainer/devcontainer.json` installs dependencies and
 starts the dev server on port 5173 automatically. It also prompts for an optional
-`ANTHROPIC_API_KEY` Codespace secret, which only the AI Advisor needs.
+`OPENAI_API_KEY` Codespace secret, which only the AI Advisor needs.
 
 ```bash
 npm run build     # regenerates the sitemap, then builds to dist/
@@ -135,7 +136,7 @@ src/
     Home.jsx  Dashboard.jsx  TrackPage.jsx  ModulePage.jsx  Glossary.jsx  NotFound.jsx
   content/
     index.js                   Module id → lazily-imported lesson component
-    beginner/  intermediate/  hard/    One .jsx file per lesson
+    beginner/  intermediate/  examples/  hard/   One .jsx file per lesson
 ```
 
 ### Adding a lesson

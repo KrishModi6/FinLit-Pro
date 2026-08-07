@@ -10,7 +10,7 @@ node_modules/
 .vercel/
 .claude/
 
-# local env and API keys (ANTHROPIC_API_KEY lives in Vercel, never in the repo)
+# local env and API keys (OPENAI_API_KEY lives in Vercel, never in the repo)
 .env
 .env.local
 .env*.local

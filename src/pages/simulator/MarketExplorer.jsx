@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Flag, LessonLink, Panel, Stat, money, num, pct } from '../../components/ui/SimUI.jsx'
-import PriceChart from '../../components/ui/PriceChart.jsx'
+import AdvancedChart from '../../components/ui/AdvancedChart.jsx'
 import { PERIODS_PER_YEAR, annualisedStats, fetchQuote, maxDrawdown, rsi, sma } from '../../data/market.js'
 import { getTool } from '../../data/simulator.js'
 
@@ -70,25 +70,6 @@ export default function MarketExplorer() {
     e.preventDefault()
     const next = input.trim().toUpperCase()
     if (next) setSymbol(next)
-  }
-
-  const overlays = []
-  if (analysis) {
-    overlays.push({
-      label: '50-period average',
-      values: analysis.sma50,
-      className: 'stroke-sky-500',
-      legendClass: 'bg-sky-500',
-    })
-    if (analysis.enoughFor200) {
-      overlays.push({
-        label: '200-period average',
-        values: analysis.sma200,
-        className: 'stroke-amber-500',
-        legendClass: 'bg-amber-500',
-        dashed: true,
-      })
-    }
   }
 
   return (
@@ -185,7 +166,7 @@ export default function MarketExplorer() {
             </div>
 
             <div className="mt-6">
-              <PriceChart points={data.points} overlays={overlays} currency={data.currency} />
+              <AdvancedChart points={data.points} currency={data.currency} />
             </div>
           </Panel>
 
@@ -249,9 +230,11 @@ export default function MarketExplorer() {
                   they talk about a long-term trend.
                 </Flag>
               )}
-              <Flag level="info" title="A moving average is descriptive, not predictive">
-                Both overlays are built from past prices, so they always lag. They are useful for
-                seeing whether today's move is unusual, not for timing anything.
+              <Flag level="info" title="Every overlay here is built from past prices">
+                The moving averages and the Bollinger band are all made of prices that have already
+                happened, so they lag by construction. They are useful for seeing whether today's move
+                is unusual, not for timing anything. Toggle them off in the legend and the chart tells
+                you the same story.
               </Flag>
             </ul>
             <LessonLink to={tool.lesson} name={tool.lessonName} />

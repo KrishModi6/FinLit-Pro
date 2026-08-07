@@ -188,7 +188,7 @@ export default function AiAdvisor() {
       </Panel>
 
       <p className="mt-4 text-xs leading-relaxed text-ink-400 dark:text-ink-500">
-        Conversations are sent to Anthropic's API to generate a reply and are not stored by this
+        Conversations are sent to OpenAI's API to generate a reply and are not stored by this
         site. Answers can be wrong or out of date, and none of it is financial advice.
       </p>
     </div>

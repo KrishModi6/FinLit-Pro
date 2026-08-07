@@ -65,16 +65,16 @@ export default function WhatIsAStock({ moduleId }) {
       <h2>A stock is a slice of a company</h2>
 
       <p>
-        Imagine your school runs a genuinely good bubble tea stand. It takes ₹100,000 to set up (equipment,
-        supplies, a licence), and you have ₹10,000. So you find nine friends with ₹10,000 each, but there’s a
+        Imagine your school runs a genuinely good bubble tea stand. It takes $10,000 to set up (equipment,
+        supplies, a licence), and you have $1,000. So you find nine friends with $1,000 each, but there’s a
         catch: none of you wants to <em>lend</em> the money, because a loan has to be repaid whether the stand
         works or not.
       </p>
 
       <p>
         Instead you split the business into 10 equal pieces and sell one to each person. Each piece is a{' '}
-        <Term k="share">share</Term>. Nobody has to be repaid. If the stand makes ₹50,000 in profit, each
-        owner has a claim on ₹5,000 of it. If the stand fails, everyone loses what they put in and no one owes
+        <Term k="share">share</Term>. Nobody has to be repaid. If the stand makes $5,000 in profit, each
+        owner has a claim on $500 of it. If the stand fails, everyone loses what they put in and no one owes
         anybody anything.
       </p>
 

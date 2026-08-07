@@ -63,6 +63,28 @@ export function rsi(values, period = 14) {
   return out
 }
 
+/**
+ * Bollinger Bands: a moving average with a band drawn `mult` standard
+ * deviations either side. The band widens when the market gets volatile and
+ * pinches when it goes quiet, which is the only thing it reliably shows.
+ * Uses the population standard deviation over the window, as is conventional.
+ */
+export function bollinger(values, period = 20, mult = 2) {
+  const mid = sma(values, period)
+  const upper = new Array(values.length).fill(null)
+  const lower = new Array(values.length).fill(null)
+
+  for (let i = period - 1; i < values.length; i++) {
+    const mean = mid[i]
+    let sq = 0
+    for (let j = i - period + 1; j <= i; j++) sq += (values[j] - mean) ** 2
+    const sd = Math.sqrt(sq / period)
+    upper[i] = mean + mult * sd
+    lower[i] = mean - mult * sd
+  }
+  return { mid, upper, lower }
+}
+
 /** Log returns between consecutive closes. */
 export function logReturns(values) {
   const out = []

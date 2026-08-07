@@ -110,7 +110,7 @@ export default function BuildingYourRiskSleeve({ moduleId }) {
       <p>That matters because the risk moved with it. A 50% <Term k="drawdown">fall from the sleeve peak</Term> used to cost you $500. Now it costs $2,500, which is about 17% of everything you own. Rebalancing is what keeps the structure real: you sell the sleeve back down to its target weight, put the difference in the core, and go back to the risk level you actually chose.</p>
 
       <Callout variant="warning" title="Sleeve creep is the real failure mode">
-        <p>The thing that ruins people is almost never one bad pick. It is topping up after a loss. You put in $1,000, lose $600, add $600 back because the thesis is still good. Then the position halves again and you add another $1,000 because now it is cheap. Six months later the sleeve is $4,000 of a $12,000 portfolio and you never once decided to run a 33% speculative allocation.</p>
+        <p>The thing that ruins people is almost never one bad pick. It is topping up after a loss. You put in $1,000, lose $600, add $600 back because the thesis is still good. Then the position halves again and you add another $1,000 because now it is cheap. Six months later you have put $2,600 into a sleeve you budgeted $1,000 for. On a $10,000 portfolio that is a 26% speculative allocation, and you never once sat down and decided to run one.</p>
         <p>The rule that stops this is boring and absolute: the sleeve gets funded on dates, not on feelings.</p>
       </Callout>
 
