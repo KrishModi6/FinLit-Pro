@@ -1,4 +1,5 @@
 import OpenAI from 'openai'
+import { checkRateLimit } from '../lib/rate-limit.js'
 
 /**
  * POST /api/advisor
@@ -84,6 +85,13 @@ export default async function handler(req, res) {
   const incoming = Array.isArray(body?.messages) ? body.messages : null
   if (!incoming || incoming.length === 0) {
     return bad(res, 400, 'Send a non-empty messages array.')
+  }
+
+  // Counted before the model is called, so a refused request costs nothing.
+  const limit = await checkRateLimit(req)
+  if (!limit.allowed) {
+    res.setHeader('Retry-After', String(limit.retryAfter))
+    return bad(res, 429, limit.message)
   }
 
   // Bound the conversation so one tab cannot run up an unbounded bill.

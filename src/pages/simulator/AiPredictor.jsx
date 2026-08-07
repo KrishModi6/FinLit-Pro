@@ -8,7 +8,6 @@ import {
   Stat,
   Td,
   money,
-  num,
   pct,
 } from '../../components/ui/SimUI.jsx'
 import { PERIODS_PER_YEAR, annualisedStats, fetchQuote } from '../../data/market.js'

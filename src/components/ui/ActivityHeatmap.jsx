@@ -52,21 +52,22 @@ function buildWeeks() {
 }
 
 export default function ActivityHeatmap({ activity = {} }) {
-  const { weeks, today } = useMemo(buildWeeks, [])
+  const { weeks, today } = useMemo(() => buildWeeks(), [])
   const [hovered, setHovered] = useState(null)
 
   // Label a column when its month differs from the previous column's month.
-  const labels = useMemo(() => {
-    let last = -1
-    return weeks.map((week) => {
-      const m = week[0].getMonth()
-      if (m !== last) {
-        last = m
-        return MONTHS[m]
-      }
-      return ''
-    })
-  }, [weeks])
+  // Compares against the previous week directly rather than carrying a mutable
+  // counter through the map, which reads more plainly and keeps the callback
+  // free of state that outlives a single element.
+  const labels = useMemo(
+    () =>
+      weeks.map((week, i) => {
+        const month = week[0].getMonth()
+        const previous = i > 0 ? weeks[i - 1][0].getMonth() : -1
+        return month === previous ? '' : MONTHS[month]
+      }),
+    [weeks]
+  )
 
   const totalActive = Object.values(activity).filter((n) => n > 0).length
   const totalActions = Object.values(activity).reduce((s, n) => s + n, 0)

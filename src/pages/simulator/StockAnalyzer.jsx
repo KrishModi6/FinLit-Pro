@@ -7,7 +7,6 @@ import {
   Stat,
   TextField,
   num,
-  pct,
 } from '../../components/ui/SimUI.jsx'
 import { BLANK, analyse } from '../../data/analyze.js'
 import { getTool } from '../../data/simulator.js'

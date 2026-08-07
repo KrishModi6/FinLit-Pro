@@ -100,7 +100,13 @@ export function rsi(values, period = 14) {
   gain /= period
   loss /= period
 
-  const rsiAt = (g, l) => (l === 0 ? 100 : 100 - 100 / (1 + g / l))
+  // No losses at all pins RSI to 100, which is the convention. But if there
+  // were no gains either the price simply has not moved, and reporting a flat
+  // series as maximally overbought would be nonsense, so that reads neutral.
+  const rsiAt = (g, l) => {
+    if (l === 0) return g === 0 ? 50 : 100
+    return 100 - 100 / (1 + g / l)
+  }
   out[period] = rsiAt(gain, loss)
 
   for (let i = period + 1; i < values.length; i++) {
