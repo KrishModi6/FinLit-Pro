@@ -257,7 +257,7 @@ export default function Dashboard() {
       </div>
 
       <p className="mt-10 text-center text-sm text-ink-400 dark:text-ink-500">
-        Stock Guide is made by Krish Modi.
+        FinLit Pro is made by Krish Modi.
       </p>
     </div>
   )

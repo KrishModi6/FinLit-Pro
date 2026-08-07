@@ -1,4 +1,4 @@
-# 📈 Stock Guide
+# 📈 FinLit Pro
 
 A free, structured stock market course for students, built as an IB CAS project and live at
 **[finlitpro.org](https://www.finlitpro.org/)**.

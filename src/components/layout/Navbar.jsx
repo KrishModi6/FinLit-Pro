@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { ChartIcon, CloseIcon, MenuIcon, MoonIcon, SunIcon } from '../ui/Icons.jsx'
+import Wordmark from './Wordmark.jsx'
 import { TRACKS } from '../../data/curriculum.js'
 import { useProgress } from '../../context/ProgressContext.jsx'
 import { useTheme } from '../../context/ThemeContext.jsx'
@@ -40,9 +41,7 @@ export default function Navbar({ onMenuClick }) {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm">
             <ChartIcon className="h-[18px] w-[18px]" />
           </span>
-          <span className="text-[1.0625rem] font-extrabold tracking-tight text-ink-900 dark:text-white">
-            Stock Guide
-          </span>
+          <Wordmark className="text-[1.0625rem] font-extrabold tracking-tight" />
         </Link>
 
         {/* Desktop nav */}

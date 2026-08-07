@@ -1,5 +1,5 @@
 {
-  "name": "Stock Guide (React + Vite)",
+  "name": "FinLit Pro (React + Vite)",
 
   // Node 22, matching what the project is developed against locally.
   "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
@@ -37,7 +37,7 @@
   "forwardPorts": [5173],
   "portsAttributes": {
     "5173": {
-      "label": "Stock Guide dev server",
+      "label": "FinLit Pro dev server",
       "onAutoForward": "openPreview"
     }
   },

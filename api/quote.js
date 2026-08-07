@@ -57,7 +57,7 @@ export default async function handler(req, res) {
       headers: {
         // Yahoo rejects requests with no browser-like agent.
         'User-Agent':
-          'Mozilla/5.0 (compatible; StockGuide/1.0; +https://www.finlitpro.org)',
+          'Mozilla/5.0 (compatible; FinLitPro/1.0; +https://www.finlitpro.org)',
         Accept: 'application/json',
       },
       signal: AbortSignal.timeout(9000),

@@ -1,5 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 
+// Not renamed with the branding: this is where existing readers' theme choice
+// already lives, and index.html reads the same literal before first paint.
+// See the note in ProgressContext.jsx.
 const STORAGE_KEY = 'stockguide:theme'
 
 const ThemeContext = createContext(null)

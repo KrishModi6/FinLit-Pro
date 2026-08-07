@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { TRACKS } from '../../data/curriculum.js'
+import Wordmark from './Wordmark.jsx'
 
 export default function Footer() {
   return (
@@ -7,7 +8,7 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="grid gap-10 sm:grid-cols-3">
           <div className="sm:col-span-1">
-            <p className="text-sm font-extrabold tracking-tight text-ink-900 dark:text-white">Stock Guide</p>
+            <Wordmark className="block text-sm font-extrabold tracking-tight" />
             <p className="mt-2 text-sm leading-relaxed text-ink-500 dark:text-ink-400">
               A free stock market course written by a student, for students. No sign-up, no paywall, no
               newsletter.

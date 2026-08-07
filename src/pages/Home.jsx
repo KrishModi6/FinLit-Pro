@@ -3,6 +3,7 @@ import { ALL_MODULES, TOTAL_MINUTES, TRACKS } from '../data/curriculum.js'
 import { GLOSSARY_LIST } from '../data/glossary.js'
 import { useProgress } from '../context/ProgressContext.jsx'
 import ProgressBar from '../components/ui/ProgressBar.jsx'
+import Wordmark from '../components/layout/Wordmark.jsx'
 import { ArrowRightIcon, BookIcon, ChartIcon, ClockIcon, ScaleIcon } from '../components/ui/Icons.jsx'
 
 /** Short pitch shown on each track card on the homepage. */
@@ -32,8 +33,8 @@ export default function Home() {
         />
 
         <div className="relative mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-28">
-          <h1 className="text-5xl font-extrabold leading-[1.05] tracking-tight text-ink-900 dark:text-white sm:text-7xl">
-            Stock Guide
+          <h1 className="text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-7xl">
+            <Wordmark />
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-ink-600 dark:text-ink-300 sm:text-2xl sm:leading-relaxed">

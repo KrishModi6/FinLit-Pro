@@ -2,6 +2,11 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { ALL_MODULES, TRACKS } from '../data/curriculum.js'
 import { DEFAULT_STATUS, STATUSES } from '../data/statuses.js'
 
+// The `stockguide:` prefix is deliberate and must not be renamed to match the
+// FinLit Pro branding. It is the key real readers' progress is already saved
+// under in their browsers, and changing it would silently wipe every lesson
+// status, quiz result and streak anyone has built up. The prefix is invisible
+// to users; the cost of "fixing" it is not.
 const STORAGE_KEY = 'stockguide:progress:v3'
 const LEGACY_KEYS = ['stockguide:progress:v2', 'stockguide:progress:v1']
 
