@@ -47,7 +47,14 @@ function debtPoints(de) {
 }
 
 export function analyse(input) {
-  const { marketCapB, pe, eps, beta, divYield, debtToEquity, revGrowth } = input
+  const { price, marketCapB, pe, eps, beta, divYield, debtToEquity, revGrowth } = input
+
+  // P/E is share price divided by earnings per share, and the form asks for
+  // all three separately, so they can disagree. Ignoring the price made it a
+  // field that changed nothing while the reader assumed it was being checked.
+  // Working out what their own numbers imply turns that into the lesson.
+  const impliedPe =
+    Number.isFinite(price) && Number.isFinite(eps) && eps > 0 ? price / eps : null
 
   const cap = capBucket(marketCapB)
   const profitable = Number.isFinite(eps) && eps > 0
@@ -120,6 +127,13 @@ export function analyse(input) {
         'Cheap is sometimes a bargain and sometimes a warning. Work out which by asking what the market expects to go wrong, because a low multiple usually means somebody is pricing in decline.',
     })
   }
+  if (impliedPe != null && Number.isFinite(pe) && pe > 0 && Math.abs(impliedPe - pe) / pe > 0.1) {
+    signals.push({
+      level: 'info',
+      title: `Your own numbers imply a P/E of ${impliedPe.toFixed(1)}, not ${pe.toFixed(1)}`,
+      detail: `P/E is the share price divided by earnings per share, so ${price.toFixed(2)} divided by ${eps.toFixed(2)} is ${impliedPe.toFixed(1)}. One of those three figures is stale or mistyped. Companies do report an adjusted EPS that differs from the one behind a quoted P/E, so check which you copied before trusting the rest of this.`,
+    })
+  }
   if (Number.isFinite(divYield) && divYield > 7) {
     signals.push({
       level: 'warn',
@@ -153,5 +167,5 @@ export function analyse(input) {
     })
   }
 
-  return { score, band, parts, cap, profitable, signals }
+  return { score, band, parts, cap, profitable, impliedPe, signals }
 }
