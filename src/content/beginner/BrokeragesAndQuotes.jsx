@@ -69,7 +69,7 @@ export default function BrokeragesAndQuotes({ moduleId }) {
       <h2>Three brokers as three archetypes</h2>
       <p>It helps to look at real firms, not because you should pick one of them, but because they illustrate the trade-offs.</p>
       <p><strong>Robinhood</strong> is the mobile-first archetype. It launched with a deliberately stripped-down phone interface, popularised commission-free trading in the US, and built its revenue model substantially on payment for order flow: market makers pay the broker to send them customer orders to execute. Onboarding is fast and the app is easy to use, which is both the selling point and, as you will see below, the thing to watch.</p>
-      <p><strong>Fidelity</strong> and <strong>Charles Schwab</strong> are the full-service archetype. Both are very large, long-established firms with decades of track record. They offer retirement accounts, custodial accounts, their own index funds, substantial research and screening tools, branch offices in Schwab’s case, and phone support with actual humans. The interfaces are denser, because they are built for someone who may hold a dozen account types over forty years.</p>
+      <p><strong>Fidelity</strong> and <strong>Charles Schwab</strong> are the full-service archetype. Both are very large, long-established firms with decades of track record. They offer retirement accounts, custodial accounts, their own index funds, substantial research and screening tools, physical branch offices you can walk into, and phone support with actual humans. The interfaces are denser, because they are built for someone who may hold a dozen account types over forty years.</p>
       <p>All three offer commission-free US stock trading. For a beginner buying a broad index fund once a month, the practical difference between them is small, smaller than most online arguments suggest.</p>
 
       <Callout variant="real-talk">
@@ -204,7 +204,7 @@ export default function BrokeragesAndQuotes({ moduleId }) {
       </Callout>
 
       <Callout variant="did-you-know">
-        <p>The quote page usually shows <Term k="dividend yield">dividend yield</Term> calculated from the trailing twelve months of payments. So if a company cut its dividend last week, the yield you are looking at may describe money that is no longer being paid. The dividend history page, not the summary quote, is where the truth lives.</p>
+        <p>The <Term k="dividend yield">dividend yield</Term> on a quote page may be calculated from the trailing twelve months of payments, or annualised from the most recently declared one, and the page does not always say which. Either way, if a company cut its dividend last week, the yield you are looking at may describe money that is no longer being paid. The dividend history page, not the summary quote, is where the truth lives.</p>
       </Callout>
 
       <TryIt moduleId={moduleId} placeholder="Company and ticker, then the five fields with their values and one sentence on what each one told you…">

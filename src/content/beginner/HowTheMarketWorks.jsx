@@ -151,7 +151,7 @@ export default function HowTheMarketWorks({ moduleId }) {
         </table>
       </div>
 
-      <p>The best bid is the highest price any buyer is currently offering, $50.04. The best ask is the lowest price any seller will accept, $50.10. Nothing trades between those two numbers, because nobody has agreed to meet there. That six-cent gap is the <Term k="spread">bid-ask spread</Term>.</p>
+      <p>The best bid is the highest price any buyer is currently offering, $50.04. The best ask is the lowest price any seller will accept, $50.10. No resting order sits between those two numbers, because nobody has publicly offered to meet there, although a market maker filling your order can still choose to give you a price inside the gap. That six-cent gap is the <Term k="spread">bid-ask spread</Term>.</p>
 
       <KeyTerm term="Spread" />
 

@@ -30,7 +30,7 @@ const QUESTIONS = [
     type: 'tf',
     answer: false,
     explanation:
-      'The opposite. Shareholders sit last in the queue, behind lenders, bondholders and suppliers. That last-in-line position is exactly why stocks return more than bonds over time: you are being paid to take the worst seat.',
+      'The opposite. Shareholders sit last in the queue, behind lenders, bondholders and suppliers. That last-in-line position is exactly why stocks have historically returned more than bonds over long periods: you are being paid to take the worst seat.',
   },
   {
     prompt: 'Which of these is the strongest reason a healthy, profitable company might still issue stock?',
@@ -66,7 +66,7 @@ export default function WhatIsAStock({ moduleId }) {
 
       <p>
         Imagine your school runs a genuinely good bubble tea stand. It takes ₹100,000 to set up (equipment,
-        supplies, a licence), and you have ₹20,000. So you find nine friends with ₹20,000 each, but there’s a
+        supplies, a licence), and you have ₹10,000. So you find nine friends with ₹10,000 each, but there’s a
         catch: none of you wants to <em>lend</em> the money, because a loan has to be repaid whether the stand
         works or not.
       </p>
@@ -133,8 +133,8 @@ export default function WhatIsAStock({ moduleId }) {
 
       <Callout variant="real-talk" title="The part that gets skipped">
         <p>
-          That fourth point is the whole deal. In a bankruptcy, the queue runs: tax authorities, secured
-          lenders, bondholders, suppliers, employees, and <em>then</em> shareholders. You are last.
+          That fourth point is the whole deal. In a bankruptcy, the queue runs: secured lenders, then
+          unpaid wages and tax authorities, then bondholders and suppliers, and <em>then</em> shareholders. You are last.
         </p>
         <p>
           This is not a flaw in the system; it is the trade. Bondholders get paid first and earn a modest

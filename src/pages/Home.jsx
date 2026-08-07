@@ -11,6 +11,8 @@ const TRACK_PITCH = {
     'What a share actually is, where it trades, why the price moves, and how you would buy your first one. No jargon assumed.',
   intermediate:
     'How to tell a boring compounder from a coin flip: beta, P/E, ETFs, diversification, and why part of your money should always be somewhere dull.',
+  examples:
+    'Real companies, real five-year charts pulled live. A stock that gave back everything it gained, the years after the GameStop squeeze, and two deliberately boring charts next to them.',
   hard:
     'Options, leverage and speculation, explained honestly. What the upside really looks like, what a total loss really looks like, and how to size a bet you can survive.',
 }
@@ -133,7 +135,7 @@ export default function Home() {
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-extrabold tracking-tight text-ink-900 dark:text-white sm:text-4xl">
-            Three tracks, one path
+            Four tracks, one path
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-ink-600 dark:text-ink-300">
             Work through them in order if you’re starting from zero, or jump straight to whatever you
@@ -141,7 +143,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 lg:grid-cols-3">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {TRACKS.map((track) => {
             const s = stats.byTrack[track.slug]
             return (

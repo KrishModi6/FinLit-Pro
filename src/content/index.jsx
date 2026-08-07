@@ -19,6 +19,7 @@ const registry = {
   'beginner/dividends-and-time-horizon': lazy(() => import('./beginner/DividendsAndTimeHorizon.jsx')),
   'beginner/know-your-risk-profile': lazy(() => import('./beginner/KnowYourRiskProfile.jsx')),
   'beginner/your-first-share': lazy(() => import('./beginner/YourFirstShare.jsx')),
+  'beginner/recap': lazy(() => import('./beginner/Recap.jsx')),
 
   // ---- Intermediate: Stable vs Unstable Stocks ------------------------
   'intermediate/stable-vs-unstable': lazy(() => import('./intermediate/StableVsUnstable.jsx')),
@@ -28,6 +29,13 @@ const registry = {
   'intermediate/etfs-and-diversification': lazy(() => import('./intermediate/EtfsAndDiversification.jsx')),
   'intermediate/the-stable-core': lazy(() => import('./intermediate/TheStableCore.jsx')),
   'intermediate/case-study-and-tools': lazy(() => import('./intermediate/CaseStudyAndTools.jsx')),
+  'intermediate/recap': lazy(() => import('./intermediate/Recap.jsx')),
+
+  // ---- Examples: Real Charts, Real Lessons ----------------------------
+  'examples/roblox-the-round-trip': lazy(() => import('./examples/RobloxTheRoundTrip.jsx')),
+  'examples/gamestop-after-the-crowd': lazy(() => import('./examples/GameStopAfterTheCrowd.jsx')),
+  'examples/the-boring-chart': lazy(() => import('./examples/TheBoringChart.jsx')),
+  'examples/recap': lazy(() => import('./examples/Recap.jsx')),
 
   // ---- Hard: Risky Bets ------------------------------------------------
   'hard/what-high-risk-means': lazy(() => import('./hard/WhatHighRiskMeans.jsx')),
@@ -38,6 +46,7 @@ const registry = {
   'hard/investor-psychology': lazy(() => import('./hard/InvestorPsychology.jsx')),
   'hard/building-your-risk-sleeve': lazy(() => import('./hard/BuildingYourRiskSleeve.jsx')),
   'hard/options-trade-walkthrough': lazy(() => import('./hard/OptionsTradeWalkthrough.jsx')),
+  'hard/recap': lazy(() => import('./hard/Recap.jsx')),
 }
 
 /** Shown if a module exists in the curriculum but has no content file yet. */

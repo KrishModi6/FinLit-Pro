@@ -96,7 +96,7 @@ export default function OptionsTradeWalkthrough({ moduleId }) {
 
       <KeyTerm term="theta decay" />
 
-      <p>This is the exact moment where the trade is decided, and it is decided by temperament rather than analysis. One reader panic-sells at $1.10 and recovers $110. Another decides the thesis is intact and buys a second contract, doubling the position to 4% of the portfolio at precisely the moment the evidence got worse. Both of those are real decisions with real consequences, and both should have been made weeks earlier, in writing, when nothing was at stake and your judgment was clean.</p>
+      <p>This is the exact moment where the trade is decided, and it is decided by temperament rather than analysis. One reader panic-sells at $1.10 and recovers $110. Another decides the thesis is intact and buys a second contract for $110, taking the total at risk to $310, or 3.1% of the portfolio, at precisely the moment the evidence got worse. Both of those are real decisions with real consequences, and both should have been made weeks earlier, in writing, when nothing was at stake and your judgment was clean.</p>
 
       <Callout variant="warning" title="Adding to a losing option is not conviction">
         <p>Doubling down on a decaying contract feels like commitment. Mechanically, it is a decision to increase your risk in response to information that argues for less of it. If your written plan does not already say “I will add here, at this price, up to this size,” then the answer at $1.10 is no.</p>

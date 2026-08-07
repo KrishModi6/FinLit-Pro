@@ -12,7 +12,7 @@ export default function NotFound() {
       </h1>
       <p className="mt-3 text-ink-600 dark:text-ink-400">
         The link may be old, or the lesson may have been renamed. Everything on the site is reachable from
-        one of the three tracks below.
+        one of the four tracks below.
       </p>
 
       <div className="mt-8 flex flex-wrap justify-center gap-3">

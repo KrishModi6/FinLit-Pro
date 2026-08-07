@@ -178,8 +178,9 @@ export default function WhenBetsGoBad({ moduleId }) {
       <h2>Enron, 2001</h2>
       <p>
         Now a failure with the opposite shape. Enron was an energy and commodities-trading
-        company, and for six consecutive years in the late 1990s and 2000 it was named one of
-        America’s most innovative companies by Fortune. It was widely held, widely recommended,
+        company, and for six consecutive years, from 1996 to 2001, it was named America’s most
+        innovative company by Fortune. It was still collecting that award the year it collapsed.
+        It was widely held, widely recommended,
         and treated as a serious, respectable holding. Its shares traded around $90 in mid-2000.
       </p>
       <p>

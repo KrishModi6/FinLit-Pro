@@ -196,7 +196,7 @@ export default function KnowYourRiskProfile({ moduleId }) {
 
       <Callout variant="did-you-know">
         <p>
-          The single most common reason a young investor sells at the bottom is not fear of the market. It is
+          One of the most common reasons a young investor sells at the bottom is not fear of the market. It is
           needing the money. A cash cushion held completely separately is what converts a paper loss into
           something you can simply ignore, which is why it appears in a questionnaire about risk rather than
           in one about budgeting.

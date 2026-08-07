@@ -133,7 +133,7 @@ export default function RiskRewardAndSizing({ moduleId }) {
               <td>$1,000</td>
               <td>$10</td>
               <td>$20</td>
-              <td>A $100 stock position you would exit 20% down. No standard option contract costs this little.</td>
+              <td>A $100 stock position you would exit 20% down. Almost no option contract worth trading costs this little.</td>
             </tr>
             <tr>
               <td>$5,000</td>
@@ -157,7 +157,7 @@ export default function RiskRewardAndSizing({ moduleId }) {
         </table>
       </div>
 
-      <p>Read the top row carefully, because it is the one that applies to most students. On a $500 account, 2% is $10, and a single option contract covering 100 shares will cost more than that at almost any premium worth trading. The rule is telling you something true: at that account size, options positions cannot be sized responsibly. That is real information about what your capital can and cannot do yet, not a reason to decide the rule does not apply to you.</p>
+      <p>Read the top row carefully, because it is the one that applies to most students. On a $1,000 account, 2% is $20, and a single option contract covering 100 shares will cost more than that at almost any premium worth trading. The rule is telling you something true: at that account size, options positions cannot be sized responsibly. That is real information about what your capital can and cannot do yet, not a reason to decide the rule does not apply to you.</p>
 
       <TryIt moduleId={moduleId} placeholder="Portfolio value: $___. 1% = $___. 2% = $___. My idea risks $___ in the realistic bad case, which is ___% of the portfolio. Passes / fails, and what I would change.">
         <p>Take your real portfolio value, or a realistic number you expect to have within a year, and write down your 1% and 2% figures in dollars. Then take your most recent speculative idea, or the one you are most tempted by right now, and open its actual page on Yahoo Finance or your broker. Work out what the position would cost and what you would genuinely lose in the bad case: the full premium for an option, the distance to your exit for a stock. Compare that number to your 1% and 2% figures and write one sentence saying whether it passes, and if it fails, what size would make it pass.</p>

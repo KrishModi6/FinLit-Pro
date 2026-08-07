@@ -163,7 +163,7 @@ export default function OptionsBasics({ moduleId }) {
 
       <Callout variant="real-talk" title="The earnings trap">
         <p>Before an earnings announcement, implied volatility rises because a known, dated event could move the stock hard. Options get expensive. Then the announcement happens, the uncertainty resolves, and IV collapses within minutes.</p>
-        <p>So a trader buys a $50 call for $4.00 the day before earnings. The company beats, the stock rises to $52. They were right. But the elevated IV they paid for has evaporated, and the contract is now marked at $2.50. They called the event correctly and lost 37% of their money. This is IV crush, and it catches people every single earnings season.</p>
+        <p>So a trader buys a $50 call for $4.00 the day before earnings. The company beats, the stock rises to $52. They were right. But the elevated IV they paid for has evaporated, and the contract is now marked at $2.50. They called the event correctly and lost 38% of their money. This is IV crush, and it catches people every single earnings season.</p>
       </Callout>
 
       <h2>Buying versus selling, and three ways to be wrong</h2>
