@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   DataTable,
   Flag,
@@ -82,22 +82,31 @@ export default function AiPredictor() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  const load = useCallback(async (sym) => {
+  // Ignore any response but the newest, so switching ticker twice in quick
+  // succession cannot leave the projection running on the older company's
+  // prices while the header names the newer one.
+  useEffect(() => {
+    let cancelled = false
     setLoading(true)
     setError(null)
-    try {
-      setData(await fetchQuote(sym, '5y'))
-    } catch (e) {
-      setData(null)
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
 
-  useEffect(() => {
-    load(symbol)
-  }, [symbol, load])
+    fetchQuote(symbol, '5y')
+      .then((next) => {
+        if (!cancelled) setData(next)
+      })
+      .catch((e) => {
+        if (cancelled) return
+        setData(null)
+        setError(e.message)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [symbol])
 
   const model = useMemo(() => {
     if (!data?.points?.length || !Number.isFinite(months) || months < 1) return null

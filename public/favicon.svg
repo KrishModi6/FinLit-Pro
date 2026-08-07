@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="FinLit Pro">
+  <!--
+    The navbar badge, drawn at favicon scale: the emerald-to-teal gradient
+    square with the chart glyph from Icons.jsx sitting on it.
+
+    Two deliberate differences from the on-screen badge. The stroke is 2.8 in
+    the icon's own 24-unit space rather than 2, because scaling the glyph to
+    0.75 would otherwise leave a 1.5px line that goes faint and blurry once a
+    browser paints this at 16 by 16 in a tab. And the glyph is nudged up half
+    a unit, since the chart's baseline sits low in its own box and the mark
+    reads bottom-heavy when centred by pure arithmetic.
+  -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10b981"/>
+      <stop offset="1" stop-color="#0d9488"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="32" height="32" rx="8" fill="url(#g)"/>
+
+  <g transform="translate(7 6.5) scale(0.75)"
+     fill="none" stroke="#ffffff" stroke-width="2.8"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 3v16a2 2 0 0 0 2 2h16"/>
+    <path d="m7 14 3.5-3.5 3 3L21 7"/>
+  </g>
+</svg>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Flag, LessonLink, Panel, Stat, money, num, pct } from '../../components/ui/SimUI.jsx'
 import AdvancedChart from '../../components/ui/AdvancedChart.jsx'
 import {
@@ -30,22 +30,35 @@ export default function MarketExplorer() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  const load = useCallback(async (sym, rng) => {
+  // The `cancelled` flag is not optional here. Tapping through the range
+  // buttons starts a request per tap, and they do not come back in the order
+  // they went out: on a slow connection a 1Y response can land after the 1D
+  // one that replaced it, leaving 1D highlighted while the chart shows a year
+  // of daily bars. Ignoring every response but the newest is what keeps the
+  // selected button and the chart telling the same story.
+  useEffect(() => {
+    let cancelled = false
     setLoading(true)
     setError(null)
-    try {
-      setData(await fetchQuote(sym, rng))
-    } catch (e) {
-      setData(null)
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
 
-  useEffect(() => {
-    load(symbol, range)
-  }, [symbol, range, load])
+    fetchQuote(symbol, range)
+      .then((next) => {
+        if (cancelled) return
+        setData(next)
+      })
+      .catch((e) => {
+        if (cancelled) return
+        setData(null)
+        setError(e.message)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [symbol, range])
 
   const analysis = useMemo(() => {
     if (!data?.points?.length) return null
@@ -161,7 +174,7 @@ export default function MarketExplorer() {
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold tabular-nums text-ink-900 dark:text-white">
-                  {money(data.price, 2)}
+                  {money(data.price, 2, data.currency)}
                 </p>
                 {analysis.dayChange != null && (
                   <p

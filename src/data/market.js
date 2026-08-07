@@ -19,6 +19,57 @@ export async function fetchQuote(symbol, range = '1y') {
   return body
 }
 
+/**
+ * Currencies Yahoo quotes in a sub-unit rather than the main unit, mapped to
+ * the real code and how many sub-units make one. London listings are the one
+ * that actually bites: Yahoo reports them as "GBp", meaning pence.
+ */
+const SUBUNIT_CURRENCIES = {
+  GBp: ['GBP', 100],
+  ZAc: ['ZAR', 100],
+  ILA: ['ILS', 100],
+}
+
+/**
+ * Formats a price in the currency its exchange actually quotes in.
+ *
+ * Two traps this exists to handle.
+ *
+ * Intl silently uppercases an unknown-cased code, so "GBp" becomes "GBP" and
+ * 120.5 pence renders as £120.50 rather than £1.21, out by a factor of a
+ * hundred. Sub-unit currencies are therefore converted before formatting.
+ *
+ * Intl also throws a RangeError on any code it does not recognise. Thrown
+ * from inside a render that takes the whole chart down, so an unrecognised
+ * code falls back to the number with its raw code appended rather than
+ * guessing at a symbol.
+ *
+ * `dp: 'auto'` keeps the cents on small numbers and drops them on large ones,
+ * which is what axis ticks want. It has to be resolved here rather than by the
+ * caller, because the caller only has the pre-conversion value: testing 120.5
+ * pence against the threshold picks zero decimals and then prints "£1" three
+ * times up the axis, dropping the only digits that tell the ticks apart.
+ */
+export function formatMoney(value, { currency = 'USD', dp = 2 } = {}) {
+  if (!Number.isFinite(value)) return 'n/a'
+
+  let amount = value
+  let code = currency || 'USD'
+  const subunit = SUBUNIT_CURRENCIES[code]
+  if (subunit) {
+    code = subunit[0]
+    amount = value / subunit[1]
+  }
+
+  const places = dp === 'auto' ? (Math.abs(amount) < 10 ? 2 : 0) : dp
+  const digits = { minimumFractionDigits: places, maximumFractionDigits: places }
+  try {
+    return amount.toLocaleString('en-US', { style: 'currency', currency: code, ...digits })
+  } catch {
+    return `${amount.toLocaleString('en-US', digits)} ${code}`
+  }
+}
+
 /** Simple moving average. Returns an array aligned to `values`, null before period. */
 export function sma(values, period) {
   const out = new Array(values.length).fill(null)

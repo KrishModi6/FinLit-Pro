@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { bollinger, rsi, sma } from '../../data/market.js'
+import { bollinger, formatMoney, rsi, sma } from '../../data/market.js'
 
 /**
  * Candlestick chart with the indicator stack the old Streamlit app had:
@@ -130,25 +130,14 @@ export default function AdvancedChart({ points, currency = 'USD' }) {
     return { x, y, vy, ry, band, min, max, maxVol, n }
   }, [view, on])
 
-  // Axis ticks drop the cents on anything above $10, because three whole
+  // Axis ticks drop the cents on anything above 10, because three whole
   // numbers up the side read faster than three with decimals.
-  const fmt = useCallback(
-    (v) =>
-      v.toLocaleString('en-US', {
-        style: 'currency',
-        currency,
-        maximumFractionDigits: v < 10 ? 2 : 0,
-      }),
-    [currency]
-  )
+  const fmt = useCallback((v) => formatMoney(v, { currency, dp: 'auto' }), [currency])
 
   // The OHLC readout always keeps the cents. A five-minute bar often moves
   // less than a dollar, so rounding collapses open, high, low and close into
   // the same number and the readout says nothing.
-  const fmtExact = useCallback(
-    (v) => v.toLocaleString('en-US', { style: 'currency', currency, minimumFractionDigits: 2 }),
-    [currency]
-  )
+  const fmtExact = useCallback((v) => formatMoney(v, { currency, dp: 2 }), [currency])
 
   /** Pointer x in viewBox units to an index in the visible window. */
   const idxFromEvent = useCallback(

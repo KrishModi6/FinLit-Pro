@@ -38,11 +38,18 @@
     <meta name="twitter:description" content="Beginner, Intermediate and Hard tracks on how the stock market actually works." />
     <meta name="twitter:image" content="https://www.finlitpro.org/og-image.png" />
 
-    <!-- Favicon: 📈 rendered as an inline SVG so there is no extra request -->
-    <link
-      rel="icon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>"
-    />
+    <!--
+      Favicon: the same emerald badge and chart glyph the navbar wears, so the
+      browser tab and the site header are recognisably one thing.
+
+      A real file rather than an inline data URI. The old 📈 emoji inlined
+      cleanly, but this mark carries a gradient, and a gradient needs hex
+      colours, and a `#` inside a data URI starts a fragment identifier unless
+      it is escaped to %23. That is a trap worth avoiding, and it makes the
+      logo a single file to swap when the real one is ready. One request, and
+      it is cached with the rest of /public.
+    -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

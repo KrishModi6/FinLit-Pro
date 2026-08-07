@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { formatMoney } from '../../data/market.js'
 
 /**
  * Shared building blocks for the Simulator tools, so six tools look like one
@@ -186,15 +187,12 @@ export const Td = ({ children, className = '' }) => (
 
 /* ------------------------------ formatters ------------------------------ */
 
-export const money = (n, dp = 0) =>
-  Number.isFinite(n)
-    ? n.toLocaleString('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        maximumFractionDigits: dp,
-        minimumFractionDigits: dp,
-      })
-    : 'n/a'
+/**
+ * Most of the simulator deals in dollars the reader typed in, so USD is the
+ * default. Pass a currency for anything priced by an exchange instead, or a
+ * London or Mumbai listing gets labelled with a dollar sign.
+ */
+export const money = (n, dp = 0, currency = 'USD') => formatMoney(n, { currency, dp })
 
 export const pct = (n, dp = 1) => (Number.isFinite(n) ? `${n.toFixed(dp)}%` : 'n/a')
 
