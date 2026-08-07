@@ -1,5 +1,5 @@
 import OpenAI from 'openai'
-import { checkRateLimit } from '../lib/rate-limit.js'
+import { PER_IP_LIMIT, checkRateLimit, rateLimitStore } from '../lib/rate-limit.js'
 
 /**
  * POST /api/advisor
@@ -18,7 +18,13 @@ export const maxDuration = 60
 // Override with OPENAI_MODEL if you want a different tier. If the primary is
 // not available to the key, we retry once on a broadly available fallback
 // rather than failing the request.
-const MODEL = process.env.OPENAI_MODEL || 'gpt-5'
+//
+// gpt-5.6-luna is cheap enough that the cost ceiling here is small: at
+// $1.20 per million output tokens and the 1200-token cap below, a single
+// answer costs well under a cent, so the 1000-a-day global limit is worth
+// roughly a dollar or two at absolute worst. The limit is still there
+// because "cheap" and "unbounded" are different things.
+const MODEL = process.env.OPENAI_MODEL || 'gpt-5.6-luna'
 const FALLBACK_MODEL = 'gpt-4o'
 
 const MAX_TURNS = 20
@@ -89,6 +95,18 @@ export default async function handler(req, res) {
 
   // Counted before the model is called, so a refused request costs nothing.
   const limit = await checkRateLimit(req)
+
+  // Standard rate-limit headers, set before anything is written so they
+  // survive the streaming response. They also make the limiter observable
+  // from outside: `store` says whether shared Redis or the per-instance
+  // fallback answered, which is the only way to confirm from a client that
+  // Upstash is actually wired up.
+  res.setHeader('X-RateLimit-Limit', String(PER_IP_LIMIT))
+  res.setHeader('X-RateLimit-Store', limit.degraded ? 'unavailable' : rateLimitStore())
+  if (Number.isFinite(limit.ipCount)) {
+    res.setHeader('X-RateLimit-Remaining', String(Math.max(0, PER_IP_LIMIT - limit.ipCount)))
+  }
+
   if (!limit.allowed) {
     res.setHeader('Retry-After', String(limit.retryAfter))
     return bad(res, 429, limit.message)

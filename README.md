@@ -57,7 +57,7 @@ in `vite.config.js`, so the market tools work locally without deploying.
 | Endpoint | Key required | What it does |
 | --- | --- | --- |
 | `GET /api/quote?symbol=AAPL&range=1y` | No | Proxies Yahoo Finance chart data. Exists because Yahoo sends no CORS headers, so the browser cannot call it directly. Validates the ticker against a strict pattern before building the outbound URL, and edge-caches for 5 minutes. |
-| `POST /api/advisor` | **Yes** | Streams from OpenAI via the official `openai` SDK, with a system prompt grounded in the course that refuses personalised investment advice. Model defaults to `gpt-5`, overridable with `OPENAI_MODEL`, and falls back automatically if the key lacks access. |
+| `POST /api/advisor` | **Yes** | Streams from OpenAI via the official `openai` SDK, with a system prompt grounded in the course that refuses personalised investment advice. Model defaults to `gpt-5.6-luna`, overridable with `OPENAI_MODEL`, and falls back to `gpt-4o` automatically if the key lacks access. Rate limited. |
 
 ### Enabling the AI Advisor
 
@@ -66,6 +66,36 @@ For local development, put it in `.env.local` (gitignored).
 
 Without the key the endpoint returns a clear `503` and the UI shows that message, so the rest of the
 site is unaffected.
+
+### Rate limiting
+
+The advisor is public and spends real credit, so [`lib/rate-limit.js`](lib/rate-limit.js) applies two
+limits: one per visitor, and a global daily cap that is the actual budget ceiling. Per-visitor limits
+are worth little on their own against a distributed script or a spoofed `x-forwarded-for`.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `ADVISOR_PER_IP_LIMIT` | `12` | Requests allowed per visitor per window |
+| `ADVISOR_PER_IP_WINDOW_S` | `600` | Length of that window, in seconds |
+| `ADVISOR_GLOBAL_DAILY_LIMIT` | `1000` | Total requests per day across everyone |
+
+Counters live in Upstash Redis when `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set
+(Vercel's marketplace integration provides these automatically, under either that naming or the
+`KV_REST_API_*` one, and both are read). Without them it falls back to an in-process `Map`, which
+**only sees one serverless instance** and so leaks under load. That fallback is a speed bump, not a
+lock.
+
+Every response carries `X-RateLimit-Store`, which reads `redis` or `memory`. That is the way to
+confirm from outside that the credentials actually arrived:
+
+```
+curl -si -X POST https://www.finlitpro.org/api/advisor \
+  -H 'Content-Type: application/json' \
+  -d '{"messages":[{"role":"user","content":"hi"}]}' | grep -i x-ratelimit
+```
+
+The limiter fails open: if the store is unreachable the question is allowed through rather than
+taking the advisor down over bookkeeping, and the header reads `unavailable`.
 
 The risk-tolerance questionnaire that used to be a standalone tool now lives in the course as the
 Beginner lesson [Know Your Risk Profile](src/content/beginner/KnowYourRiskProfile.jsx), because the score
