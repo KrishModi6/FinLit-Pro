@@ -126,6 +126,11 @@ export default async function handler(req, res) {
   const messages = [{ role: 'system', content: SYSTEM }, ...history]
 
   let wroteAny = false
+  // Which model actually answered, reported back on the response. The fallback
+  // is silent otherwise, and gpt-4o costs several times what the primary does,
+  // so a key quietly lacking access would run up a much larger bill with
+  // nothing anywhere to say why.
+  let usedModel = MODEL
 
   const run = async (model) => {
     const stream = await client.chat.completions.create({
@@ -145,6 +150,7 @@ export default async function handler(req, res) {
         res.setHeader('Content-Type', 'text/plain; charset=utf-8')
         res.setHeader('Cache-Control', 'no-store')
         res.setHeader('X-Accel-Buffering', 'no')
+        res.setHeader('X-Advisor-Model', usedModel)
         wroteAny = true
       }
       res.write(text)
@@ -164,6 +170,10 @@ export default async function handler(req, res) {
         (err?.status === 404 ||
           (err?.status === 400 && /model/i.test(err?.message ?? '')))
       if (!unknownModel) throw err
+      console.warn(
+        `[advisor] ${MODEL} unavailable to this key (${err?.status}); falling back to ${FALLBACK_MODEL}, which is materially more expensive.`
+      )
+      usedModel = FALLBACK_MODEL
       finish = await run(FALLBACK_MODEL)
     }
 
@@ -171,6 +181,7 @@ export default async function handler(req, res) {
       if (!wroteAny) {
         res.setHeader('Content-Type', 'text/plain; charset=utf-8')
         res.setHeader('Cache-Control', 'no-store')
+        res.setHeader('X-Advisor-Model', usedModel)
         wroteAny = true
       }
       res.write(text)
