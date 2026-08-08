@@ -24,8 +24,14 @@ export const maxDuration = 60
 // answer costs well under a cent, so the 1000-a-day global limit is worth
 // roughly a dollar or two at absolute worst. The limit is still there
 // because "cheap" and "unbounded" are different things.
+//
+// The fallback was gpt-4o, which OpenAI no longer lists as an available
+// model. A retry onto a retired model is not a fallback, it is a second way
+// to fail. gpt-5.4-nano is current, supports chat completions and streaming,
+// and at $0.20 in / $1.25 out costs within a rounding error of the primary,
+// so degrading onto it is close to free rather than a surprise on the bill.
 const MODEL = process.env.OPENAI_MODEL || 'gpt-5.6-luna'
-const FALLBACK_MODEL = 'gpt-4o'
+const FALLBACK_MODEL = process.env.OPENAI_FALLBACK_MODEL || 'gpt-5.4-nano'
 
 const MAX_TURNS = 20
 const MAX_CHARS = 4000
@@ -127,9 +133,8 @@ export default async function handler(req, res) {
 
   let wroteAny = false
   // Which model actually answered, reported back on the response. The fallback
-  // is silent otherwise, and gpt-4o costs several times what the primary does,
-  // so a key quietly lacking access would run up a much larger bill with
-  // nothing anywhere to say why.
+  // is silent otherwise, so a key quietly lacking access to the primary would
+  // answer from a different model indefinitely with nothing to say so.
   let usedModel = MODEL
 
   const run = async (model) => {
@@ -171,7 +176,7 @@ export default async function handler(req, res) {
           (err?.status === 400 && /model/i.test(err?.message ?? '')))
       if (!unknownModel) throw err
       console.warn(
-        `[advisor] ${MODEL} unavailable to this key (${err?.status}); falling back to ${FALLBACK_MODEL}, which is materially more expensive.`
+        `[advisor] ${MODEL} unavailable to this key (status ${err?.status}); answering with ${FALLBACK_MODEL} instead. Worth checking, since every request will pay this retry.`
       )
       usedModel = FALLBACK_MODEL
       finish = await run(FALLBACK_MODEL)

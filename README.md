@@ -57,7 +57,7 @@ in `vite.config.js`, so the market tools work locally without deploying.
 | Endpoint | Key required | What it does |
 | --- | --- | --- |
 | `GET /api/quote?symbol=AAPL&range=1y` | No | Proxies Yahoo Finance chart data. Exists because Yahoo sends no CORS headers, so the browser cannot call it directly. Validates the ticker against a strict pattern before building the outbound URL, and edge-caches for 5 minutes. |
-| `POST /api/advisor` | **Yes** | Streams from OpenAI via the official `openai` SDK, with a system prompt grounded in the course that refuses personalised investment advice. Model defaults to `gpt-5.6-luna`, overridable with `OPENAI_MODEL`, and falls back to `gpt-4o` automatically if the key lacks access. Rate limited. |
+| `POST /api/advisor` | **Yes** | Streams from OpenAI via the official `openai` SDK, with a system prompt grounded in the course that refuses personalised investment advice. Model defaults to `gpt-5.6-luna`, overridable with `OPENAI_MODEL`, and falls back to `gpt-5.4-nano` (overridable with `OPENAI_FALLBACK_MODEL`) if the key lacks access. Responses carry `X-Advisor-Model` naming whichever answered. Rate limited. |
 
 ### Enabling the AI Advisor
 
