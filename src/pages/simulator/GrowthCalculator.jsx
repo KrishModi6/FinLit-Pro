@@ -46,8 +46,21 @@ export default function GrowthCalculator() {
   const [years, setYears] = useState(30)
   const [fee, setFee] = useState(0.03)
 
-  const valid =
-    [initial, monthly, annualReturn, years, fee].every(Number.isFinite) && years > 0 && years <= 70
+  // The net return has to stay above -100%. Below that, compounding it into a
+  // monthly rate takes the twelfth root of a negative number, which is NaN,
+  // and the NaN then spreads silently into every figure and the chart.
+  // Losing more than everything is not a scenario worth modelling anyway.
+  const allNumbers = [initial, monthly, annualReturn, years, fee].every(Number.isFinite)
+  const valid = allNumbers && years > 0 && years <= 70 && annualReturn - fee > -100
+
+  // Say which rule was broken. A single catch-all message told a reader who
+  // had filled in every field and used a sensible number of years to go and
+  // do exactly that, which is no help at all.
+  const problem = !allNumbers
+    ? 'Fill in every field with a number to see a projection.'
+    : years <= 0 || years > 70
+      ? 'Use between 1 and 70 years to see a projection.'
+      : 'A return of less than -100% after fees would lose more than there is to lose, so there is nothing to project. Raise the return or lower the fee.'
 
   const result = useMemo(
     () => (valid ? project({ initial, monthly, annualReturn, years, fee }) : null),
@@ -119,9 +132,7 @@ export default function GrowthCalculator() {
         <div className="min-w-0 space-y-6">
           {!valid && (
             <Panel>
-              <p className="text-ink-500 dark:text-ink-400">
-                Fill in every field with a number, using 1 to 70 years, to see a projection.
-              </p>
+              <p className="text-ink-500 dark:text-ink-400">{problem}</p>
             </Panel>
           )}
 

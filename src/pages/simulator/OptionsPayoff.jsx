@@ -9,6 +9,7 @@ import {
   Stat,
   Td,
   money,
+  num,
   pct,
 } from '../../components/ui/SimUI.jsx'
 import { getTool } from '../../data/simulator.js'
@@ -53,7 +54,14 @@ export default function OptionsPayoff() {
     const moveNeeded = ((breakEven - spot) / spot) * 100
 
     const atExit = payoffAt(exit, { type, strike, premium, contracts })
-    const shares = Math.floor(cost / spot)
+    // Fractional, deliberately. The comparison is "the same money in shares
+    // instead", so flooring to whole shares made it unfair whenever the
+    // amounts did not divide evenly, and outright wrong when one contract
+    // cost less than one share: that floored to zero shares and reported the
+    // stock alternative as making exactly $0, which reads as shares having
+    // gone nowhere rather than as not having bought any. Fractional shares
+    // are widely available anyway.
+    const shares = cost / spot
     const stockPnl = shares * (exit - spot)
 
     // Payoff ladder spanning roughly 40% either side of spot.
@@ -137,7 +145,7 @@ export default function OptionsPayoff() {
                   <Stat
                     label={`Same ${money(model.cost, 0)} in shares instead`}
                     value={`${model.stockPnl >= 0 ? '+' : ''}${money(model.stockPnl, 2)}`}
-                    sub={`${model.shares} share(s) bought at ${money(spot, 2)}`}
+                    sub={`${num(model.shares, 2)} shares at ${money(spot, 2)}`}
                     tone={model.stockPnl > 0 ? 'good' : model.stockPnl < 0 ? 'bad' : 'neutral'}
                   />
                 </div>

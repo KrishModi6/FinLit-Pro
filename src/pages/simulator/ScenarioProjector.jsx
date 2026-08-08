@@ -55,8 +55,15 @@ function simulate({ start, annual, mean, vol, years }) {
     let peak = start
     let maxDd = 0
     for (let y = 0; y < years; y++) {
-      const r = mean / 100 + (vol / 100) * normal(rand)
-      bal = bal * (1 + r) + annual
+      // A year can lose everything and no more. Returns here are drawn from a
+      // normal distribution, so once volatility is high a draw can produce a
+      // multiplier below zero and flip the balance negative. That is not a
+      // rounding artefact: at 70% volatility it put the fifth percentile at
+      // minus $105,000, which told a reader that putting in $10,000 could
+      // leave them six figures in debt. Nothing unleveraged and long-only can
+      // do that, so the multiplier floors at zero and the balance with it.
+      const r = Math.max(-1, mean / 100 + (vol / 100) * normal(rand))
+      bal = Math.max(0, bal * (1 + r) + annual)
       if (bal > peak) peak = bal
       const dd = (peak - bal) / peak
       if (dd > maxDd) maxDd = dd
