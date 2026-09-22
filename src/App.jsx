@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom'
 import ScrollToTop from './components/layout/ScrollToTop.jsx'
+import RouteHead from './components/layout/RouteHead.jsx'
 import SiteLayout from './components/layout/SiteLayout.jsx'
 import CourseLayout from './components/layout/CourseLayout.jsx'
 import SimulatorLayout from './pages/simulator/SimulatorLayout.jsx'
@@ -24,6 +25,7 @@ export default function App() {
   return (
     <>
       <ScrollToTop />
+      <RouteHead />
       <Routes>
         <Route element={<SiteLayout />}>
           <Route path="/" element={<Home />} />

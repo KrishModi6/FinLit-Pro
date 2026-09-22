@@ -4,38 +4,36 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Primary SEO -->
+    <!-- Primary SEO. Everything between the seo markers is page-specific and is
+         rewritten per route by scripts/prerender.mjs and by RouteHead.jsx; both
+         read src/data/seo.js. Edit the values there, not here. -->
+    <!--seo:start-->
     <title>FinLit Pro: Learn the Stock Market, Beginner to Advanced (Free)</title>
-    <meta
-      name="description"
-      content="A free, structured stock market course for students. Four tracks: Beginner (how stocks work), Intermediate (stable vs unstable stocks and safe portfolios), Examples (real five-year charts), and Hard (risk, options, and when a risky bet is worth it). Lessons, quizzes, and progress tracking."
-    />
+    <meta name="description" content="A free stock market course for students: how shares work, stable versus risky stocks, real chart case studies and options, with quizzes and simulators." />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://www.finlitpro.org/" />
+    <meta property="og:title" content="FinLit Pro: Learn the Stock Market, Beginner to Advanced (Free)" />
+    <meta property="og:description" content="A free stock market course for students: how shares work, stable versus risky stocks, real chart case studies and options, with quizzes and simulators." />
+    <meta property="og:url" content="https://www.finlitpro.org/" />
+    <meta name="twitter:title" content="FinLit Pro: Learn the Stock Market, Beginner to Advanced (Free)" />
+    <meta name="twitter:description" content="A free stock market course for students: how shares work, stable versus risky stocks, real chart case studies and options, with quizzes and simulators." />
+    <!--seo:end-->
     <meta
       name="keywords"
       content="learn stocks, stock market course, investing for beginners, stable vs volatile stocks, options basics, portfolio diversification, student investing guide"
     />
     <meta name="author" content="Krish Modi" />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
-    <link rel="canonical" href="https://www.finlitpro.org/" />
     <meta name="theme-color" content="#0b111c" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="FinLit Pro" />
-    <meta property="og:title" content="FinLit Pro: Learn the Stock Market, Beginner to Advanced" />
-    <meta
-      property="og:description"
-      content="A free collection of structured, honest lessons to take you from your first share to understanding real risk."
-    />
-    <meta property="og:url" content="https://www.finlitpro.org/" />
     <meta property="og:image" content="https://www.finlitpro.org/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
     <!-- Twitter / X card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="FinLit Pro: Learn the Stock Market, Free" />
-    <meta name="twitter:description" content="Beginner, Intermediate and Hard tracks on how the stock market actually works." />
     <meta name="twitter:image" content="https://www.finlitpro.org/og-image.png" />
 
     <!--
@@ -58,7 +56,8 @@
       rel="stylesheet"
     />
 
-    <!-- Structured data -->
+    <!-- Structured data (homepage Course; other pages get a BreadcrumbList at build time) -->
+    <!--ld:start-->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -71,6 +70,7 @@
         "provider": { "@type": "Person", "name": "Krish Modi" }
       }
     </script>
+    <!--ld:end-->
 
     <!-- Set the theme before first paint so dark-mode users never see a white flash. -->
     <script>

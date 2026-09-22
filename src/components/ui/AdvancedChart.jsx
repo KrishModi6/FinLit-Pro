@@ -106,11 +106,18 @@ export default function AdvancedChart({ points, currency = 'USD' }) {
       if (p.l < min) min = p.l
       if (p.h > max) max = p.h
     })
+    // Overlays are floored at zero before they can widen the scale. A share
+    // price cannot go negative, but a Bollinger lower band can: it is the
+    // average minus two standard deviations, and across a long monthly history
+    // that spans a stock rising a hundredfold the deviation dwarfs the early
+    // prices. On AAPL's Max range it dragged the axis down to -$28, putting a
+    // negative price on a price chart.
     const consider = (arr) =>
       arr.forEach((v) => {
         if (v == null) return
-        if (v < min) min = v
-        if (v > max) max = v
+        const clamped = Math.max(0, v)
+        if (clamped < min) min = clamped
+        if (clamped > max) max = clamped
       })
     if (on.sma20) consider(view.sma20)
     if (on.sma50) consider(view.sma50)
@@ -119,10 +126,14 @@ export default function AdvancedChart({ points, currency = 'USD' }) {
       consider(view.bbLower)
     }
     const pad = (max - min) * 0.06 || 1
-    min -= pad
+    // Padding must not push the floor below zero either, or a stock trading
+    // near its all-time low would still get a negative gridline.
+    min = Math.max(0, min - pad)
     max += pad
 
-    const y = (v) => M.top + (1 - (v - min) / (max - min)) * PRICE_H
+    // Anything below the floor, such as the part of a Bollinger band that
+    // dips under zero, is drawn along the bottom edge rather than off-panel.
+    const y = (v) => M.top + (1 - (Math.max(v, min) - min) / (max - min)) * PRICE_H
     const maxVol = Math.max(1, ...view.pts.map((p) => p.v ?? 0))
     const vy = (v) => VOL_TOP + VOL_H - (v / maxVol) * VOL_H
     const ry = (v) => RSI_TOP + (1 - v / 100) * RSI_H

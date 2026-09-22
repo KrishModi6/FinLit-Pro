@@ -1,49 +1,31 @@
 /**
- * Generates public/sitemap.xml from the curriculum, so the sitemap can never
- * drift out of sync with the actual routes. Runs as part of `npm run build`.
+ * Generates public/sitemap.xml from src/data/seo.js, the same list of
+ * indexable routes the prerender step writes files for, so the sitemap can
+ * never name a page that does not exist or omit one that does. Runs as part
+ * of `npm run build`.
  *
- * `src/data/curriculum.js` deliberately has no imports of its own, which is what
- * lets plain Node load it without a bundler or JSX transform.
+ * Only <loc> is emitted, deliberately. Google ignores <changefreq> and
+ * <priority> outright, and uses <lastmod> only when it is consistently
+ * accurate. The old sitemap stamped every URL with the build date, which
+ * claimed all 46 pages changed on every deploy; that is the pattern Google
+ * learns to disregard. No date is better than a wrong one.
+ *
+ * /dashboard is absent because seo.js marks it noindex: it renders one
+ * browser's LocalStorage and has nothing for a crawler.
  */
 import { writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { TRACKS } from '../src/data/curriculum.js'
-import { TOOLS } from '../src/data/simulator.js'
+import { absoluteUrl, listIndexableRoutes } from '../src/data/seo.js'
 
-const ORIGIN = 'https://www.finlitpro.org'
 const here = dirname(fileURLToPath(import.meta.url))
-const today = new Date().toISOString().slice(0, 10)
-
-const routes = [
-  { loc: '/', priority: '1.0', changefreq: 'weekly' },
-  { loc: '/glossary', priority: '0.7', changefreq: 'monthly' },
-  ...TRACKS.flatMap((track) => [
-    { loc: track.path, priority: '0.9', changefreq: 'monthly' },
-    ...track.modules.map((mod) => ({ loc: mod.path, priority: '0.8', changefreq: 'monthly' })),
-  ]),
-  { loc: '/simulator', priority: '0.8', changefreq: 'monthly' },
-  ...TOOLS.map((tool) => ({ loc: `/simulator/${tool.slug}`, priority: '0.6', changefreq: 'monthly' })),
-]
-
-// /dashboard is intentionally absent: it renders per-browser LocalStorage state
-// and has nothing useful for a crawler to index.
+const routes = listIndexableRoutes()
 
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${routes
-  .map(
-    (r) => `  <url>
-    <loc>${ORIGIN}${r.loc}</loc>
-    <lastmod>${today}</lastmod>
-    <changefreq>${r.changefreq}</changefreq>
-    <priority>${r.priority}</priority>
-  </url>`
-  )
-  .join('\n')}
+${routes.map((r) => `  <url><loc>${absoluteUrl(r)}</loc></url>`).join('\n')}
 </urlset>
 `
 
-const out = resolve(here, '../public/sitemap.xml')
-writeFileSync(out, xml, 'utf8')
+writeFileSync(resolve(here, '../public/sitemap.xml'), xml, 'utf8')
 console.log(`sitemap: ${routes.length} URLs → public/sitemap.xml`)
