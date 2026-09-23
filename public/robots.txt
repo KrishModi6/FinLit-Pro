@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+# The data endpoints behind the simulator. They answer the app, not a reader:
+# /api/quote returns 400 without a symbol and /api/advisor only accepts POST,
+# so a crawler that finds them in the JavaScript files logs them as errors.
+Disallow: /api/
 
 Sitemap: https://www.finlitpro.org/sitemap.xml
