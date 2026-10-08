@@ -74,7 +74,8 @@ export default function Footer() {
         </div>
 
         <p className="mt-8 text-xs text-ink-400 dark:text-ink-600">
-          Built as an IB CAS project by Krish Modi. Progress is stored in your browser only, nothing is
+          Made by Krish Modi with contributions from Karn Sandhu and Nirojan Kumarathas, as an IB CAS
+          project. Progress is stored in your browser only, nothing is
           uploaded anywhere.
         </p>
       </div>

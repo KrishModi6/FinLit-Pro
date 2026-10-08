@@ -58,8 +58,10 @@ export default function Home() {
           </div>
 
           <p className="mt-6 text-sm font-medium text-ink-500 dark:text-ink-400">
-            Made by <span className="font-bold text-ink-800 dark:text-ink-200">Krish Modi</span>, a student,
-            as an IB CAS project. Free, with no sign-up.
+            Made by <span className="font-bold text-ink-800 dark:text-ink-200">Krish Modi</span>, with
+            contributions from <span className="font-bold text-ink-800 dark:text-ink-200">Karn Sandhu</span> and{' '}
+            <span className="font-bold text-ink-800 dark:text-ink-200">Nirojan Kumarathas</span>, as an IB CAS
+            project. Free, with no sign-up.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
