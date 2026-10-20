@@ -1,0 +1,26 @@
+name: Build desktop app
+
+# Manual or on a version tag, so routine pushes do not spend build minutes.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt pillow
+      - run: pyinstaller --noconfirm packaging/finlit_quant.spec
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FinLitQuant-${{ runner.os }}
+          path: dist/
