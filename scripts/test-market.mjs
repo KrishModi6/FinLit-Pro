@@ -46,6 +46,33 @@ note('drift and vol are finite on normal data', [Number.isFinite(s.drift), Numbe
 note('single point -> NaN not a throw', M.annualisedStats([100]).vol, 'NaN', Number.isNaN(M.annualisedStats([100]).vol))
 note('zeros and negatives are skipped, no NaN leak', Number.isFinite(M.annualisedStats([100,0,-5,120,121,122]).vol), 'true', Number.isFinite(M.annualisedStats([100,0,-5,120,121,122]).vol))
 
+console.log('\n--- monteCarlo ---')
+// Daily log returns alternate mu+s and mu-s, so the log drift is exactly mu
+// with no sampling noise, at about 48% annual volatility. That is high enough
+// that the old double Ito correction (vol^2/2, about 11% a year here) cannot
+// hide inside the tolerance.
+let logP = Math.log(100)
+const gbm = [100]
+for (let i = 0; i < 1260; i++) { logP += 0.0006 + (i % 2 ? -0.03 : 0.03); gbm.push(Math.exp(logP)) }
+const g = M.annualisedStats(gbm, 252)
+note('alternating series has the log drift it was built with', g.drift, '0.0006 * 252', Math.abs(g.drift - 0.0006 * 252) < 1e-9)
+const mc = M.monteCarlo({ price: 100, drift: g.drift, vol: g.vol, days: 252, runs: 20000 })
+const trend = 100 * Math.exp(g.drift)
+const doubled = 100 * Math.exp(g.drift - (g.vol * g.vol) / 2)
+note('median follows the historical trend, price * exp(drift)', +mc.p50.toFixed(2), `${trend.toFixed(2)} +/- 2%`, Math.abs(mc.p50 / trend - 1) < 0.02)
+note('median is not Ito-corrected twice', +mc.p50.toFixed(2), `well above ${doubled.toFixed(2)}`, mc.p50 > doubled * 1.07)
+// P(final < price) for GBM with log drift m is Phi(-m / vol) over one year.
+// Abramowitz and Stegun 7.1.26 for erf, accurate to about 1e-7.
+const phi = (x) => {
+  const t = 1 / (1 + 0.3275911 * Math.abs(x) / Math.SQRT2)
+  const erf = 1 - t * (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429)))) * Math.exp(-(x * x) / 2)
+  return x >= 0 ? (1 + erf) / 2 : (1 - erf) / 2
+}
+const lossOdds = phi(-g.drift / g.vol) * 100
+note('runs below today match the closed form', +mc.lossOdds.toFixed(1), `${lossOdds.toFixed(1)} +/- 2`, Math.abs(mc.lossOdds - lossOdds) < 2)
+const still = M.monteCarlo({ price: 50, drift: 0.1, vol: 0, days: 252, runs: 10 })
+note('zero volatility grows at exactly the drift', +still.p50.toFixed(4), (50 * Math.exp(0.1)).toFixed(4), Math.abs(still.p50 - 50 * Math.exp(0.1)) < 1e-9)
+
 console.log('\n--- formatMoney ---')
 note('USD default', M.formatMoney(1234.5), '$1,234.50', M.formatMoney(1234.5) === '$1,234.50')
 note('GBp converted from pence', M.formatMoney(120.5,{currency:'GBp'}), '£1.21', M.formatMoney(120.5,{currency:'GBp'}) === '£1.21')
@@ -57,3 +84,4 @@ note('auto decides AFTER pence conversion', M.formatMoney(120.5,{currency:'GBp',
 note('negative values format', M.formatMoney(-42,{dp:0}), '-$42', M.formatMoney(-42,{dp:0}).includes('42'))
 
 console.log(`\n${issues} suspect result(s)`)
+process.exit(issues ? 1 : 0)

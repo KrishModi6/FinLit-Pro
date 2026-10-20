@@ -10,7 +10,7 @@ import {
   money,
   pct,
 } from '../../components/ui/SimUI.jsx'
-import { PERIODS_PER_YEAR, annualisedStats, fetchQuote } from '../../data/market.js'
+import { PERIODS_PER_YEAR, annualisedStats, fetchQuote, monteCarlo } from '../../data/market.js'
 import { getTool } from '../../data/simulator.js'
 
 /**
@@ -23,54 +23,6 @@ import { getTool } from '../../data/simulator.js'
  * and the page says so repeatedly on purpose.
  */
 const RUNS = 3000
-
-function mulberry32(seed) {
-  return function () {
-    seed |= 0
-    seed = (seed + 0x6d2b79f5) | 0
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
-
-function normal(rand) {
-  let u = 0
-  let v = 0
-  while (u === 0) u = rand()
-  while (v === 0) v = rand()
-  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
-}
-
-function simulate({ price, drift, vol, days }) {
-  const rand = mulberry32(20260805)
-  const dt = 1 / 252
-  const finals = []
-
-  for (let i = 0; i < RUNS; i++) {
-    let p = price
-    for (let d = 0; d < days; d++) {
-      // Geometric Brownian motion: the standard textbook price model.
-      p *= Math.exp((drift - (vol * vol) / 2) * dt + vol * Math.sqrt(dt) * normal(rand))
-    }
-    finals.push(p)
-  }
-
-  finals.sort((a, b) => a - b)
-  const at = (q) => finals[Math.min(finals.length - 1, Math.floor((q / 100) * finals.length))]
-  const belowStart = finals.filter((f) => f < price).length
-
-  return {
-    p5: at(5),
-    p10: at(10),
-    p25: at(25),
-    p50: at(50),
-    p75: at(75),
-    p90: at(90),
-    p95: at(95),
-    lossOdds: (belowStart / RUNS) * 100,
-  }
-}
 
 export default function AiPredictor() {
   const tool = getTool('predictor')
@@ -116,7 +68,7 @@ export default function AiPredictor() {
 
     const price = data.price ?? closes[closes.length - 1]
     const days = Math.round((months / 12) * 252)
-    return { ...simulate({ price, drift, vol, days }), price, drift, vol, samples, days }
+    return { ...monteCarlo({ price, drift, vol, days, runs: RUNS }), price, drift, vol, samples, days }
   }, [data, months])
 
   const submit = (e) => {
