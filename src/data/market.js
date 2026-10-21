@@ -154,6 +154,10 @@ export function logReturns(values) {
 /**
  * Annualised drift and volatility from a price series.
  * `periodsPerYear` is 252 for daily bars, 52 for weekly, 12 for monthly.
+ *
+ * `drift` is the mean LOG return scaled to a year, so it is already the log
+ * drift: the price trend is `price * exp(drift * years)`. It is not an
+ * arithmetic expected return, and must not be Ito-corrected again.
  */
 export function annualisedStats(values, periodsPerYear = 252) {
   const r = logReturns(values)
@@ -167,6 +171,71 @@ export function annualisedStats(values, periodsPerYear = 252) {
     drift: mean * periodsPerYear,
     vol: sd * Math.sqrt(periodsPerYear),
     samples: r.length,
+  }
+}
+
+function mulberry32(seed) {
+  return function () {
+    seed |= 0
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+/** Box-Muller transform: two uniforms in, one standard normal out. */
+function normal(rand) {
+  let u = 0
+  let v = 0
+  while (u === 0) u = rand()
+  while (v === 0) v = rand()
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
+}
+
+/**
+ * Monte Carlo price paths by geometric Brownian motion, the engine behind the
+ * AI Predictor. `drift` and `vol` are annualised, as `annualisedStats` returns
+ * them; `days` is trading days ahead. Returns the terminal price percentiles
+ * and the share of runs that end below today's price.
+ *
+ * Seeded so the same inputs always give the same picture, rather than the
+ * numbers twitching on every render.
+ */
+export function monteCarlo({ price, drift, vol, days, runs = 3000 }) {
+  const rand = mulberry32(20260805)
+  const dt = 1 / 252
+  const finals = []
+
+  for (let i = 0; i < runs; i++) {
+    let p = price
+    for (let d = 0; d < days; d++) {
+      // First Version: exp((drift - vol^2 / 2) * dt + ...), the textbook form
+      // for an ARITHMETIC expected return. But `drift` here is a mean LOG
+      // return, which already has the vol^2 / 2 taken off, so that applied
+      // the Ito correction twice and dragged every path down by vol^2 / 2 a
+      // year: 2% at 20% volatility, 12.5% at 50%. The median and "runs below
+      // today" came out pessimistic, worst of all for volatile stocks.
+      // Current Version: the log drift is used as is, so the median grows at
+      // the stock's own historical trend, price * exp(drift * years).
+      p *= Math.exp(drift * dt + vol * Math.sqrt(dt) * normal(rand))
+    }
+    finals.push(p)
+  }
+
+  finals.sort((a, b) => a - b)
+  const at = (q) => finals[Math.min(finals.length - 1, Math.floor((q / 100) * finals.length))]
+  const belowStart = finals.filter((f) => f < price).length
+
+  return {
+    p5: at(5),
+    p10: at(10),
+    p25: at(25),
+    p50: at(50),
+    p75: at(75),
+    p90: at(90),
+    p95: at(95),
+    lossOdds: (belowStart / runs) * 100,
   }
 }
 
