@@ -52,3 +52,14 @@ def run(workspace, settings, progress: Callable[[int], None] | None = None, canc
     raw = engine.run(prompt.SYSTEM, prompt.user_message(text), progress, cancelled)
     label = engine.label + (f" (served by {engine.served_model})" if engine.served_model and engine.served_model not in engine.label else "")
     return note_mod.parse(raw, registry, label), registry, text
+
+
+def check_key(provider: str, api_key: str, model: str) -> str:
+    """A one-line result of testing a key against its provider's Models API. Raises AnalysisError on failure."""
+    if not api_key:
+        raise AnalysisError("No key to test. Paste one in the box, or store one first.")
+    if provider == "anthropic":
+        from finlit_pro.research.claude import check_access
+    else:
+        from finlit_pro.research.openai_provider import check_access
+    return check_access(api_key, model)

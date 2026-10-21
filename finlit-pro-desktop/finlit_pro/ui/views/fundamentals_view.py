@@ -7,7 +7,7 @@ from PySide6.QtCore import QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QHBoxLayout, QPushButton, QTabWidget, QVBoxLayout, QWidget
 
-from finlit_pro import validation
+from finlit_pro import glossary, validation
 from finlit_pro.fmt import money, num, pct
 from finlit_pro.ui import theme
 from finlit_pro.ui.charts import Chart, compact_formatter, percent_formatter
@@ -150,6 +150,9 @@ class FundamentalsView(QWidget):
             self.chart.message("No SEC financial statements for this security.")
             return
         self.notice.clear()
+        if f.notes:
+            # Caveats such as a derived figure, a share count fallback or XBRL lagging the latest filing.
+            self.notice.show_message("Data notes: " + " ".join(dict.fromkeys(f.notes)), "warn")
         self.setup.hide()
         r = ws.ratios
         self.header.setText(f.name)
@@ -240,4 +243,6 @@ class FundamentalsView(QWidget):
             self.z_value.setText(num(z))
             self.z_value.setStyleSheet(f"color: {theme.UP if 'Safe' in zone else (theme.DOWN if 'Distress' in zone else theme.WARN)};")
             self.z_zone.setText(zone)
+            self.z_value.setToolTip(glossary.tip("Altman Z-score"))
+            self.z_zone.setToolTip(glossary.tip("Altman Z-score"))
         self.source.set_sources(f.sources)

@@ -8,7 +8,7 @@ import pyqtgraph as pg
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QProgressBar, QPushButton, QVBoxLayout, QWidget
 
-from finlit_pro import framing
+from finlit_pro import framing, glossary
 from finlit_pro.fmt import num, pct
 from finlit_pro.model import registry
 from finlit_pro.model.evaluation import Evaluation
@@ -168,6 +168,16 @@ class PredictionView(QWidget):
         if fc is None or ws.history is None:
             return
         self.notice.clear()
+        model = registry.MODELS.get(f"finlit-v{fc.version}") if fc.model == "FinLit AI Predictor" else None
+        bullish = model is not None and fc.verdict in model.bullish
+        bearish = model is not None and fc.verdict in model.bearish
+        if (bullish and fc.expected_return < 0) or (bearish and fc.expected_return > 0):
+            self.notice.show_message(
+                f"The verdict ({fc.verdict}) comes from the six technical signals, while the composite target "
+                f"({pct(fc.expected_return, 1, True)}) comes from the price projections. Here they point in different directions, "
+                "so neither is a strong signal on its own.",
+                "warn",
+            )
         p = fc.price
         self.kpis.kpi("verdict").set(fc.verdict, f"{fc.model} v{fc.version}", VERDICT_TONE.get(fc.verdict))
         self.kpis.kpi("target").set(num(fc.target), f"{fc.horizon_days} trading days")
@@ -186,7 +196,13 @@ class PredictionView(QWidget):
         self.components.fit_height()
         self.quantiles.fill([[f"P{q}", num(v), pct(v / p - 1, 1, True)] for q, v in fc.quantiles.items()], [[None, None, tone(v / p - 1)] for v in fc.quantiles.values()])
         self.quantiles.fit_height()
-        self.signals.fill([[s.name, s.reading, f"{s.score:+d}"] for s in fc.signals], [[None, None, tone(s.score)] for s in fc.signals], align_right_from=2, stretch_col=1)
+        self.signals.fill(
+            [[s.name, s.reading, f"{s.score:+d}"] for s in fc.signals],
+            [[None, None, tone(s.score)] for s in fc.signals],
+            align_right_from=2,
+            stretch_col=1,
+            tips=[["", glossary.explain_text(s.reading), glossary.tip("Signal score", "Each signal scores -2 (bearish) to +2 (bullish).")] for s in fc.signals],
+        )
         self.signals.fit_height()
         diag = []
         for k, v in fc.diagnostics.items():

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
 
 from PySide6.QtWidgets import (
@@ -10,6 +11,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFormLayout,
+    QHBoxLayout,
     QLineEdit,
     QMessageBox,
     QPushButton,
@@ -18,37 +20,68 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from finlit_pro import credentials, validation
+from finlit_pro import credentials, research, validation
 from finlit_pro.config import CLAUDE_MODELS, OPENAI_MODELS, Settings, settings_path
 from finlit_pro.data import http
-from finlit_pro.ui.widgets import Notice, label
+from finlit_pro.ui import theme
+from finlit_pro.ui.widgets import Notice, install_tooltips, label
+from finlit_pro.ui.workers import Job, Runner
 
 PROVIDERS = [("auto", "Automatic: Claude, then OpenAI, then rules engine"), ("claude", "Claude (Anthropic)"), ("openai", "OpenAI"), ("rules", "Rules engine (no API key)")]
 
 
 class KeyRow(QWidget):
-    """Write-only key entry: shows whether a key is stored, never the key."""
+    """Write-only key entry: shows whether a key is stored, never the key, and can test it."""
 
-    def __init__(self, name: str, placeholder: str) -> None:
+    def __init__(self, name: str, placeholder: str, model: Callable[[], str]) -> None:
         super().__init__()
         self.name = name
+        self.model = model
+        self.runner = Runner()
+        self._test_id = 0
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(2)
+        row = QHBoxLayout()
         self.edit = QLineEdit()
         self.edit.setEchoMode(QLineEdit.Password)
         self.edit.setPlaceholderText(placeholder)
+        self.test_btn = QPushButton("Test key")
+        self.test_btn.setToolTip("Checks the key typed here (or the stored one) and the selected model with the provider's Models API. No tokens are used.")
+        self.test_btn.clicked.connect(self.test)
+        row.addWidget(self.edit, 1)
+        row.addWidget(self.test_btn)
         self.remove = QCheckBox("Remove the stored key")
-        self.status = label("", "Small")
-        lay.addWidget(self.edit)
+        self.status = label("", "Small", wrap=True)
+        self.result = label("", "Small", wrap=True)
+        lay.addLayout(row)
         lay.addWidget(self.remove)
         lay.addWidget(self.status)
+        lay.addWidget(self.result)
         self.refresh()
 
     def refresh(self) -> None:
         where = credentials.source(self.name)
         self.status.setText(f"Current key: {where}." + (" Leave blank to keep it." if where != "not set" else ""))
         self.remove.setVisible(where == "credential store")
+
+    def test(self) -> None:
+        typed = self.edit.text().strip()
+        try:
+            key = validation.api_key(typed, "Anthropic" if self.name == "anthropic" else "OpenAI") if typed else credentials.get(self.name)
+        except validation.ValidationError as exc:
+            self._show(str(exc), False)
+            return
+        self._test_id += 1
+        self.test_btn.setEnabled(False)
+        self.result.setStyleSheet(f"color: {theme.MUTED};")
+        self.result.setText("Testing...")
+        self.runner.start(Job(self._test_id, research.check_key, self.name, key, self.model()), lambda _r, msg: self._show(msg, True), lambda _r, msg: self._show(msg, False))
+
+    def _show(self, message: str, ok: bool) -> None:
+        self.test_btn.setEnabled(True)
+        self.result.setStyleSheet(f"color: {theme.UP if ok else theme.DOWN};")
+        self.result.setText(message)
 
 
 class SettingsDialog(QDialog):
@@ -88,23 +121,23 @@ class SettingsDialog(QDialog):
             self.provider.addItem(name, key)
         self.provider.setCurrentIndex(next((i for i, (k, _) in enumerate(PROVIDERS) if k == settings.ai_provider), 0))
         form.addRow("Engine", self.provider)
-        self.claude_key = KeyRow("anthropic", "Paste a new Anthropic key to store it")
-        form.addRow("Anthropic API key", self.claude_key)
         self.claude_model = QComboBox()
         self.claude_model.setEditable(True)
         self.claude_model.addItems(CLAUDE_MODELS)
         self.claude_model.setCurrentText(settings.anthropic_model)
+        self.claude_key = KeyRow("anthropic", "Paste a new Anthropic key to store it", lambda: self.claude_model.currentText().strip() or CLAUDE_MODELS[0])
+        form.addRow("Anthropic API key", self.claude_key)
         form.addRow("Claude model", self.claude_model)
         self.effort = QComboBox()
         self.effort.addItems(["low", "medium", "high", "xhigh"])
         self.effort.setCurrentText(settings.anthropic_effort)
         form.addRow("Claude effort", self.effort)
-        self.openai_key = KeyRow("openai", "Paste a new OpenAI key to store it")
-        form.addRow("OpenAI API key", self.openai_key)
         self.openai_model = QComboBox()
         self.openai_model.setEditable(True)
         self.openai_model.addItems(OPENAI_MODELS)
         self.openai_model.setCurrentText(settings.openai_model)
+        self.openai_key = KeyRow("openai", "Paste a new OpenAI key to store it", lambda: self.openai_model.currentText().strip() or OPENAI_MODELS[0])
+        form.addRow("OpenAI API key", self.openai_key)
         form.addRow("OpenAI model", self.openai_model)
         self.chars = QLineEdit(str(settings.filing_section_chars))
         form.addRow("Filing excerpt length (characters per section)", self.chars)
@@ -116,6 +149,7 @@ class SettingsDialog(QDialog):
         buttons.accepted.connect(self._save)
         buttons.rejected.connect(self.reject)
         root.addWidget(buttons)
+        install_tooltips(self)
 
     def _clear_cache(self) -> None:
         n = http.cache().clear()

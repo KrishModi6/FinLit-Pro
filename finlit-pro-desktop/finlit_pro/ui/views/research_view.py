@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import QPushButton, QTextBrowser, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from finlit_pro import framing
 from finlit_pro.research.note import Note
 from finlit_pro.research.render import to_html
 from finlit_pro.research.sources import SourceRegistry
 from finlit_pro.ui import theme
-from finlit_pro.ui.widgets import Notice, hrow, label
+from finlit_pro.ui.widgets import Notice, TipBrowser, hrow, label
 
 
 class ResearchView(QWidget):
@@ -43,7 +43,7 @@ class ResearchView(QWidget):
             root.addWidget(n)
         self.notice = Notice()
         root.addWidget(self.notice)
-        self.view = QTextBrowser()
+        self.view = TipBrowser()
         self.view.setOpenExternalLinks(True)
         self.view.setPlaceholderText(
             "Generate a research note from the loaded prices, SEC financial statements, the latest 10-K and 10-Q text, "

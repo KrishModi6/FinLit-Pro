@@ -82,6 +82,7 @@ class MonteCarloView(QWidget):
         for name, days in HORIZONS:
             b = QPushButton(name)
             b.setFixedWidth(42)
+            b.setToolTip(f"Set the horizon to {days} trading days.")
             b.clicked.connect(lambda _=False, d=days: self.horizon.set_text(str(d)))
             quick.append(b)
         self.run_btn = QPushButton("Run simulation")

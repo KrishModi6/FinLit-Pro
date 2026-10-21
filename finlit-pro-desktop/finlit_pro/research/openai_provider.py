@@ -56,3 +56,28 @@ class OpenAIEngine:
         if progress:
             progress(len(text))
         return text
+
+
+def check_access(api_key: str, model: str) -> str:
+    """Confirm the key works and can see `model` (or the fallback), through the free Models API."""
+    client = openai.OpenAI(api_key=api_key, max_retries=1, timeout=20)
+    try:
+        for candidate in (model, FALLBACK_MODEL):
+            try:
+                found = client.models.retrieve(candidate)
+            except openai.NotFoundError:
+                continue
+            if candidate == model:
+                return f"Key works. {found.id} is available."
+            return f"Key works, but {model} is not available to it; the note will use {found.id}."
+    except openai.AuthenticationError:
+        raise AnalysisError("OpenAI rejected this key. Check it was copied in full (it starts with sk-).") from None
+    except openai.PermissionDeniedError:
+        raise AnalysisError(f"The key works but cannot use {model}.") from None
+    except openai.RateLimitError:
+        raise AnalysisError("The key works but is rate limited or out of credit.") from None
+    except openai.APIStatusError as exc:
+        raise AnalysisError(f"OpenAI returned an error ({exc.status_code}).") from None
+    except openai.APIConnectionError:
+        raise AnalysisError("Could not reach OpenAI. Check the internet connection.") from None
+    raise AnalysisError(f"The key works, but neither {model} nor {FALLBACK_MODEL} is available to it. Choose another model.")

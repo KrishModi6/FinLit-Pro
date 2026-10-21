@@ -43,23 +43,35 @@ class Job(QRunnable):
         except (TypeError, ValueError):
             params = {}
         if "progress" in params:
-            self.kwargs.setdefault("progress", lambda done, total=0: self.signals.progress.emit(self.request_id, int(done), int(total)))
+            self.kwargs.setdefault("progress", lambda done, total=0: self._emit(self.signals.progress, self.request_id, int(done), int(total)))
         if "cancelled" in params:
             self.kwargs.setdefault("cancelled", self.cancel_event.is_set)
 
     def cancel(self) -> None:
         self.cancel_event.set()
 
+    def _emit(self, signal, *args) -> None:
+        """Emit unless the window has already gone.
+
+        First Version: a job still running when the window closed (an evaluation, say)
+        emitted on a deleted signal object and printed a RuntimeError traceback at exit.
+        Current Version: the job notices, marks itself cancelled and stops quietly.
+        """
+        try:
+            signal.emit(*args)
+        except RuntimeError:
+            self.cancel_event.set()
+
     def run(self) -> None:
         try:
             result = self.fn(*self.args, **self.kwargs)
         except EXPECTED as exc:
-            self.signals.failed.emit(self.request_id, str(exc))
+            self._emit(self.signals.failed, self.request_id, str(exc))
         except Exception as exc:  # noqa: BLE001 - last line of defence for the UI
             traceback.print_exc()
-            self.signals.failed.emit(self.request_id, f"Unexpected error ({exc.__class__.__name__}: {exc}).")
+            self._emit(self.signals.failed, self.request_id, f"Unexpected error ({exc.__class__.__name__}: {exc}).")
         else:
-            self.signals.done.emit(self.request_id, result)
+            self._emit(self.signals.done, self.request_id, result)
 
 
 class Runner:
@@ -84,6 +96,10 @@ class Runner:
         job.signals.failed.connect(finish)
         self.pool.start(job)
         return job
+
+    def cancel_all(self) -> None:
+        for job in list(self._live):
+            job.cancel()
 
     def wait(self, ms: int = 30000) -> bool:
         return self.pool.waitForDone(ms)

@@ -12,6 +12,14 @@ class DataError(RuntimeError):
     """A data problem with a message fit to show the user as is."""
 
 
+class NotFoundError(DataError):
+    """The provider answered that the symbol or document does not exist. Asking another provider will not help."""
+
+
+class NetworkError(DataError):
+    """The provider could not be reached or did not answer in time. Its other hosts are likely unreachable too."""
+
+
 # How a dataset was obtained.
 LIVE, CACHE, STALE, DEMO, IMPORT = "live", "cache", "stale", "demo", "import"
 STATUS_LABEL = {
@@ -147,6 +155,8 @@ class Fundamentals:
     shares_date: str | None = None
     split_notes: list[str] = field(default_factory=list)
     splits_applied: bool = False
+    # Caveats about this company's data shown with the figures, e.g. XBRL lagging the latest filing.
+    notes: list[str] = field(default_factory=list)
 
     KEY_FORMS = ("10-K", "10-K/A", "10-Q", "10-Q/A", "8-K", "DEF 14A", "S-1", "S-3", "SC 13D", "SC 13G", "SC 13D/A", "SC 13G/A", "20-F", "6-K", "40-F")
 

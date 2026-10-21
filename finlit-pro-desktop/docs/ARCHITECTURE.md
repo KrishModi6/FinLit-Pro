@@ -97,6 +97,24 @@ decimals where a whole number is needed, zero and negatives where they make no s
 values, with a message that says what to type instead. Forms mark each bad field in red and show a
 summary above the form.
 
+## Definitions on hover
+
+`glossary.py` holds every term the app displays (more than 320): its name, a plain-language
+meaning, how to read it, and the labels it appears under. The shared widgets look labels up as they
+are created, so views need no tooltip code of their own:
+
+* `KpiStrip` and `Field` captions, table column headings and the first cell of each table row get
+  the definition of the label; the other cells in a row get the row's definition, so hovering a
+  number explains it. A view can add a note about the particular value (for example the filing a
+  figure came from), which is appended.
+* A KPI whose value is itself a term (a verdict such as STRONG SELL) explains that value.
+* `install_tooltips(window)` walks the finished window once and adds definitions to captions,
+  checkboxes, buttons, list choices and tabs that do not already have one.
+* The research note carries definitions as HTML `title` attributes, which `TipBrowser` shows.
+
+Unknown labels get no tooltip rather than a guess; ambiguous words such as "Price" or "Value" are
+deliberately left out. Help > Glossary (F1) shows every term with a search box.
+
 ## Settings and credentials
 
 `config.py` stores preferences (benchmark, ranges, watchlist, model choices, window layout) as JSON
@@ -104,7 +122,8 @@ in `%APPDATA%\FinLitPro\config\settings.json` and validates types on load. API k
 `credentials.py` stores them in the operating system's credential store through `keyring` (Windows
 Credential Manager), reads `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` first if set, and refuses to save
 a key at all when no secure store is available. The Settings dialog shows where a key comes from,
-never the key. The disk cache lives in `%LOCALAPPDATA%\FinLitPro\cache`. Setting `FINLIT_PRO_HOME`
+never the key, and **Test key** checks a key and the chosen model through the provider's Models API
+(`research.check_key`), which costs nothing. The disk cache lives in `%LOCALAPPDATA%\FinLitPro\cache`. Setting `FINLIT_PRO_HOME`
 moves all three folders (the tests and the self-test use this).
 
 ## Charts

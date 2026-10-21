@@ -5,10 +5,18 @@ from __future__ import annotations
 import html
 from datetime import datetime
 
+from finlit_pro import glossary
 from finlit_pro.research.note import Note
 from finlit_pro.research.sources import SourceRegistry
 
 TONE = {"Buy": "#1a7f37", "Accumulate": "#1a7f37", "Hold": "#9a6700", "Reduce": "#cf222e", "Sell": "#cf222e", "No recommendation": "#57606a"}
+RECOMMENDATION_TERM = {"Buy": "rec_buy", "Accumulate": "rec_accumulate", "Hold": "rec_hold", "Reduce": "rec_reduce", "Sell": "rec_sell", "No recommendation": "rec_none"}
+
+
+def _defined(text: str, key: str) -> str:
+    """Escaped text with its glossary definition as a hover title."""
+    title = glossary.plain(key)
+    return f'<span title="{html.escape(title)}">{html.escape(text)}</span>' if title else html.escape(text)
 
 
 def _cite(ids: list[str], reg: SourceRegistry) -> str:
@@ -19,7 +27,7 @@ def _cite(ids: list[str], reg: SourceRegistry) -> str:
             out.append(f'<a href="{html.escape(e.url)}" title="{html.escape(e.title)}">{sid}</a>')
         else:
             out.append(f'<span title="{html.escape(e.title if e else "unknown")}">{sid}</span>')
-    return f'<span class="cite">[{", ".join(out)}]</span>' if out else '<span class="warn">[unverified]</span>'
+    return f'<span class="cite">[{", ".join(out)}]</span>' if out else f'<span class="warn" title="{html.escape(glossary.plain("unverified"))}">[unverified]</span>'
 
 
 def to_html(note: Note, reg: SourceRegistry, symbol: str, colors: dict[str, str] | None = None) -> str:
@@ -39,38 +47,39 @@ def to_html(note: Note, reg: SourceRegistry, symbol: str, colors: dict[str, str]
         </style>""",
         f"<h2>Research note: {e(symbol)}</h2>",
         f'<p class="muted">{e(note.engine)} | generated {datetime.now():%Y-%m-%d %H:%M}</p>',
-        f'<p><b style="color:{TONE.get(note.recommendation, c["text"])}">{e(note.recommendation)}</b> | conviction {e(note.conviction)} | horizon {e(note.horizon)}</p>',
+        f'<p><b style="color:{TONE.get(note.recommendation, c["text"])}">{_defined(note.recommendation, RECOMMENDATION_TERM.get(note.recommendation, ""))}</b>'
+        f' | {_defined("conviction", "conviction")} {e(note.conviction)} | {_defined("horizon", "horizon_note")} {e(note.horizon)}</p>',
         f"<p>{e(note.summary)}</p>",
     ]
     if note.warnings:
         parts.append("".join(f'<p class="warn">{e(w)}</p>' for w in note.warnings))
 
-    parts.append("<h3>Facts</h3>")
+    parts.append(f"<h3>{_defined('Facts', 'facts')}</h3>")
     topics = list(dict.fromkeys(f.topic for f in note.facts))
     parts.append("<table>")
     for topic in topics:
         rows = [f for f in note.facts if f.topic == topic]
         for i, f in enumerate(rows):
             label = e(topic) if i == 0 else ""
-            mark = "" if f.verified else ' <span class="warn">unverified</span>'
+            mark = "" if f.verified else f' <span class="warn" title="{e(glossary.plain("unverified"))}">unverified</span>'
             parts.append(f'<tr><th width="150">{label}</th><td>{e(f.statement)} {_cite(f.sources, reg)}{mark}</td></tr>')
     parts.append("</table>")
 
-    parts.append("<h3>Interpretation</h3><table>")
+    parts.append(f"<h3>{_defined('Interpretation', 'interpretation')}</h3><table>")
     for i in note.interpretation:
-        parts.append(f'<tr><th width="70">{e(i.confidence)}</th><td>{e(i.statement)} {_cite(i.based_on, reg) if i.based_on else ""}</td></tr>')
+        parts.append(f'<tr><th width="70">{_defined(i.confidence, "confidence")}</th><td>{e(i.statement)} {_cite(i.based_on, reg) if i.based_on else ""}</td></tr>')
     parts.append("</table>")
 
     if note.risks:
-        parts.append("<h3>Risks</h3><ul>" + "".join(f"<li>{e(r.risk)} {_cite(r.sources, reg) if r.sources else ''}</li>" for r in note.risks) + "</ul>")
+        parts.append(f"<h3>{_defined('Risks', 'risks')}</h3><ul>" + "".join(f"<li>{e(r.risk)} {_cite(r.sources, reg) if r.sources else ''}</li>" for r in note.risks) + "</ul>")
     if note.uncertainties or note.data_gaps:
-        parts.append("<h3>Uncertainty and data gaps</h3><ul>")
+        parts.append(f"<h3>{_defined('Uncertainty and data gaps', 'uncertainties')}</h3><ul>")
         parts += [f"<li><b>{e(u.issue)}</b> {e(u.effect)}</li>" for u in note.uncertainties]
         parts += [f"<li>Data gap: {e(g)}</li>" for g in note.data_gaps]
         parts.append("</ul>")
 
     used = {sid for f in note.facts for sid in f.sources} | {sid for i in note.interpretation for sid in i.based_on} | {sid for r in note.risks for sid in r.sources}
-    parts.append("<h3>Sources</h3><table><tr><th>ID</th><th>Source</th><th>As of</th><th>Retrieved</th></tr>")
+    parts.append(f"<h3>{_defined('Sources', 'source_ids')}</h3><table><tr><th>ID</th><th>Source</th><th>As of</th><th>Retrieved</th></tr>")
     for s in reg.entries:
         if s.id not in used:
             continue

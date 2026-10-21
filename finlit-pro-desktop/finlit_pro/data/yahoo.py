@@ -146,13 +146,17 @@ def search(query: str, limit: int = 8) -> list[dict]:
     return out
 
 
-def news(symbol: str, limit: int = 10) -> list[NewsItem]:
-    fetched = _get(f"/v1/finance/search?q={urlquote(symbol)}&quotesCount=0&newsCount={limit}", ttl_s=900)
-    items = []
-    for raw in fetched.value.get("news") or []:
-        ts = raw.get("providerPublishTime")
-        if raw.get("title"):
-            items.append(NewsItem(raw["title"], raw.get("publisher") or "", datetime.fromtimestamp(ts) if isinstance(ts, (int, float)) else None, raw.get("link") or ""))
+def news(symbol: str, limit: int = 10, name: str | None = None) -> list[NewsItem]:
+    """Recent headlines. Yahoo's search finds none for symbols with a dash (BRK-B, BF-B), so the company name is tried next."""
+    items: list[NewsItem] = []
+    for query in dict.fromkeys(q for q in (symbol, name) if q):
+        fetched = _get(f"/v1/finance/search?q={urlquote(query)}&quotesCount=0&newsCount={limit}", ttl_s=900)
+        for raw in fetched.value.get("news") or []:
+            ts = raw.get("providerPublishTime")
+            if raw.get("title"):
+                items.append(NewsItem(raw["title"], raw.get("publisher") or "", datetime.fromtimestamp(ts) if isinstance(ts, (int, float)) else None, raw.get("link") or ""))
+        if items:
+            break
     return items
 
 

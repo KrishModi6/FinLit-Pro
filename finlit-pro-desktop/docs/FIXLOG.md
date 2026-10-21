@@ -176,3 +176,18 @@ Credential Manager), and any old key field is dropped.
 **First Version:** the pattern that finds "Item 7 - Management's Discussion" contained literal en and
 em dash characters, which are easy to break when the file is re-saved in another encoding.
 **Current Version:** they are written as `\u2013` and `\u2014` escapes.
+
+### 27. Closing the window during an evaluation printed a traceback
+**First Version:** a background job still running when the window closed (the walk-forward
+evaluation takes several seconds) emitted its progress on a signal object Qt had already deleted,
+which printed "RuntimeError: Signal source has been deleted" at exit.
+**Current Version:** jobs emit through `Job._emit`, which notices the window has gone, marks the job
+cancelled and stops quietly; closing the window also cancels every running job and waits up to three
+seconds for them to stop.
+
+### 28. A test that passed before the window was ready
+**First Version:** a test waited for `w.ws and w.ws.forecast and ...`, which evaluates to `None`
+while loading; pytest-qt treats a callback returning `None` as "condition met", so the test went on
+before the model had finished and failed for the wrong reason.
+**Current Version:** the condition is wrapped in `bool(...)`.
+

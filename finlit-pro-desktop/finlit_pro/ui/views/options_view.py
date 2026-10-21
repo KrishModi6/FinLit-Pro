@@ -9,7 +9,7 @@ import numpy as np
 from PySide6.QtCore import QDate, Qt, Signal
 from PySide6.QtWidgets import QCheckBox, QComboBox, QDateEdit, QGridLayout, QHBoxLayout, QPushButton, QVBoxLayout, QWidget
 
-from finlit_pro import framing, validation
+from finlit_pro import framing, glossary, validation
 from finlit_pro.analytics import montecarlo, options
 from finlit_pro.data.models import OptionChain, OptionQuote
 from finlit_pro.fmt import dollars, num, pct
@@ -310,6 +310,7 @@ class OptionsView(QWidget):
         self.res_frame.show()
         self.verdict.setText(f"{res.verdict} at {num(c.premium)}  |  {'Buy' if c.side == 'long' else 'Sell'} {contracts} {c.kind} {num(c.strike)} {c.expiry:%Y-%m-%d}")
         self.verdict.setStyleSheet(f"color: {VERDICT_TONE.get(res.verdict, theme.TEXT)};")
+        self.verdict.setToolTip(glossary.tip(res.verdict, res.verdict_reason))
         self.reason.setText(res.verdict_reason)
         rows, tones = [], []
         for s in res.scenarios:

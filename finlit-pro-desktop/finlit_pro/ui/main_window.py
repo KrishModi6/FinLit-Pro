@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from finlit_pro import APP_NAME, __version__, framing, pipeline, research, validation
+from finlit_pro import APP_NAME, __version__, framing, glossary, pipeline, research, validation
 from finlit_pro.analytics import montecarlo
 from finlit_pro.config import Settings, save_settings
 from finlit_pro.data import demo, filings, prices, sec, yahoo, yf_provider
@@ -36,6 +36,7 @@ from finlit_pro.data.models import STATUS_LABEL, DataError
 from finlit_pro.model import registry
 from finlit_pro.model.evaluation import walk_forward
 from finlit_pro.ui import report, theme
+from finlit_pro.ui.glossary_dialog import GlossaryDialog
 from finlit_pro.ui.settings_dialog import SettingsDialog
 from finlit_pro.ui.views.chart_view import ChartView
 from finlit_pro.ui.views.filings_view import FilingsView
@@ -46,7 +47,7 @@ from finlit_pro.ui.views.prediction_view import PredictionView
 from finlit_pro.ui.views.research_view import ResearchView
 from finlit_pro.ui.views.returns_view import ReturnsView
 from finlit_pro.ui.views.valuation_view import recompute
-from finlit_pro.ui.widgets import Notice, Table, label
+from finlit_pro.ui.widgets import Notice, Table, install_tooltips, label
 from finlit_pro.ui.workers import Job, Runner
 from finlit_pro.workspace import Workspace
 
@@ -115,9 +116,18 @@ class MainWindow(QMainWindow):
         self.fundamentals = FundamentalsView()
         self.filings = FilingsView()
         self.research = ResearchView()
-        for view, name in ((self.chart, "Chart"), (self.returns, "Returns and Risk"), (self.prediction, "Prediction Model"), (self.mc_view, "Monte Carlo"),
-                           (self.options, "Options"), (self.fundamentals, "Fundamentals"), (self.filings, "Filings"), (self.research, "Research Note")):
+        for view, name, about in (
+            (self.chart, "Chart", "Price history with moving averages, Bollinger Bands, volume, RSI and MACD. Drag to pan, scroll to zoom."),
+            (self.returns, "Returns and Risk", "Return, volatility, drawdown and risk statistics over the selected range, against a benchmark."),
+            (self.prediction, "Prediction Model", "The FinLit AI Predictor's forecast, its inputs and signals, and how it has performed out of sample on this stock."),
+            (self.mc_view, "Monte Carlo", "Thousands of simulated price paths under adjustable assumptions, with the spread of outcomes."),
+            (self.options, "Options", "The option chain, and for any contract its probabilities, Greeks and whether it is worth its price."),
+            (self.fundamentals, "Fundamentals", "Ten years of financial statements from SEC filings, key ratios, quality scores and a DCF valuation."),
+            (self.filings, "Filings", "The company's SEC filings, and the text of its latest annual and quarterly reports."),
+            (self.research, "Research Note", "A cited research note that separates facts from interpretation and ends in a recommendation."),
+        ):
             self.views.addTab(view, name)
+            self.views.setTabToolTip(self.views.count() - 1, about)
         central = QWidget()
         lay = QVBoxLayout(central)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -143,6 +153,7 @@ class MainWindow(QMainWindow):
         self.research.cancel_requested.connect(lambda: self._cancel("research"))
         self._update_engine_label()
         self.fundamentals.need_email(not settings.sec_contact_email)
+        install_tooltips(self)
         if settings.window_state:
             try:
                 self.restoreState(QByteArray.fromHex(settings.window_state.encode()))
@@ -287,8 +298,10 @@ class MainWindow(QMainWindow):
             act.triggered.connect(slot)
             analysis.addAction(act)
         help_menu = m.addMenu("&Help")
-        for text, slot in (("Data sources and limitations", self.show_data_help), ("About", self.about)):
+        for text, key, slot in (("Glossary", "F1", self.show_glossary), ("Data sources and limitations", None, self.show_data_help), ("About", None, self.about)):
             act = QAction(text, self)
+            if key:
+                act.setShortcut(QKeySequence(key))
             act.triggered.connect(slot)
             help_menu.addAction(act)
 
@@ -388,7 +401,9 @@ class MainWindow(QMainWindow):
         if ws.history:
             s = ws.history.source
             self.status_prices.setText(f"Prices: {s.name}, {STATUS_LABEL.get(s.status, s.status).lower()}, {s.retrieved_at:%H:%M}")
+            self.status_prices.setToolTip(glossary.tip(STATUS_LABEL.get(s.status, ""), f"Retrieved {s.retrieved_at:%Y-%m-%d %H:%M}; data as of {s.as_of or 'n/a'}."))
         self.status_sec.setText(f"SEC: {STATUS_LABEL.get(ws.fundamentals.status, '').lower()}" if ws.fundamentals else "SEC: not loaded")
+        self.status_sec.setToolTip(glossary.tip(STATUS_LABEL.get(ws.fundamentals.status, "")) if ws.fundamentals else (ws.fundamentals_error or ""))
 
     def _open_source(self, row: int, _col: int) -> None:
         if 0 <= row < len(self._source_urls) and self._source_urls[row]:
@@ -472,8 +487,6 @@ class MainWindow(QMainWindow):
         else:
             self.ws.fundamentals_error = "Set the SEC contact email (Fundamentals view or Settings > Data) to load filings."
             self.fundamentals.need_email(True)
-        if not demo.is_demo(sym):
-            self.runner.start(Job(rid, yahoo.news, sym), self._news_done, lambda *_: None)
 
     def _prices_failed(self, rid: int, message: str) -> None:
         if rid != self.ids["load"]:
@@ -488,13 +501,20 @@ class MainWindow(QMainWindow):
         ws = self.ws
         ws.history, ws.benchmark, ws.risk_free, ws.risk_free_source = loaded.history, loaded.benchmark, loaded.risk_free, loaded.risk_free_source
         h = ws.history
+        if h.symbol and h.symbol != ws.symbol:
+            # Yahoo knows the symbol under another spelling (BRK.B is BRK-B there); use it from here on.
+            ws.symbol = h.symbol
+            self.symbol.setText(h.symbol)
+        self._check_fund_applies()
+        if not ws.is_demo:
+            self.runner.start(Job(rid, yahoo.news, ws.symbol, 10, h.name), self._news_done, lambda *_: None)
         ch = h.day_change
         color = theme.UP if (ch or 0) >= 0 else theme.DOWN
         self.quote.setText(f"<span style='color:{theme.MUTED}'>{h.symbol}</span>  {h.price:,.2f} {h.currency}  <span style='color:{color}'>{(h.price - h.previous_close):+,.2f}  {ch:+.2%}</span>" if ch is not None else f"{h.symbol} {h.price:,.2f}")
         self.setWindowTitle(f"{APP_NAME} - {h.symbol} {h.name}")
         self._range_changed(self.range_box.currentText())
         self.options.render(ws)
-        if ws.fundamentals:
+        if ws.fundamentals and self._check_fund_applies():
             self._compute_fundamentals()
         self.run_model(*self.prediction.selection())
         self.run_mc(self.mc_view.config() or montecarlo.MCConfig())
@@ -505,13 +525,27 @@ class MainWindow(QMainWindow):
         if h.attempts:
             self.notice.show_message(f"Prices came from {h.source.name} after: " + " ".join(h.attempts), "warn")
 
+    def _check_fund_applies(self) -> bool:
+        """Drop SEC statements for funds, indices and the like, whichever of prices or SEC arrived first."""
+        ws = self.ws
+        reason = sec.not_a_company(ws.history.instrument_type, ws.history.name) if ws and ws.history else None
+        if not reason:
+            return True
+        ws.fundamentals, ws.fundamentals_error = None, reason
+        ws.ratios, ws.piotroski, ws.altman, ws.dcf_inputs, ws.dcf, ws.implied_growth = {}, None, None, None, None, None
+        self.fundamentals.render(ws)
+        self.filings.render(ws)
+        return False
+
     def _fund_done(self, rid: int, fund) -> None:
         if not self._current("load", rid):
             return
         self.ws.fundamentals = fund
         self.ws.fundamentals_error = None
         if self.ws.history:
-            self._compute_fundamentals()
+            if self._check_fund_applies():
+                self._compute_fundamentals()
+            self._refresh_sources()
         else:
             self.filings.render(self.ws)
 
@@ -711,6 +745,9 @@ class MainWindow(QMainWindow):
         except (DataError, validation.ValidationError, OSError) as exc:
             QMessageBox.warning(self, "Import failed", str(exc))
             return
+        except (ValueError, TypeError) as exc:  # a file the parser could not make sense of
+            QMessageBox.warning(self, "Import failed", f"That file could not be read as daily prices ({exc.__class__.__name__}). Save it as a CSV with Date and Close columns and import it again.")
+            return
         self.statusBar().showMessage(f"Imported {len(hist.bars):,} rows for {hist.symbol}. They are used when online providers fail.")
 
     def export_report(self, path: str | None = None) -> str | None:
@@ -753,6 +790,9 @@ class MainWindow(QMainWindow):
             if self.ws and (old.sec_contact_email != self.settings.sec_contact_email or old.benchmark != self.settings.benchmark):
                 self.load(self.ws.symbol)
 
+    def show_glossary(self, term: str = "") -> None:
+        GlossaryDialog(self, term if isinstance(term, str) else "").exec()
+
     def show_data_help(self) -> None:
         QMessageBox.information(
             self,
@@ -771,6 +811,8 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt naming
         for job in self.jobs.values():
             job.cancel()
+        self.runner.cancel_all()
+        self.runner.wait(3000)  # long jobs check for cancellation between steps
         self.settings.window_state = bytes(self.saveState().toHex()).decode()
         save_settings(self.settings)
         super().closeEvent(event)

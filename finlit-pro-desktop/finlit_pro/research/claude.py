@@ -74,3 +74,24 @@ class ClaudeEngine:
         if not text:
             raise AnalysisError("The model returned no analysis.")
         return text
+
+
+def check_access(api_key: str, model: str) -> str:
+    """Confirm the key works and can use `model`, through the free Models API (no tokens are spent)."""
+    client = anthropic.Anthropic(api_key=api_key, max_retries=1, timeout=20)
+    try:
+        info = client.models.retrieve(model)
+    except anthropic.AuthenticationError:
+        raise AnalysisError("Anthropic rejected this key. Check it was copied in full (it starts with sk-ant-).") from None
+    except anthropic.PermissionDeniedError:
+        raise AnalysisError(f"The key works but cannot use {model}. Choose another Claude model.") from None
+    except anthropic.NotFoundError:
+        raise AnalysisError(f"The key works, but Anthropic does not recognise the model {model}. Choose another Claude model.") from None
+    except anthropic.RateLimitError:
+        raise AnalysisError("The key works but is being rate limited. Try again in a minute.") from None
+    except anthropic.APIStatusError as exc:
+        raise AnalysisError(f"Anthropic returned an error ({exc.status_code}). Try again shortly.") from None
+    except anthropic.APIConnectionError:
+        raise AnalysisError("Could not reach Anthropic. Check the internet connection.") from None
+    name = getattr(info, "display_name", "") or model
+    return f"Key works. {name} ({info.id}) is available."

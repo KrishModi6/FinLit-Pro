@@ -33,10 +33,14 @@ class Workspace:
     dcf: DCFResult | None = None
     implied_growth: float | None = None
     forecast: Forecast | None = None
+    forecast_error: str | None = None
     evaluation: Evaluation | None = None
+    evaluation_error: str | None = None
     mc: MCResult | None = None
+    mc_error: str | None = None
     calibration: Calibration | None = None
     risk: RiskReport | None = None
+    risk_error: str | None = None
     filing_texts: list[FilingText] = field(default_factory=list)
     filing_problems: list[str] = field(default_factory=list)
     news: list[NewsItem] = field(default_factory=list)

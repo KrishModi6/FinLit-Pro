@@ -30,6 +30,16 @@ fact. Every dataset shows where it came from, when it was retrieved and what dat
 | **Filings** | The company's filing index (10-K, 10-Q, 8-K, proxy, ownership; insider Form 4 count) with links, and the Business, Risk Factors and MD&A text extracted from the latest 10-K and 10-Q |
 | **Research Note** | A note that separates **facts** (each citing source IDs) from **interpretation** (each with a confidence), lists risks, uncertainties and data gaps, and ends in a recommendation. Written by Claude or OpenAI with your key, or by a transparent rules engine without one |
 
+**Hover over anything to see what it means.** Every caption, ratio, table row and value, column
+heading, verdict, chart setting and choice in a list carries a plain-language definition and how to
+read it: what bullish and bearish mean, what a Sharpe ratio of 0.9 says, why a P/E of 38 is high,
+what delta is. **Help > Glossary** (F1) lists all 320+ terms with a search box, and the research note
+shows definitions when you hover over its recommendation, conviction and confidence levels.
+
+| Hovering a signal reading explains MACD and bullish | Hovering a ratio explains it and how to read it |
+| --- | --- |
+| ![Hover on a signal](docs/screenshots/hover_signal.png) | ![Hover on P/E](docs/screenshots/hover_pe.png) |
+
 Around the views: ticker search by company name, a watchlist, date range presets (1M to Max) and
 custom dates, a **Data sources** panel with each source's status, as-of date, retrieval time and
 link, a provider log that shows every fallback, an HTML report export, CSV import and export, and a
@@ -83,9 +93,11 @@ Open **File > Settings** (Ctrl+,).
   with a contact email. It is not an account; it is sent only to sec.gov. The Fundamentals view
   asks for it the first time. Prices, the model, Monte Carlo and options work without it.
 * **Analysis engine** (Analysis tab, optional). Paste an Anthropic or OpenAI key to have the
-  research note written by a language model that also reads the filing text. Keys are stored in
-  **Windows Credential Manager**, never in a file; `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`
-  environment variables take precedence. Without a key the rules engine writes the note.
+  research note written by a language model that also reads the filing text. Press **Test key** to
+  check the key and the chosen model straight away (it uses the provider's free Models API, so
+  nothing is billed). Keys are stored in **Windows Credential Manager**, never in a file;
+  `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` environment variables take precedence. Without a key the
+  rules engine writes the note.
 
 | Engine | Default model | Notes |
 | --- | --- | --- |
@@ -188,7 +200,7 @@ $env:QT_QPA_PLATFORM = "offscreen"; .venv\Scripts\python -m pytest -q
 .venv\Scripts\ruff check .
 ```
 
-158 tests, about two minutes, no network and no API keys needed (providers are replaced by fakes).
+190 tests, about two and a half minutes, no network and no API keys needed (providers are replaced by fakes).
 They cover: input validation; indicators; the model (v1.0 against a transcription of the original,
 v1.1 differences, the integration point); the walk-forward evaluation (point in time, metrics by
 hand); Monte Carlo (including a regression test for the double Ito correction) and calibration;
@@ -197,8 +209,10 @@ probabilities against simulation, verdicts); risk and valuation; the HTTP layer 
 fallback, rate limiting, error messages); the price provider chain and CSV import; SEC extraction
 on hand-built filings (tag changes, restatements, TTM, debt, share classes, splits, provenance);
 filing text extraction; the research brief, citation checks, rules engine, and the Claude and
-OpenAI engines against fake clients; credential storage; and the real window driven offscreen on
-DEMO. CI runs them on Windows and Linux.
+OpenAI engines against fake clients; credential storage and the key test; the glossary (every
+term defined, labels resolving to the right term, and every row name in every table carrying its
+definition in the real window); and the real window driven offscreen on DEMO. CI runs them on
+Windows and Linux.
 
 ## Project structure
 
@@ -207,12 +221,13 @@ finlit_pro/
   config.py, credentials.py   Settings (no secrets) and keys in the OS credential store
   validation.py               Every input check, with the messages shown
   framing.py, fmt.py          How outputs are described; number formatting
+  glossary.py                 Every term's definition and how to read it (the hover text)
   workspace.py, pipeline.py   Everything for one ticker; loading it without a window
   data/                       http, prices (provider chain), yahoo, yf_provider, sec, filings, demo, models
   model/                      interface (integration point), finlit_predictor, registry, evaluation
   analytics/                  indicators, montecarlo, risk, valuation, options
   research/                   sources, brief, prompt, note, claude, openai_provider, rules, render
-  ui/                         app, main_window, settings_dialog, report, theme, widgets, workers, views/
+  ui/                         app, main_window, settings_dialog, glossary_dialog, report, theme, widgets, workers, views/
   selftest.py                 --self-test
 tests/                        pytest suite
 packaging/                    PyInstaller spec and launcher

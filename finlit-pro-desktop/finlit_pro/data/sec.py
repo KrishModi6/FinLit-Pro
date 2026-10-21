@@ -477,3 +477,21 @@ def fundamentals(symbol: str, email: str, force: bool = False) -> Fundamentals:
         ttm_refs=ex.ttm_refs,
         shares_date=ex.shares_date,
     )
+
+
+FUND_TYPES = ("ETF", "MUTUALFUND", "MONEYMARKET", "INDEX", "CRYPTOCURRENCY", "CURRENCY", "FUTURE")
+
+
+def not_a_company(instrument_type: str | None, name: str = "") -> str | None:
+    """A friendly reason SEC fundamentals do not apply, when Yahoo says the symbol is a fund, index or similar.
+
+    Grantor trusts such as gold and bitcoin ETFs do file 10-Ks with XBRL, but their 'net income' is the
+    change in value of what they hold, so statement ratios would be nonsense.
+    """
+    kind = (instrument_type or "").upper()
+    if kind not in FUND_TYPES:
+        return None
+    label = {"ETF": "an exchange-traded fund", "MUTUALFUND": "a mutual fund", "MONEYMARKET": "a money market fund", "INDEX": "an index",
+             "CRYPTOCURRENCY": "a cryptocurrency", "CURRENCY": "a currency", "FUTURE": "a futures contract"}[kind]
+    who = name or "This symbol"
+    return f"{who} is {label}, not an operating company, so company financial statements do not apply. Price, model, Monte Carlo and options views still work."

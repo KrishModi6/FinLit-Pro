@@ -96,7 +96,8 @@ def build(ws: Workspace) -> tuple[str, SourceRegistry]:
     else:
         s_facts = reg.dataset(f.sources[0]) if f.sources else ""
         lines.append(f"{f.name}, CIK {f.cik}, {f.sic_description or 'industry n/a'}, fiscal year end {f.fiscal_year_end or 'n/a'}, latest balance sheet {f.latest_period}{_tags([s_facts])}")
-        lines += f.split_notes
+        # Caveats about this company's data travel with the figures, tagged like every other line.
+        lines += [f"{n}{_tags([s_facts])}" for n in (*f.split_notes, *getattr(f, "notes", []))]
         for end, row in f.annual.tail(6).iterrows():
             ids = [s_facts]
             for key, _, _ in ROW_FIELDS:

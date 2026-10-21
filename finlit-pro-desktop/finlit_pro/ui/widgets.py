@@ -1,14 +1,21 @@
-"""Reusable widgets: KPI strips, notices, validated fields, tables, source lines."""
+"""Reusable widgets: KPI strips, notices, validated fields, tables, source lines.
+
+Every caption, table row, column heading and verdict these widgets show looks
+itself up in the glossary, so hovering over it explains what it means. Views
+add a note about the specific number by passing `tip`.
+"""
 
 from __future__ import annotations
 
 import html
 
 import numpy as np
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
+    QAbstractButton,
     QAbstractItemView,
+    QComboBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -18,10 +25,14 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
+    QTextBrowser,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
 
+from finlit_pro import glossary
 from finlit_pro.data.models import STATUS_LABEL, Source
 from finlit_pro.ui import theme
 
@@ -59,13 +70,17 @@ class Kpi(QWidget):
         lay.addWidget(self.caption)
         lay.addWidget(self.value)
         lay.addWidget(self.sub)
-        if tip:
-            self.setToolTip(tip)
+        text = glossary.tip(caption, tip)
+        if text:
+            self.setToolTip(text)
 
     def set(self, value: str, sub: str = "", tone_name: str | None = None) -> None:
         self.value.setText(value)
         self.value.setStyleSheet(f"color: {TONES.get(tone_name, theme.TEXT)};")
         self.sub.setText(sub)
+        # A value that is itself a term (a verdict such as STRONG SELL) explains itself.
+        term = glossary.lookup(value) if value and not any(ch.isdigit() for ch in value) else None
+        self.value.setToolTip(glossary.tip_for(term) if term else "")
 
 
 class KpiStrip(QFrame):
@@ -158,22 +173,50 @@ class Table(QTableWidget):
         self.setColumnCount(len(headers))
         self.setHorizontalHeaderLabels(headers)
         self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self._header_tips()
+
+    def _header_tips(self) -> None:
+        for j in range(self.columnCount()):
+            head = self.horizontalHeaderItem(j)
+            if head is not None and not head.toolTip():
+                head.setToolTip(glossary.tip(head.text()))
+
+    @staticmethod
+    def _cell_tip(text: str, column: int) -> str:
+        """The first column names the row (a metric, a test, a component); other cells explain only exact terms."""
+        if not text or (column > 0 and (len(text) > 40 or any(ch.isdigit() for ch in text))):
+            return ""
+        return glossary.tip(text)
 
     def fill(self, rows: list[list], tones: list[list[str | None]] | None = None, align_right_from: int = 1, stretch_col: int | None = None, tips: list[list[str]] | None = None) -> None:
         self.setRowCount(len(rows))
+        self._header_tips()
         for j in range(self.columnCount()):
             head = self.horizontalHeaderItem(j)
             if head is not None:
                 head.setTextAlignment((Qt.AlignRight if j >= align_right_from else Qt.AlignLeft) | Qt.AlignVCenter)
         for i, row in enumerate(rows):
+            # A row named after a term (a metric, a test, a statement line) lends its definition to every
+            # value in the row, so hovering a number explains it too.
+            row_label = "" if not row or row[0] is None else str(row[0])
+            row_term = glossary.lookup(row_label)
             for j, value in enumerate(row):
-                item = QTableWidgetItem("" if value is None else str(value))
+                text = "" if value is None else str(value)
+                item = QTableWidgetItem(text)
                 if j >= align_right_from:
                     item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 if tones and tones[i][j]:
                     item.setForeground(QColor(TONES.get(tones[i][j], theme.TEXT)))
-                if tips and tips[i][j]:
-                    item.setToolTip(tips[i][j])
+                explicit = tips[i][j] if tips and j < len(tips[i]) else ""
+                if j == 0:
+                    tip = glossary.tip(text, explicit) if explicit else self._cell_tip(text, 0)
+                else:
+                    tip = self._cell_tip(text, j) if not explicit else ""
+                    if not tip and row_term is not None:
+                        tip = glossary.tip_for(row_term, explicit)
+                    tip = tip or explicit
+                if tip:
+                    item.setToolTip(tip)
                 self.setItem(i, j, item)
         self.resizeColumnsToContents()
         header = self.horizontalHeader()
@@ -203,9 +246,10 @@ class Field(QWidget):
         self.title = label(title, "Small")
         self.edit = QLineEdit(value)
         self.edit.setPlaceholderText(placeholder)
-        if tip:
-            self.edit.setToolTip(tip)
-            self.title.setToolTip(tip)
+        text = glossary.tip(title, tip)
+        if text:
+            self.edit.setToolTip(text)
+            self.title.setToolTip(text)
         if width:
             self.edit.setFixedWidth(width)
         self.error = label("", wrap=True)
@@ -283,3 +327,65 @@ def hrow(*widgets, stretch_last: bool = True, spacing: int = 8) -> QHBoxLayout:
     if stretch_last:
         row.addStretch(1)
     return row
+
+
+def install_tooltips(root: QWidget) -> int:
+    """Give every caption, checkbox, button, list choice and tab under `root` its glossary definition.
+
+    Widgets that already carry a tooltip keep it. Returns how many tooltips were added.
+    """
+    added = 0
+
+    def put(widget, text: str) -> None:
+        nonlocal added
+        if not widget.toolTip():
+            tip = glossary.tip(text)
+            if tip:
+                widget.setToolTip(tip)
+                added += 1
+
+    for w in root.findChildren(QLabel):
+        if w.textFormat() != Qt.RichText and w.objectName() not in ("Kpi",):
+            put(w, w.text())
+    for w in root.findChildren(QAbstractButton):
+        put(w, w.text())
+        if not w.toolTip() and w.text() in glossary.ACTIONS:
+            w.setToolTip(glossary.ACTIONS[w.text()])
+            added += 1
+    for box in root.findChildren(QComboBox):
+        for i in range(box.count()):
+            if not box.itemData(i, Qt.ToolTipRole):
+                tip = glossary.tip(box.itemText(i))
+                if tip:
+                    box.setItemData(i, tip, Qt.ToolTipRole)
+                    added += 1
+        if not box.toolTip() and box.count():
+            box.currentIndexChanged.connect(lambda _i, b=box: b.setToolTip(b.itemData(b.currentIndex(), Qt.ToolTipRole) or ""))
+            box.setToolTip(box.itemData(box.currentIndex(), Qt.ToolTipRole) or "")
+    for tabs in root.findChildren(QTabWidget):
+        for i in range(tabs.count()):
+            if not tabs.tabToolTip(i):
+                tip = glossary.tip(tabs.tabText(i))
+                if tip:
+                    tabs.setTabToolTip(i, tip)
+                    added += 1
+    return added
+
+
+class TipBrowser(QTextBrowser):
+    """A text browser that shows the hover title of the word under the mouse.
+
+    Qt reads an HTML `title` attribute into the text's format but only shows it
+    for anchors; the research note puts definitions on plain words too.
+    """
+
+    def viewportEvent(self, event) -> bool:  # noqa: N802 - Qt naming
+        if event.type() == QEvent.ToolTip:
+            text = self.cursorForPosition(event.pos()).charFormat().toolTip()
+            if text:
+                QToolTip.showText(event.globalPos(), f"<table width='380'><tr><td>{html.escape(text)}</td></tr></table>", self.viewport())
+            else:
+                QToolTip.hideText()
+                event.ignore()
+            return True
+        return super().viewportEvent(event)
