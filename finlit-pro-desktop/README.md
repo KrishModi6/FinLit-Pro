@@ -200,7 +200,7 @@ $env:QT_QPA_PLATFORM = "offscreen"; .venv\Scripts\python -m pytest -q
 .venv\Scripts\ruff check .
 ```
 
-190 tests, about two and a half minutes, no network and no API keys needed (providers are replaced by fakes).
+469 tests, about two and a half minutes, no network and no API keys needed (providers are replaced by fakes).
 They cover: input validation; indicators; the model (v1.0 against a transcription of the original,
 v1.1 differences, the integration point); the walk-forward evaluation (point in time, metrics by
 hand); Monte Carlo (including a regression test for the double Ito correction) and calibration;

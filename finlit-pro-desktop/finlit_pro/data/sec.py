@@ -32,6 +32,7 @@ from finlit_pro import __version__, validation
 from finlit_pro.data import demo
 from finlit_pro.data.http import get_json
 from finlit_pro.data.models import DataError, FactRef, Filing, Fundamentals, Source
+from finlit_pro.fmt import money
 from finlit_pro.validation import ValidationError
 
 TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
@@ -104,16 +105,62 @@ INSTANT_TAGS: dict[str, list[str]] = {
     "total_liabilities": ["Liabilities"],
     "equity": ["StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"],
     "retained_earnings": ["RetainedEarningsAccumulatedDeficit"],
+    # Debt comes in priority groups that `total_debt` combines. Each group gives one figure per date, from its
+    # first tag with a value there, so one tag of a group is never added to another.
     # First Version: only LongTermDebt counted as total long-term debt, so JPM's $460B, tagged
     # LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities, was missed and its debt
     # read as short-term borrowings alone. Current Version: that tag is a second choice. Both
     # include current maturities, so only short-term borrowings are added to them.
     "debt_long_total": ["LongTermDebt", "LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities"],
-    "debt_noncurrent": ["LongTermDebtNoncurrent", "LongTermDebtAndCapitalLeaseObligations"],
-    "debt_current_portion": ["LongTermDebtCurrent", "LongTermDebtAndCapitalLeaseObligationsCurrent"],
+    # First Version: only the LongTermDebt family of tags was read, so ORCL's $122B of LongTermNotesPayable (its
+    # 10-Qs: LongTermNotesAndLoans), DASH's $2.7B ConvertibleLongTermNotesPayable and PINS's $981M
+    # ConvertibleDebtNoncurrent were missed. Current Version: notes, convertible notes, long-term lines of credit and
+    # other long-term debt are later choices in the same groups. Finance lease liabilities are left out on purpose:
+    # they are leases, not borrowings, and companies that count them as debt already fold them into
+    # LongTermDebtAndCapitalLeaseObligations, so adding FinanceLeaseLiability* would count those leases twice.
+    "debt_noncurrent": [
+        "LongTermDebtNoncurrent", "LongTermDebtAndCapitalLeaseObligations", "LongTermNotesPayable", "LongTermNotesAndLoans",
+        "ConvertibleLongTermNotesPayable", "ConvertibleDebtNoncurrent", "LongTermLineOfCreditNoncurrent", "OtherLongTermDebtNoncurrent",
+    ],
+    # ORCL tags its current debt as DebtCurrent in its 10-K and as NotesPayableCurrent in its 10-Qs. NotesPayableCurrent
+    # is a current portion, not all current debt: CVNA tags it beside LongTermDebtCurrent and a drawn credit line.
+    "debt_current_portion": [
+        "LongTermDebtCurrent", "LongTermDebtAndCapitalLeaseObligationsCurrent", "NotesPayableCurrent", "ConvertibleNotesPayableCurrent", "ConvertibleDebtCurrent",
+    ],
+    # All current debt: the current portion of long-term debt plus short-term borrowings.
     "debt_current_all": ["DebtCurrent"],
-    "short_borrowings": ["ShortTermBorrowings", "CommercialPaper"],
+    "short_borrowings": ["ShortTermBorrowings", "CommercialPaper", "LinesOfCreditCurrent"],
+    # Long- and short-term debt as one figure, from the debt note. It is not always complete (WMT's leaves out
+    # short-term borrowings), so it is used only when no total or part above is tagged: GS tags only this, $437.9B.
+    "debt_combined_total": ["DebtLongtermAndShorttermCombinedAmount"],
+    # Debt tagged only by instrument (notes, convertible notes, unsecured or secured long-term debt, loans, a
+    # long-term credit line), current and non-current together. Instruments often appear in the notes as parts of
+    # a total, so these are used only when no total or part above is tagged: CME's only debt line is
+    # UnsecuredLongTermDebt, and O's largest is NotesPayable.
+    "debt_instrument_total": [
+        "NotesPayable", "ConvertibleNotesPayable", "ConvertibleDebt", "UnsecuredLongTermDebt", "SecuredLongTermDebt", "LongTermLoansPayable",
+        "LoansPayable", "LongTermLineOfCredit",
+    ],
 }
+
+DEBT_KEYS = ("debt_long_total", "debt_noncurrent", "debt_current_portion", "debt_current_all", "short_borrowings", "debt_combined_total", "debt_instrument_total")
+
+# Debt figures from the notes and the cash flow statement. They never enter the total, but one above zero in the
+# last ~15 months shows the company has debt, so a missing total is then n/a rather than zero. BRK and F tag their
+# borrowings only by segment, which SEC company facts leave out; BRK still tags its debt maturities and F its
+# proceeds from new long-term debt. Repayments and interest expense are left out: they also appear at companies
+# that have repaid their debt (HUBS) or pay only credit-line fees (TTD, DOCU, ROKU).
+DEBT_DISCLOSURE_TAGS = (
+    "DebtInstrumentCarryingAmount", "DebtInstrumentFaceAmount", "LongTermDebtFairValue", "DebtInstrumentFairValue",
+    "SeniorNotes", "SeniorLongTermNotes", "SecuredDebt", "UnsecuredDebt", "LineOfCredit",
+    "LongTermDebtMaturitiesRepaymentsOfPrincipalInNextTwelveMonths", "LongTermDebtMaturitiesRepaymentsOfPrincipalInYearTwo",
+    "LongTermDebtMaturitiesRepaymentsOfPrincipalInYearThree", "LongTermDebtMaturitiesRepaymentsOfPrincipalInYearFour",
+    "LongTermDebtMaturitiesRepaymentsOfPrincipalInYearFive", "LongTermDebtMaturitiesRepaymentsOfPrincipalAfterYearFive",
+    "ProceedsFromIssuanceOfLongTermDebt", "ProceedsFromIssuanceOfDebt", "ProceedsFromIssuanceOfSeniorLongTermDebt",
+    "ProceedsFromConvertibleDebt", "ProceedsFromBankDebt", "ProceedsFromNotesPayable",
+)
+
+NO_DEBT_NOTE = "No debt is reported in the filings; treated as zero."
 
 # Inputs to derived balance sheet figures only; they are not columns of the table.
 HELPER_INSTANT_TAGS: dict[str, list[str]] = {
@@ -286,10 +333,20 @@ def _lag_note(facts: dict, filings: list[Filing], as_of: str | None) -> str | No
     and nothing said the numbers trailed the latest filing. Current Version: the newest
     periodic filing's accession is looked up among the facts' accessions.
     """
-    newest = next((f for f in filings if f.form in PERIODIC_FORMS and f.accession), None)
-    if newest is None or newest.accession in _accessions(facts):
+    known = _accessions(facts)
+    missing = []
+    for f in filings:
+        if f.form in PERIODIC_FORMS and f.accession:
+            if f.accession in known:
+                break
+            missing.append(f)
+    if not missing:
         return None
-    return f"SEC has not yet published XBRL data for the {newest.form} filed {newest.filed}; figures are as of {as_of or 'the previous filing'}."
+    # First Version: only the newest filing was named, so C's note named its August 10-Q although its May 10-Q was
+    # missing from company facts too. Current Version: every periodic filing newer than the last one with facts.
+    names = [f"the {f.form} filed {f.filed}" for f in reversed(missing)]
+    which = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+    return f"SEC has not yet published XBRL data for {which}; figures are as of {as_of or 'the previous filing'}."
 
 
 # ---------------------------------------------------------------------------
@@ -402,17 +459,87 @@ def _shares_outstanding(facts: dict, tag: str = "EntityCommonStockSharesOutstand
     return float(sum(groups[latest])), latest[0], next(iter(groups[latest].values()))
 
 
-def _latest_diluted(facts: dict) -> tuple[float, date, dict] | None:
-    """The diluted weighted-average share count for the most recent period reported, quarter before year to date."""
-    best = None
+# Earnings to common shareholders first: the numerator of EPS.
+IMPLIED_SHARES_INCOME_TAGS = ("NetIncomeLossAvailableToCommonStockholdersDiluted", "NetIncomeLossAvailableToCommonStockholdersBasic", "NetIncomeLoss", "ProfitLoss")
+
+
+def _implied_shares(facts: dict) -> dict[tuple[str, str], float]:
+    """Net income divided by diluted EPS for each period (start, end): about the diluted share count, in shares."""
+    found: dict[str, dict[tuple[str, str], float]] = {}
+    for metric, tags, unit in (("ni", IMPLIED_SHARES_INCOME_TAGS, "USD"), ("eps", [*DURATION_TAGS["eps_diluted"], "EarningsPerShareBasicAndDiluted"], "USD/shares")):
+        by_period: dict[tuple[str, str], dict] = {}
+        for tag in tags:
+            latest: dict[tuple[str, str], dict] = {}
+            for e in _entries(facts, tag, unit):
+                key = (e.get("start") or "", e.get("end") or "")
+                if key[0] and key not in by_period and (key not in latest or (e.get("filed") or "") > (latest[key].get("filed") or "")):
+                    latest[key] = e
+            by_period.update(latest)  # earlier tags keep their periods
+        found[metric] = {k: float(v["val"]) for k, v in by_period.items() if v.get("val") is not None}
+    out = {}
+    for key, eps in found["eps"].items():
+        ni = found["ni"].get(key)
+        # Cents of rounding make a small EPS useless as a check.
+        if ni is not None and abs(eps) >= 0.05 and ni / eps > 0:
+            out[key] = ni / eps
+    return out
+
+
+def _diluted_counts(facts: dict) -> list[tuple[float, date, dict, float | None]]:
+    """Every diluted weighted-average share count in 10-Ks and 10-Qs, newest period first, quarter before year to date.
+
+    Each comes with net income over diluted EPS for the same period where that can be computed: (count, period end,
+    fact, implied count).
+    """
+    implied = _implied_shares(facts)
+    rows = []
     for tag in DURATION_TAGS["diluted_shares"]:
         for e in _entries(facts, tag, "shares"):
             start, end = _to_date(e.get("start")), _to_date(e.get("end"))
             if e.get("form") in ANNUAL_FORMS | QUARTER_FORMS and start and end and e.get("val"):
-                key = (end, -(end - start).days, e.get("filed") or "")
-                if best is None or key > best[0]:
-                    best = (key, e)
-    return (float(best[1]["val"]), best[0][0], best[1]) if best else None
+                rows.append(((end, -(end - start).days, e.get("filed") or ""), float(e["val"]), end, e, implied.get((e["start"], e["end"]))))
+    rows.sort(key=lambda r: r[0], reverse=True)
+    return [r[1:] for r in rows]
+
+
+def _scale_ok(counts: list) -> list[bool]:
+    """For each diluted count, False when it looks tagged in thousands or millions of shares.
+
+    A count is off scale when net income over diluted EPS for its period is more than 50 times larger or smaller
+    (a unit error is a factor of 1,000; minority interests or preferred dividends move it far less). A count
+    whose period has no usable EPS is judged like the newest count that can be checked.
+    """
+    checked = [None if i is None else 0.02 <= c / i <= 50 for c, _, _, i in counts]
+    default = next((ok for ok in checked if ok is not None), True)
+    return [default if ok is None else ok for ok in checked]
+
+
+def _latest_diluted(facts: dict, counts: list | None = None) -> tuple[float, date, dict] | None:
+    """The diluted weighted-average share count for the most recent period reported, quarter before year to date.
+
+    First Version: the newest count was used as tagged. MCD tags its diluted count in millions (711.1) and TEM in
+    thousands (182,397), so TEM's market cap was computed from 182,397 shares. Current Version: a count that net
+    income over diluted EPS shows to be in thousands or millions is skipped.
+    """
+    counts = _diluted_counts(facts) if counts is None else counts
+    return next(((c, end, e) for (c, end, e, _), ok in zip(counts, _scale_ok(counts)) if ok), None)
+
+
+def _misscaled_note(counts: list) -> str:
+    """Why no diluted count is usable, when every count in the filings fails the scale check; else empty."""
+    if not counts or any(_scale_ok(counts)):
+        return ""
+    count, end, _, implied = next((c for c in counts if c[3] is not None), counts[0])
+    return (f" The diluted weighted-average count for the period ended {end} is tagged as {count:,.0f} shares, while net income "
+            f"divided by diluted EPS gives about {implied / 1e6:,.0f}M, so it is not used.")
+
+
+def _same_filing_diluted(counts: list, entry: dict) -> float | None:
+    """The newest scale-checked diluted count reported in the same filing as `entry`, which shares its split basis."""
+    for (count, _, e, _), ok in zip(counts, _scale_ok(counts)):
+        if ok and e.get("accn") == entry.get("accn") and e.get("filed") == entry.get("filed"):
+            return count
+    return None
 
 
 def _share_count(facts: dict, reference: date | None, cik: int) -> tuple[float | None, str | None, FactRef | None, list[str]]:
@@ -426,15 +553,37 @@ def _share_count(facts: dict, reference: date | None, cik: int) -> tuple[float |
     latest balance sheet is rejected. The diluted weighted-average count for the latest reported
     period is used instead when it is current, and the substitution is noted. Otherwise the count
     is left empty with a note, never filled with an old figure.
+
+    First Version: a current count was used however far it was from the diluted count. HEI tags only
+    one of its two classes, 55.1M shares, against 141.3M diluted, so its market cap read $16.8B
+    instead of about $42.7B. Current Version: a current cover or balance-sheet count is checked
+    against the diluted weighted-average count in the same filing (same basis for any stock split);
+    outside 0.5 to 2 times it, the latest diluted count is used and the note says why.
     """
-    stale = []
+    stale, off = [], None
+    counts = _diluted_counts(facts)
+    diluted = _latest_diluted(facts, counts)
+    diluted_current = diluted if diluted and _current(diluted[1], reference) else None
     for tag in SHARE_COUNT_TAGS:
         found = _shares_outstanding(facts, tag)
         if found and _current(_to_date(found[1]), reference):
-            return found[0], found[1], _ref(cik, found[2]), []
-        if found:
+            same = _same_filing_diluted(counts, found[2])
+            ratio = found[0] / same if same else 1.0
+            if 0.5 <= ratio <= 2 or diluted_current is None:
+                return found[0], found[1], _ref(cik, found[2]), []
+            off = off or (found, ratio)
+        elif found:
             stale.append(found[1])
-    diluted = _latest_diluted(facts)
+    if off:
+        (count, as_of, _), ratio = off
+        value, end, entry = diluted_current
+        filed = entry.get("filed") or str(end)
+        likely = "it probably counts only one share class" if ratio < 0.5 else "the two counts probably cover different share classes"
+        return value, filed, _ref(cik, entry), [
+            f"Shares outstanding: the reported count of {count / 1e6:,.1f}M at {as_of} is {ratio:.2f} times the diluted weighted-average count "
+            f"in the same filing, outside the 0.5 to 2 range, so {likely}. The diluted count for the period ended {end} "
+            f"({value / 1e6:,.1f}M shares, filed {filed}) is used for market cap and per-share values."
+        ]
     why = (f"the newest reported share count is dated {max(stale)}, more than 15 months before the latest balance sheet"
            if stale else "the filings tag no cover-page share count (companies with several share classes often tag each class separately)")
     if diluted and _current(diluted[1], reference):
@@ -444,37 +593,118 @@ def _share_count(facts: dict, reference: date | None, cik: int) -> tuple[float |
         note = f"Shares outstanding: {why}, so the diluted weighted-average count for the period ended {end} ({value / 1e6:,.0f}M shares, filed {filed}) is used."
         return value, filed, _ref(cik, entry), [note]
     newest = max(stale + ([str(diluted[1])] if diluted else []), default=None)
-    found_text = f"the newest share count in the XBRL data is dated {newest}, too old to use" if newest else "the XBRL data has no share count"
+    misscaled = _misscaled_note(counts)
+    found_text = (f"the newest share count in the XBRL data is dated {newest}, too old to use" if newest
+                  else "the XBRL data has no usable share count" if misscaled else "the XBRL data has no share count")
     return None, None, None, [
-        f"Shares outstanding are n/a: {found_text}, so market cap and per-share values are left blank. "
+        f"Shares outstanding are n/a: {found_text}, so market cap and per-share values are left blank.{misscaled} "
         "Companies with several share classes (Class A and B) often tag each class separately, which SEC company facts leave out."
     ]
 
 
 def total_debt(row: dict) -> float:
-    """Combine the debt tags without double counting the current portion.
+    """Combine the debt groups without double counting.
 
-    LongTermDebt already includes its current maturities, so only true
-    short-term borrowings are added to it. DebtCurrent already includes the
-    current portion of long-term debt, so it pairs with the non-current tag.
+    In priority order: a comprehensive long-term total (LongTermDebt includes
+    its current maturities, so only true short-term borrowings are added to
+    it); else the non-current part plus the current part, where DebtCurrent
+    already includes the current portion of long-term debt and short-term
+    borrowings and so stands alone; else long- and short-term debt combined
+    in one figure; else debt tagged only by instrument, plus short-term
+    borrowings.
 
     First Version: with no debt tag at all the result was 0.0, so BRK, which
     tags its borrowings under its own names, showed no debt and net cash.
     Current Version: NaN when no debt concept is present; n/a, not zero.
+    Whether that means "no debt" is decided once, for the latest balance
+    sheet, in `_debt_decision`.
+
+    First Version: any comprehensive total won, even zero, so ORCL's FY2022
+    LongTermDebt of 0 (tagged beside $72B of notes) made its total debt 0,
+    and MAR's LongTermDebt of $23M hid $16.9B of debt. Current Version: a
+    total smaller than the non-current part it should contain is not used.
     """
 
     def get(key: str) -> float | None:
         v = row.get(key)
         return None if v is None or (isinstance(v, float) and np.isnan(v)) else float(v)
 
-    keys = ("debt_long_total", "debt_noncurrent", "debt_current_portion", "debt_current_all", "short_borrowings")
-    if all(get(k) is None for k in keys):
+    if all(get(k) is None for k in DEBT_KEYS):
         return float("nan")
-    if get("debt_long_total") is not None:
-        return get("debt_long_total") + (get("short_borrowings") or 0.0)
-    if get("debt_current_all") is not None:
-        return (get("debt_noncurrent") or 0.0) + get("debt_current_all")
-    return (get("debt_noncurrent") or 0.0) + (get("debt_current_portion") or 0.0) + (get("short_borrowings") or 0.0)
+    short = get("short_borrowings") or 0.0
+    long_total = get("debt_long_total")
+    if long_total and long_total >= (get("debt_noncurrent") or 0.0):
+        return long_total + short
+    if any(get(k) is not None for k in ("debt_noncurrent", "debt_current_all", "debt_current_portion")):
+        noncurrent = get("debt_noncurrent") or 0.0
+        if get("debt_current_all"):
+            return noncurrent + get("debt_current_all")
+        return noncurrent + (get("debt_current_portion") or 0.0) + short
+    if get("debt_combined_total") is not None:
+        return get("debt_combined_total")
+    if get("debt_instrument_total") is not None:
+        return get("debt_instrument_total") + short
+    return (long_total or 0.0) + short
+
+
+def _debt_evidence(facts: dict, period: date, balance_floor: date) -> tuple[str, float, date, bool] | None:
+    """The newest debt figure above zero near the latest balance sheet: (tag, value, date, is a flow), or None.
+
+    Debt disclosures and debt proceeds count when dated within about 15 months before `period` (or a few months
+    after it: debt issued after the balance sheet). Balance sheet debt tags count from `balance_floor`, the last
+    fiscal year end, on: a debt line that last year's annual balance sheet no longer shows has been repaid
+    (HUBS's convertible notes, last tagged at 2025-03-31). For each tag only its newest figure counts, so debt
+    reported as repaid (SHOP's convertible notes: $920M at 2025-09-30, 0 at 2025-12-31) is not current debt.
+    """
+    balance_tags = {t for k in DEBT_KEYS for t in INSTANT_TAGS[k]}
+    best = None
+    for tag in [*balance_tags, *DEBT_DISCLOSURE_TAGS]:
+        oldest = balance_floor if tag in balance_tags else period - timedelta(days=STALE_DAYS)
+        newest = None
+        for e in _entries(facts, tag, "USD"):
+            day = _to_date(e.get("end"))
+            if e.get("form") in ANNUAL_FORMS | QUARTER_FORMS and day and oldest <= day <= period + timedelta(days=120):
+                key = (day, e.get("filed") or "")
+                if newest is None or key > newest[0]:
+                    newest = (key, e)
+        if newest and float(newest[1].get("val") or 0) > 0:
+            day = newest[0][0]
+            if best is None or day > best[2]:
+                best = (tag, float(newest[1]["val"]), day, bool(newest[1].get("start")))
+    return best
+
+
+def _debt_decision(facts: dict, latest: dict, period: date, fy_last: date | None, debt_any: dict[str, dict]) -> tuple[str, float, str | None]:
+    """Total debt for the latest balance sheet: (status, value, note), decided once here for every view.
+
+    "reported": a total is built from the debt tags at `period`. When that balance sheet tags no debt line but
+    an earlier one in the same fiscal year does (CAT's 10-Qs tag debt only by segment), that total is used and
+    the note says from which date. "none": no debt tag, debt disclosure or debt proceeds above zero in the last
+    ~15 months, so total debt is 0.0. "unknown": the filings show debt that no standard total captures (BRK and
+    F tag their borrowings only by segment), so it is NaN.
+    """
+    value = total_debt(latest)
+    if np.isfinite(value):
+        return "reported", value, None
+    floor = min(fy_last - timedelta(days=7), period) if fy_last else period
+    evidence = _debt_evidence(facts, period, floor)
+    if evidence is None:
+        return "none", 0.0, NO_DEBT_NOTE
+    earlier = sorted({d for series in debt_any.values() for d in series if floor <= d < period}, reverse=True)
+    for day in earlier:
+        value = total_debt({k: float(debt_any[k][day]["val"]) for k in DEBT_KEYS if day in debt_any.get(k, {})})
+        if np.isfinite(value):
+            return "reported", value, (
+                f"The latest balance sheet ({period}) tags no standard debt line, so total debt is the {money(value)} "
+                f"reported at {day}. Check the latest filing's balance sheet if the company has borrowed or repaid since."
+            )
+    tag, amount, day, flow = evidence
+    return "unknown", float("nan"), (
+        f"Total debt is n/a: the filings show debt (XBRL {tag}, {money(amount)} {'for the period ended' if flow else 'at'} {day}) "
+        f"but no standard debt total for the balance sheet of {period}, so enterprise value, EV/EBIT, EV/Sales, net debt, "
+        "debt/equity, ROIC and the DCF's net cash are not shown. To value the company, read total debt from the filing's "
+        "balance sheet and enter net cash in the DCF."
+    )
 
 
 def _derived_liabilities(total: float | None, equity_with_nci: float | None, equity: float | None, nci: float | None) -> float | None:
@@ -494,6 +724,9 @@ class Extracted(NamedTuple):
     refs: dict[str, dict[pd.Timestamp, FactRef]]
     ttm_refs: dict[str, FactRef]
     notes: list[str]
+    debt_status: str = "reported"
+    year_ago: dict[str, float] = {}
+    year_ago_period: str | None = None
 
 
 def extract(facts: dict, years: int = 10) -> Extracted:
@@ -543,6 +776,8 @@ def extract(facts: dict, years: int = 10) -> Extracted:
     latest_period = max(assets_any) if assets_any else None
     latest: dict[str, float] = {}
     helpers: dict[str, tuple[dict[date, float], float | None]] = {}
+    # Every balance sheet figure by date, from 10-Ks and 10-Qs: the year-ago balance sheet and the debt decision read it.
+    any_dates: dict[str, dict[date, dict]] = {}
 
     for metric, tags in {**INSTANT_TAGS, **HELPER_INSTANT_TAGS}.items():
         merged = _merge([_instant_entries(_entries(facts, t, "USD"), ANNUAL_FORMS) for t in tags])
@@ -555,7 +790,7 @@ def extract(facts: dict, years: int = 10) -> Extracted:
                 aligned_refs[pd.Timestamp(fy)] = _ref(cik, e)
         newest = None
         if latest_period:
-            merged_any = _merge([_instant_entries(_entries(facts, t, "USD"), any_form) for t in tags])
+            merged_any = any_dates[metric] = _merge([_instant_entries(_entries(facts, t, "USD"), any_form) for t in tags])
             if latest_period in merged_any:
                 newest = float(merged_any[latest_period]["val"])
                 if metric in INSTANT_TAGS:
@@ -584,6 +819,29 @@ def extract(facts: dict, years: int = 10) -> Extracted:
         if value is not None:
             latest["total_liabilities"] = value
             derived_at.append(str(latest_period))
+
+    # First Version: only the latest balance sheet and the fiscal year ends were kept, so ROE and ROA could not
+    # average the trailing twelve months they divide into. Current Version: the balance sheet closest to 12 months
+    # before the latest one (within 45 days), from 10-K or 10-Q facts, with the same figures as the latest.
+    year_ago: dict[str, float] = {}
+    year_ago_period = None
+    near = [d for d in assets_any if latest_period and abs((d - (latest_period - timedelta(days=365))).days) <= 45]
+    if near:
+        year_ago_period = min(near, key=lambda d: abs((d - (latest_period - timedelta(days=365))).days))
+
+        def at(metric: str) -> float | None:
+            e = any_dates.get(metric, {}).get(year_ago_period)
+            return float(e["val"]) if e else None
+
+        year_ago = {m: at(m) for m in INSTANT_TAGS if at(m) is not None}
+        if "total_liabilities" not in year_ago:
+            value = _derived_liabilities(
+                at("liabilities_and_equity") if at("liabilities_and_equity") is not None else year_ago.get("total_assets"),
+                at("equity_with_nci"), year_ago.get("equity"), at("minority_interest"))
+            if value is not None:
+                year_ago["total_liabilities"] = value
+                derived_at.append(str(year_ago_period))
+        year_ago["total_debt"] = total_debt(year_ago)
     if derived_at:
         dates = sorted(set(derived_at))
         when = f"{len(dates)} balance sheets from {dates[0]} to {dates[-1]}" if len(dates) > 3 else ", ".join(dates)
@@ -610,13 +868,21 @@ def extract(facts: dict, years: int = 10) -> Extracted:
         notes.append("Gross profit is derived as revenue minus cost of revenue, because the filings do not tag a gross profit line.")
     table["total_debt"] = [total_debt(row) for row in table.to_dict("records")] if len(table) else []
 
-    if latest:
-        latest["total_debt"] = total_debt(latest)
-    elif len(table):
+    if not latest and len(table):
         latest = {k: float(v) for k, v in table.iloc[-1].items() if pd.notna(v)}
         latest_period = table.index[-1].date()
-    if len(table) and not np.isfinite(latest.get("total_debt", np.nan)):
-        notes.append("Total debt is n/a: the filings tag no standard debt line (the company may have none, or reports it under its own tags).")
+    # First Version: sec.py noted "Total debt is n/a" whenever the latest balance sheet tagged no standard debt line,
+    # while valuation.py separately treated missing debt as zero unless interest expense was tagged. SHOP, PLTR and
+    # ARM carried both notes at once; DASH and PINS, whose convertible notes went unread, were called debt-free; CAT
+    # and ORCL showed "n/a" beside ratios computed from an older debt figure.
+    # Current Version: debt is decided once, here, for the latest balance sheet, with one note at most, and
+    # valuation.py uses it as given: "reported" (a total from the debt tags), "none" (no debt figure of any kind
+    # above zero in the last ~15 months: 0.0) or "unknown" (debt shown but no standard total: NaN).
+    debt_status = "reported"
+    if latest:
+        debt_status, latest["total_debt"], debt_note = _debt_decision(facts, latest, latest_period, fy_last, {k: any_dates.get(k, {}) for k in DEBT_KEYS})
+        if debt_note:
+            notes.append(debt_note)
 
     if ttm and fy_last and max(ttm_ends.values()) <= fy_last:
         notes.append(f"{TTM_IS_FISCAL_YEAR} {fy_last}, so trailing-twelve-month figures equal that fiscal year.")
@@ -626,7 +892,8 @@ def extract(facts: dict, years: int = 10) -> Extracted:
         ttm_refs["shares_outstanding"] = shares_ref
     notes.extend(share_notes)
 
-    return Extracted(table, ttm, latest, str(latest_period) if latest_period else None, shares, shares_date, refs, ttm_refs, notes)
+    return Extracted(table, ttm, latest, str(latest_period) if latest_period else None, shares, shares_date, refs, ttm_refs, notes,
+                     debt_status, year_ago, str(year_ago_period) if year_ago_period else None)
 
 
 def apply_splits(fund: Fundamentals, splits: pd.Series) -> list[str]:
@@ -695,6 +962,13 @@ def fundamentals(symbol: str, email: str, force: bool = False) -> Fundamentals:
         not_found_message=f"{title} has no XBRL financial statements on EDGAR (ETFs, funds and trusts usually do not). Price, model, Monte Carlo and options views still work.",
     )
     if not (facts.value.get("facts") or {}).get("us-gaap"):
+        # First Version: TSM was told only that it "does not report US GAAP figures", which did not say where its
+        # statements are. Current Version: the refusal names the annual form it files (20-F or 40-F) and IFRS.
+        annual = next((f.form for f in filings if f.form.split("/")[0] in ("20-F", "40-F")), None)
+        basis = "IFRS figures" if (facts.value.get("facts") or {}).get("ifrs-full") else "figures that are not US GAAP"
+        if annual:
+            raise DataError(f"{title} files its annual reports on Form {annual.split('/')[0]} with {basis}, and FinLit Pro reads US GAAP statements only. "
+                            f"Read its financial statements in the Form {annual.split('/')[0]} on sec.gov. Price, model, Monte Carlo and options views still work.")
         raise DataError(f"{title} does not report US GAAP figures in XBRL (foreign filers often use IFRS). Price, model, Monte Carlo and options views still work.")
 
     ex = extract(facts.value)
@@ -707,10 +981,22 @@ def fundamentals(symbol: str, email: str, force: bool = False) -> Fundamentals:
     if lag:
         notes.insert(0, lag)
     forms = {f.form for f in filings}
+    fy_last = str(ex.table.index[-1].date())
+    quarters_since = [f for f in filings if f.form in QUARTER_FORMS and (f.report_date or f.filed) > fy_last]
     if "6-K" in forms and not forms & QUARTER_FORMS:
         # A foreign issuer: say why there are no quarters instead of the general note.
         notes = [n for n in notes if not n.startswith(TTM_IS_FISCAL_YEAR)]
         notes.append(f"{name} reports quarters on Form 6-K, which FinLit Pro does not read, so trailing-twelve-month figures and the balance sheet come from its annual reports (latest {ex.latest_period}).")
+    elif quarters_since and any(n.startswith(TTM_IS_FISCAL_YEAR) for n in notes):
+        # First Version: C carried "No quarterly figures have been filed since the fiscal year ended 2025-12-31" beside
+        # the lag note, although it had filed 10-Qs in May and August that SEC company facts did not include yet.
+        # Current Version: when the filing index has 10-Qs after the fiscal year, the note says why they are not used.
+        if lag:
+            which = f"the {len(quarters_since)} 10-Qs filed since (the newest filed {quarters_since[0].filed})" if len(quarters_since) > 1 else f"the 10-Q filed {quarters_since[0].filed}"
+            why = f"until SEC publishes XBRL data for {which}; refresh later to update them"
+        else:
+            why = "because SEC company facts hold no year-to-date figures from the 10-Qs filed since that match the annual ones"
+        notes = [f"Trailing-twelve-month figures equal the fiscal year ended {fy_last} {why}." if n.startswith(TTM_IS_FISCAL_YEAR) else n for n in notes]
 
     company = COMPANY_URL.format(cik=cik)
     return Fundamentals(
@@ -733,6 +1019,9 @@ def fundamentals(symbol: str, email: str, force: bool = False) -> Fundamentals:
         ttm_refs=ex.ttm_refs,
         shares_date=ex.shares_date,
         notes=notes,
+        debt_status=ex.debt_status,
+        year_ago=ex.year_ago,
+        year_ago_period=ex.year_ago_period,
     )
 
 

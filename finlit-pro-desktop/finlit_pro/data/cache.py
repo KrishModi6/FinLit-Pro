@@ -58,11 +58,21 @@ class DiskCache:
             pass
 
     def clear(self) -> int:
+        """Delete every saved response and any temporary file a write left behind; returns the number of responses.
+
+        First Version: only *.json files were deleted, so the per-process, per-thread
+        temporary files that an interrupted write leaves behind stayed on disk for
+        good. Current Version: *.tmp files are deleted too (they are not counted,
+        as they are not saved responses). A write still in progress then simply
+        fails to save, which costs only that cache entry.
+        """
         count = 0
-        for path in self.root.glob("*.json"):
-            try:
-                path.unlink()
-                count += 1
-            except OSError:
-                pass
+        for pattern in ("*.json", "*.tmp"):
+            for path in self.root.glob(pattern):
+                try:
+                    path.unlink()
+                except OSError:
+                    continue
+                if pattern == "*.json":
+                    count += 1
         return count

@@ -49,9 +49,15 @@ def history(symbol: str) -> PriceHistory:
     no exchange, so 7203.T (JPY), SHOP.TO (CAD) and SAP.DE (EUR) prices were shown
     and used as dollars whenever this fallback answered. Current Version: currency,
     name, exchange and instrument type come from Ticker.history_metadata, which
-    yfinance fills from the same chart response; an unknown currency is left None,
+    yfinance fills from the same chart response; an unknown currency is left blank,
     never assumed to be USD. A class share written with a dot (BRK.B) is retried
     with Yahoo's dash spelling (BRK-B), as the chart API route does.
+
+    First Version: the unknown currency was None, which the price line, the
+    report, the rules note and the research brief would print as "None" (for
+    example "201.55 None"), and the brief sends that text to the language model.
+    Current Version: it is "" (PriceHistory.currency is a str), so the price is
+    shown with no currency rather than a wrong or a "None" one.
     """
     yf = _yf()
     raw, ticker, name = None, None, symbol.upper()
@@ -89,7 +95,7 @@ def history(symbol: str) -> PriceHistory:
     return PriceHistory(
         symbol=sym,
         name=_meta_text(meta, "longName") or _meta_text(meta, "shortName") or sym,
-        currency=_meta_text(meta, "currency"),  # type: ignore[arg-type]  # None when unknown, never a guess
+        currency=_meta_text(meta, "currency") or "",  # blank when unknown, never a guess
         exchange=_meta_text(meta, "fullExchangeName") or _meta_text(meta, "exchangeName"),
         instrument_type=_meta_text(meta, "instrumentType"),
         price=float(bars["close"].iloc[-1]),
@@ -125,6 +131,29 @@ def default_expiry(expiries: list[str], today: date | None = None, target_days: 
             return 10**6
 
     return min(expiries, key=gap)
+
+
+def last_trade_day(frames, underlying=None) -> str | None:
+    """The date (YYYY-MM-DD) of the newest lastTradeDate in the chain, on the exchange's clock, or None.
+
+    The time zone is the underlying's exchangeTimezoneName when yfinance supplies
+    it, else UTC (US options stop trading by 16:15 New York time, 20:15 UTC, so the
+    UTC date is the same day).
+    """
+    stamps = []
+    for frame in frames:
+        if frame is not None and "lastTradeDate" in getattr(frame, "columns", ()):
+            stamps.append(pd.to_datetime(frame["lastTradeDate"], errors="coerce", utc=True))
+    newest = pd.concat(stamps).max() if stamps else pd.NaT
+    if pd.isna(newest):
+        return None
+    tz = underlying.get("exchangeTimezoneName") if isinstance(underlying, dict) else None
+    if isinstance(tz, str) and tz:
+        try:
+            newest = newest.tz_convert(tz)
+        except (KeyError, IndexError, TypeError, ValueError):  # an unknown zone name: keep UTC
+            pass
+    return newest.date().isoformat()
 
 
 def option_chain(symbol: str, expiry: str | None = None, underlying: float | None = None) -> OptionChain:
@@ -167,6 +196,17 @@ def option_chain(symbol: str, expiry: str | None = None, underlying: float | Non
             )
         return out
 
+    # First Version: as_of was the expiry, so the label read "as of 2026-11-20" for
+    # quotes fetched on 2026-10-21. Second Version: as_of was today's date on this
+    # computer, so quotes from Monday's last trade read "as of" Tuesday (or Saturday
+    # and Sunday at the weekend) while the price history said Monday. Current
+    # Version: as_of is the exchange-local date of the newest trade in the chain
+    # (lastTradeDate); when Yahoo reports no trade time it is left blank and the
+    # detail says why. The expiry is named in the detail.
+    as_of = last_trade_day([chain.calls, chain.puts], getattr(chain, "underlying", None))
+    detail = f"Expiry {chosen}; quotes may be delayed 15 minutes or more"
+    if as_of is None:
+        detail += "; Yahoo reported no trade times for this expiry, so the date of these quotes is not known"
     result = OptionChain(
         symbol=symbol.upper(),
         expiries=expiries,
@@ -174,16 +214,7 @@ def option_chain(symbol: str, expiry: str | None = None, underlying: float | Non
         calls=rows(chain.calls, "call"),
         puts=rows(chain.puts, "put"),
         underlying_price=underlying,
-        # First Version: as_of was the expiry, so the label read "as of 2026-11-20" for
-        # quotes fetched on 2026-10-21. Current Version: as_of is the day the quotes
-        # describe (today); the expiry is named in the detail.
-        source=Source(
-            "Yahoo Finance options via yfinance",
-            OPTIONS_PAGE.format(symbol=symbol.upper()),
-            datetime.now(),
-            date.today().isoformat(),
-            detail=f"Expiry {chosen}; quotes may be delayed 15 minutes or more",
-        ),
+        source=Source("Yahoo Finance options via yfinance", OPTIONS_PAGE.format(symbol=symbol.upper()), datetime.now(), as_of, detail=detail),
     )
     with _lock:
         _chains[key] = (time.time(), result)

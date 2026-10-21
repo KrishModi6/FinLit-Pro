@@ -43,12 +43,16 @@ class ClaudeEngine:
             else:
                 ctx = self.client.messages.stream(**params)
             with ctx as stream:
-                for text in stream.text_stream:
-                    received += len(text)
-                    if progress:
-                        progress(received)
+                # First Version: iterated stream.text_stream, so Cancel was only checked once answer text
+                # arrived; during a long thinking phase it did nothing.
+                # Current Version: every stream event is checked, and leaving the block closes the stream.
+                for event in stream:
                     if cancelled and cancelled():
                         raise AnalysisError("Analysis cancelled.")
+                    if event.type == "text":
+                        received += len(event.text)
+                        if progress:
+                            progress(received)
                 final = stream.get_final_message()
         except anthropic.AuthenticationError:
             raise AnalysisError("Anthropic rejected the API key. Update it in Settings > Analysis.") from None
@@ -61,7 +65,11 @@ class ClaudeEngine:
         except anthropic.BadRequestError as exc:
             raise AnalysisError(f"Anthropic rejected the request: {exc.message}") from None
         except anthropic.APIStatusError as exc:
-            raise AnalysisError(f"Anthropic returned an error ({exc.status_code}). Try again shortly.") from None
+            # First Version: an error sent inside the stream reads as status 200, so the message said
+            # "error (200)". Current Version: the error type from the body is used when there is one.
+            if exc.type == "overloaded_error":
+                raise AnalysisError("Anthropic is overloaded right now. Try again in a few minutes.") from None
+            raise AnalysisError(f"Anthropic returned an error ({exc.type or exc.status_code}). Try again shortly.") from None
         except anthropic.APIConnectionError:
             raise AnalysisError("Could not reach Anthropic. Check the internet connection.") from None
 
@@ -69,8 +77,15 @@ class ClaudeEngine:
         if final.stop_reason == "refusal":
             raise AnalysisError("The model declined to produce this analysis.")
         if final.stop_reason == "max_tokens":
-            raise AnalysisError("The analysis exceeded the output limit. Reduce the filing excerpt length in Settings and run it again.")
-        text = next((b.text for b in final.content if getattr(b, "type", "") == "text"), "")
+            raise AnalysisError(
+                "The analysis exceeded the output limit. Lower the effort or reduce the filing excerpt length in Settings, then run it again."
+            )
+        if final.stop_reason == "model_context_window_exceeded":
+            raise AnalysisError("The brief is too long for the model's context window. Reduce the filing excerpt length in Settings and run it again.")
+        # First Version: kept only the first text block. When the server-side fallback takes over part way
+        # through, the note continues in a second text block, so half the JSON was thrown away.
+        # Current Version: every text block is joined in order.
+        text = "".join(b.text for b in final.content if getattr(b, "type", "") == "text")
         if not text:
             raise AnalysisError("The model returned no analysis.")
         return text

@@ -22,7 +22,7 @@ NAN = float("nan")
 YEARS = pd.to_datetime(["2024-12-31", "2025-12-31"])
 
 
-def company(annual=None, latest=None, ttm=None, latest_period="2026-06-30", sic="Services-Prepackaged Software", shares=10.0):
+def company(annual=None, latest=None, ttm=None, latest_period="2026-06-30", sic="Services-Prepackaged Software", shares=10.0, debt_status="reported"):
     """Two fiscal years and, by default, a 10-Q six months after the last fiscal year end."""
     a = {
         "revenue": [800.0, 1000.0], "net_income": [80.0, 100.0], "operating_income": [100.0, 130.0], "gross_profit": [400.0, 500.0],
@@ -40,7 +40,7 @@ def company(annual=None, latest=None, ttm=None, latest_period="2026-06-30", sic=
     t.update(ttm or {})
     t = {k: v for k, v in t.items() if v is not None}
     return Fundamentals(cik=1, name="Test Co", annual=pd.DataFrame(a, index=YEARS), ttm=t, latest=q, latest_period=latest_period,
-                        shares_outstanding=shares, sic_description=sic)
+                        shares_outstanding=shares, sic_description=sic, debt_status=debt_status)
 
 
 # ------------------------------------------------------------------ ROE and ROA periods
@@ -68,14 +68,15 @@ def test_roe_falls_back_to_the_fiscal_year_when_ttm_income_is_missing():
 
 
 def test_roic_is_nan_with_a_note_when_cash_exceeds_most_of_the_capital():
-    # PLTR's shape: equity 9.77B, cash and short-term investments 9.41B, no debt tagged and no interest expense.
+    # PLTR's shape: equity 9.77B, cash and short-term investments 9.41B, and sec.py found no debt of any kind.
+    # Current Version (debt policy): sec.py decides "none" and sets 0.0; valuation uses it and adds no debt note.
     f = company(annual={"total_debt": [0.0, NAN], "interest_expense": [3.5, NAN]},
-                latest={"equity": 9774.0, "cash": 2030.0, "short_investments": 7379.0, "total_debt": NAN}, ttm={"interest_expense": None})
+                latest={"equity": 9774.0, "cash": 2030.0, "short_investments": 7379.0, "total_debt": 0.0}, ttm={"interest_expense": None},
+                debt_status="none")
     r = val.ratios(f, price=100.0)
     assert np.isnan(r["roic"])
     assert any(n.startswith("ROIC is not shown") and "under 10%" in n for n in f.notes)
-    # No debt tag now and no current interest expense (only an old year's): debt is zero, not the 2024 value.
-    assert val.NO_DEBT_NOTE in f.notes
+    assert not any("debt is reported" in n.lower() for n in f.notes)
     assert r["debt_to_equity"] == 0.0 and r["net_debt"] == pytest.approx(-9409.0)
     assert r["enterprise_value"] == pytest.approx(1000.0 - 9409.0)
 
@@ -87,13 +88,14 @@ def test_roic_on_debt_plus_equity_less_cash_otherwise():
     assert not any("ROIC" in n or "debt" in n.lower() for n in f.notes)
 
 
-def test_interest_expense_without_debt_leaves_debt_ratios_blank():
-    f = company(annual={"total_debt": [NAN, NAN]}, latest={"total_debt": NAN})
+def test_unknown_debt_leaves_debt_ratios_blank():
+    # Current Version (debt policy): "unknown" comes from sec.py with its own note; valuation adds none.
+    f = company(annual={"total_debt": [NAN, NAN]}, latest={"total_debt": NAN}, debt_status="unknown")
     r = val.ratios(f, price=100.0)
     for key in ("enterprise_value", "ev_ebit", "ev_sales", "net_debt", "debt_to_equity", "roic"):
         assert np.isnan(r[key]), key
     assert np.isfinite(r["pe"]) and np.isfinite(r["roe"])
-    assert f.notes == [val.DEBT_UNKNOWN_NOTE]
+    assert f.notes == []
     inp = val.default_inputs(f, r)
     assert np.isnan(inp.net_cash)
     with pytest.raises(ValidationError, match="Net cash is unknown"):
@@ -122,9 +124,9 @@ def test_bank_cash_flow_and_leverage_measures_are_not_shown():
         assert np.isnan(r[key]), key
     for key in ("pe", "pb", "roe", "dividend_yield"):
         assert np.isfinite(r[key]) and r[key] > 0, key
-    assert len(f.notes) == 1 and "bank's or insurer's business" in f.notes[0] and "National Commercial Banks" in f.notes[0]
+    assert len(f.notes) == 1 and "financial companies (banks, insurers, brokers and lenders)" in f.notes[0] and "National Commercial Banks" in f.notes[0]
 
-    with pytest.raises(ValidationError, match="does not value a bank or insurer"):
+    with pytest.raises(ValidationError, match="does not value financial companies"):
         val.dcf(val.default_inputs(f, r))
     score, runnable, checks = val.piotroski(f.annual, f.sic_description)
     assert (score, runnable) == (0, 0) and checks[0].name == val.NOT_MEANINGFUL and checks[0].passed is None
@@ -155,7 +157,7 @@ def test_operating_company_keeps_its_scores_and_dcf():
 
 class Stub:
     key, name, version, description = "stub", "Stub model", "0", "test"
-    horizons, simulations = (5,), (10,)
+    horizons, simulations = (3, 5), (10,)  # only offered horizons are suggested
     bullish, bearish = ("BUY",), ("SELL",)
 
     def __init__(self, lookback_calendar_days):

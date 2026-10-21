@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 
 from finlit_pro import APP_NAME, __version__, framing, glossary, pipeline, research, validation
 from finlit_pro.analytics import montecarlo
+from finlit_pro.analytics.risk import RANGE_DAYS
 from finlit_pro.config import Settings, save_settings
 from finlit_pro.data import demo, filings, prices, sec, yahoo, yf_provider
 from finlit_pro.data.models import STATUS_LABEL, DataError
@@ -52,7 +53,6 @@ from finlit_pro.ui.workers import Job, Runner
 from finlit_pro.workspace import Workspace
 
 RANGES = ["1M", "3M", "6M", "YTD", "1Y", "3Y", "5Y", "10Y", "Max", "Custom"]
-RANGE_DAYS = {"1M": 31, "3M": 92, "6M": 183, "1Y": 365, "3Y": 1096, "5Y": 1826, "10Y": 3653}
 
 
 # ---------------------------------------------------------------- worker functions
@@ -156,7 +156,7 @@ class MainWindow(QMainWindow):
         self.returns.benchmark_changed.connect(self._benchmark_changed)
         self.filings.read_requested.connect(self.read_filings)
         self.research.run_requested.connect(self.run_research)
-        self.research.cancel_requested.connect(lambda: self._cancel("research"))
+        self.research.cancel_requested.connect(self._cancel_research)
         self._update_engine_label()
         self.fundamentals.need_email(not settings.sec_contact_email)
         install_tooltips(self)
@@ -778,6 +778,13 @@ class MainWindow(QMainWindow):
         job = Job(rid, _research, self.ws, self.settings)
         self.jobs["research"] = job
         self.runner.start(job, self._research_done, self._research_failed, lambda r, d, _t: self.research.progress(d) if r == self.ids["research"] else None)
+
+    def _cancel_research(self) -> None:
+        # First Version: Cancel only signalled the job, so a note that finished afterwards was still shown.
+        # Current Version: the request id is retired too, so a late note is ignored, and the view says so at once.
+        self._cancel("research")
+        self._next("research")
+        self.research.fail("Analysis cancelled.")
 
     def _research_done(self, rid: int, result) -> None:
         symbol, note, reg, brief, texts, problems = result

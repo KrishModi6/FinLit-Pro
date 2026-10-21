@@ -101,6 +101,12 @@ class FakeStream:
         self._text, self.stop_reason, self.model = text, stop_reason, model
         self.text_stream = [text[: len(text) // 2], text[len(text) // 2 :]]
 
+    def __iter__(self):
+        # The engine reads every stream event (text events carry the answer), as the SDK's MessageStream yields them.
+        yield SimpleNamespace(type="message_start")
+        for part in self.text_stream:
+            yield SimpleNamespace(type="text", text=part)
+
     def __enter__(self):
         return self
 

@@ -116,17 +116,30 @@ class MCResult:
     stats: dict[str, float]
 
 
+MIN_RETURNS = 60
+
+
 def estimate(closes: pd.Series, cfg: MCConfig) -> Estimates:
-    r = log_returns(closes).to_numpy()[-cfg.lookback_days :]
-    if len(r) < 60:
+    every = log_returns(closes).to_numpy()
+    r = every[-cfg.lookback_days :]
+    # First Version: every shortfall advised "or shorten the lookback", which can never add returns: the window is
+    # the lookback or the whole history, whichever is shorter. Current Version: a history that is too short says
+    # when the simulation can run; a lookback that is too short says to lengthen it.
+    if len(every) < MIN_RETURNS:
         raise ValidationError(
-            f"Only {len(r)} days of history are available, and the model needs at least 60. "
-            "Pick a stock that has traded for longer, or shorten the lookback."
+            f"Only {len(every)} daily returns are available ({len(every) + 1} sessions), and the simulation needs at least {MIN_RETURNS}. "
+            f"It can run after about {MIN_RETURNS - len(every)} more trading sessions; until then, pick a stock that has traded for longer."
+        )
+    if len(r) < MIN_RETURNS:
+        raise ValidationError(
+            f"A lookback of {cfg.lookback_days} days gives only {len(r)} daily returns, and the simulation needs at least {MIN_RETURNS}. "
+            f"Lengthen the lookback to at least {MIN_RETURNS} trading days (a quarter of a year)."
         )
     hist_mu = float(r.mean())
     sigma = float(r.std(ddof=1))
     if not np.isfinite(sigma) or sigma <= 0:
         raise ValidationError("This price series never moves, so there is no volatility to simulate.")
+    sigma_hist = sigma
     if cfg.vol_override:
         # Rescale the history to the chosen volatility so the bootstrap
         # and the fitted tails stay consistent with it.
@@ -140,6 +153,10 @@ def estimate(closes: pd.Series, cfg: MCConfig) -> Estimates:
     # [3, 30]: below 3 the variance is infinite, above 30 it is normal anyway.
     t_df = float(np.clip(4 + 6 / kurt, 3, 30)) if kurt > 0 else 30.0
 
+    # First Version: in historical mode a volatility override kept the historical LOG drift, so the arithmetic
+    # expected return rose with the override (MSFT +22.5% a year at its own 26% volatility, +95% at 100%) while
+    # the median stayed put. Current Version: the historical ARITHMETIC return is kept, as the zero and custom
+    # modes keep theirs: mu = hist_mu + (sigma_hist^2 - sigma^2) / 2, which is hist_mu without an override.
     # First Version (FinLit Pro website): drift was the mean daily LOG return,
     # and the simulation then subtracted sigma^2/2 again as if it had been an
     # arithmetic mean. That applies the Ito correction twice and drags every
@@ -148,7 +165,7 @@ def estimate(closes: pd.Series, cfg: MCConfig) -> Estimates:
     # used as is. The sigma^2/2 term appears only where an ARITHMETIC return
     # is converted into a log drift, which is the zero and custom modes.
     if cfg.drift_mode == "historical":
-        mu = hist_mu
+        mu = hist_mu + (sigma_hist**2 - sigma**2) / 2
     elif cfg.drift_mode == "zero":
         # Expected price equals today's price: E[S_T] = S_0.
         mu = -(sigma**2) / 2
@@ -239,6 +256,32 @@ class Calibration:
     verdict: str
 
 
+CALIBRATION_MIN_SPAN = 20  # sessions between the first and last origin
+CALIBRATION_MIN_TESTS = 10
+
+
+def calibration_reason(closes: pd.Series, horizon_days: int, lookback_days: int = 3 * TRADING_DAYS) -> str:
+    """Why calibration() returned None, in words, with what would change it.
+
+    First Version: calibration() returned None without a reason, so pipeline.load recorded nothing for FIG and
+    CRCL. Current Version: pipeline.load stores this in Workspace.calibration_error.
+    """
+    sessions = int((closes > 0).sum())
+    step = max(5, horizon_days // 4)
+    # Origins run from `lookback_days` to `sessions - 1 - horizon_days`, one every `step` sessions.
+    needed = lookback_days + horizon_days + 1 + max(CALIBRATION_MIN_SPAN, step * (CALIBRATION_MIN_TESTS - 1))
+    if sessions < needed:
+        return (
+            f"The calibration check needs the {lookback_days}-session lookback, the {horizon_days}-session horizon and "
+            f"{CALIBRATION_MIN_TESTS} test dates {step} sessions apart: {needed} sessions in all. This history has {sessions}, so it "
+            f"becomes possible after about {needed - sessions} more trading sessions, or sooner with a shorter lookback or horizon."
+        )
+    return (
+        f"Fewer than {CALIBRATION_MIN_TESTS} of the calibration test dates could be used, because the price did not move in the "
+        "lookback before the others. Choose a ticker whose price moves."
+    )
+
+
 def calibration(closes: pd.Series, horizon_days: int, lookback_days: int = 3 * TRADING_DAYS) -> Calibration | None:
     """Walk-forward test of the normal model's bands on this stock's own past.
 
@@ -256,7 +299,7 @@ def calibration(closes: pd.Series, horizon_days: int, lookback_days: int = 3 * T
     r = np.diff(logs)
     first = lookback_days
     last = len(prices) - 1 - horizon_days
-    if last - first < 20:
+    if last - first < CALIBRATION_MIN_SPAN:
         return None
     step = max(5, horizon_days // 4)
     origins = np.arange(first, last + 1, step)
@@ -269,7 +312,7 @@ def calibration(closes: pd.Series, horizon_days: int, lookback_days: int = 3 * T
             continue
         realised = logs[t + horizon_days] - logs[t]
         z_scores.append((realised - mu * horizon_days) / (sigma * np.sqrt(horizon_days)))
-    if len(z_scores) < 10:
+    if len(z_scores) < CALIBRATION_MIN_TESTS:
         return None
     z = np.asarray(z_scores)
     pit = np.array([_N.cdf(v) for v in z])

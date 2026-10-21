@@ -9,8 +9,10 @@ from __future__ import annotations
 from datetime import datetime
 
 import numpy as np
+import pandas as pd
 
 from finlit_pro.analytics.montecarlo import DRIFT_MODES, MODELS
+from finlit_pro.analytics.risk import RANGE_DAYS
 from finlit_pro.fmt import money, num, pct
 from finlit_pro.research.sources import SourceRegistry
 from finlit_pro.workspace import Workspace
@@ -61,14 +63,24 @@ def build(ws: Workspace) -> tuple[str, SourceRegistry]:
 
     # Market data
     lines += ["", "## Market data"]
-    lines.append(f"Last price {num(h.price)} {h.currency} as of {h.bars.index[-1].date()}; change on the day {pct(h.day_change, 2, True)}{_tags([s_price])}")
+    cur = f" {h.currency}" if h.currency else ""  # never "None" when the currency is unknown
+    lines.append(f"Last price {num(h.price)}{cur} as of {h.bars.index[-1].date()}; change on the day {pct(h.day_change, 2, True)}{_tags([s_price])}")
+    # First Version: windows counted trading sessions (1Y = 252), while the Returns view and the rules
+    # engine use calendar days, so the brief's 1Y return disagreed with the screen (AAPL +35.1% vs +29.9%).
+    # Current Version: the same calendar windows as the Returns view.
+    last = h.closes.index[-1]
     rets = []
-    for label, days in (("1M", 21), ("3M", 63), ("6M", 126), ("1Y", 252), ("3Y", 756), ("5Y", 1260)):
-        if len(h.closes) > days:
-            rets.append(f"{label} {pct(h.closes.iloc[-1] / h.closes.iloc[-days - 1] - 1, 1, True)}")
-    lines.append("Total returns (dividends reinvested): " + ", ".join(rets) + _tags([s_price]))
-    year = h.bars.iloc[-252:]
-    lines.append(f"52-week range {num(year['low'].min())} to {num(year['high'].max())}; {pct(h.price / year['high'].max() - 1, 1, True)} from the high{_tags([s_price])}")
+    for label in ("1M", "3M", "6M", "1Y", "3Y", "5Y"):
+        base = h.closes[h.closes.index <= last - pd.Timedelta(days=RANGE_DAYS[label])]
+        if len(base):
+            rets.append(f"{label} {pct(h.closes.iloc[-1] / base.iloc[-1] - 1, 1, True)}")
+    if rets:
+        lines.append("Total returns (dividends reinvested): " + ", ".join(rets) + _tags([s_price]))
+    # First Version: "52-week range" was taken from the last 252 bars, however short the history.
+    # Current Version: one calendar year, and a history shorter than that is labelled for what it is.
+    year = h.bars[h.bars.index > last - pd.Timedelta(days=365)]
+    span = "52-week range" if h.bars.index[0] <= last - pd.Timedelta(days=358) else f"Range since {h.bars.index[0].date()}"
+    lines.append(f"{span} {num(year['low'].min())} to {num(year['high'].max())}; {pct(h.price / year['high'].max() - 1, 1, True)} from the high{_tags([s_price])}")
     if h.trailing_dividends():
         lines.append(f"Trailing 12-month dividends {num(h.trailing_dividends())} per share{_tags([s_price])}")
 
@@ -143,9 +155,9 @@ def build(ws: Workspace) -> tuple[str, SourceRegistry]:
         if ws.dcf and ws.dcf_inputs:
             d, i = ws.dcf, ws.dcf_inputs
             calc = reg.computation("discounted cash flow", f"Base FCF {money(i.base_fcf)}, growth {pct(i.growth)} for {i.years_high}y fading to {pct(i.terminal_growth)}, discount {pct(i.discount)}")
-            lines.append(f"DCF value {num(d.per_share)} per share ({pct(d.per_share / h.price - 1, 0, True)} vs price); terminal value is {pct(d.pv_terminal / d.enterprise_value, 0)} of EV{_tags([s_facts, calc])}")
+            lines.append(f"DCF value {num(d.per_share)} per share ({pct(d.per_share / h.price - 1, 0, True)} vs price); terminal value is {pct(d.pv_terminal / d.enterprise_value, 0)} of EV{_tags([s_facts, s_price, calc])}")
             if ws.implied_growth is not None:
-                lines.append(f"Reverse DCF: the price implies {pct(ws.implied_growth)} annual FCF growth for {i.years_high} years at the same discount rate{_tags([s_price, calc])}")
+                lines.append(f"Reverse DCF: the price implies {pct(ws.implied_growth)} annual FCF growth for {i.years_high} years at the same discount rate{_tags([s_price, s_facts, calc])}")
         key = f.key_filings()[:8]
         if key:
             lines += ["", "## Recent filings"]

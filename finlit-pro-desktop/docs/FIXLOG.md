@@ -243,3 +243,113 @@ written as 1234.57 and a volume of 51,234,567 as 5.12346e+07.
 **First Version:** the build uploaded `dist/` directly; the upload drops symlinks and the executable
 bit, so the downloaded `FinLitPro.app` would not start.
 **Current Version:** the app bundle is zipped with `ditto` first and the zip is uploaded.
+
+### 36. Prices from Yahoo: second round
+**First Version / Current Version:**
+* **Latest session bar.** The bar rebuilt from Yahoo's quote summary used the previous close as its
+  open and made up a high and low, so ASML.AS and AIR.PA were drawn as down days on up days. Now
+  Yahoo's own open, high, low and volume are kept; only a missing value is filled, from the close.
+* **Multi-ticker CSV.** A `yf.download` file holding AAPL and MSFT imported as MSFT took AAPL's
+  prices (0 of 251 closes right). Now only the imported symbol's columns are used, and a file without
+  that symbol is refused with the tickers it does hold.
+* **Number formats in CSVs.** "2,007.00" became 2.007 and a "1.234.567" volume became 0. The
+  convention is now decided once per file, and a file whose numbers can be read two ways is refused
+  with what to do.
+* **Offline copy.** One answer with no usable prices replaced the only good offline copy. A payload
+  must now parse before it is saved.
+* **BRK.B.** Every load first asked for "BRK.B" and got a 404. The spelling Yahoo answers to is now
+  remembered.
+* **Bar dates.** Every bar was dated with today's time offset, so after a daylight-saving change
+  futures and currency bars moved to the previous day (65 weekend-dated bars for GC=F). Each bar is
+  now dated in the exchange's own time zone; GC=F, EURUSD=X and AAPL match yfinance date for date.
+* **Watchlist.** With the network down, a three-day-old price was shown as current. Only a copy
+  under two minutes old is used now; otherwise the row stays blank.
+* **Second host.** When `query1` answered 5xx, an old copy was returned without asking `query2`.
+* **Malformed answers** raised a Python error that stopped the provider chain; they are now a data
+  error and the chain moves on to yfinance.
+* **Options as-of** used today's date; it is now the date of the newest trade in the chain.
+* **Unknown currency** printed "None" or was assumed to be USD; it is now left out.
+* **Cache clear** left temporary files behind; the CSV "missing column" message now names the
+  file's columns.
+
+### 37. SEC fundamentals: second round
+**First Version / Current Version:**
+* **One debt decision.** `sec.py` said "Total debt is n/a" while the ratios separately treated missing
+  debt as zero unless interest expense was tagged, so SHOP and PLTR carried two contradictory notes
+  and DASH and PINS were called debt-free. Now `sec.py` decides once (reported, none or unknown, see
+  DATA_SOURCES.md) with at most one note, and reads notes, convertible notes, credit lines and
+  commercial paper. DASH $2.7B, PINS $981M, ORCL $125.3B and MAR $16.9B now match yfinance.
+* **ORCL.** Its notes payable were not read and a $0 long-term debt line won, so debt/equity read
+  0.11 against more than $125B of debt.
+* **CAT.** Its latest balance sheet tags no debt line; the figure from the fiscal year end is used,
+  with a note giving its date.
+* **One-class share counts.** HEI's count covered one share class, so its market cap was $16.8B
+  instead of about $43B. A count outside 0.5 to 2 times the diluted count is now replaced, with a
+  note; diluted counts tagged in thousands or millions are recognised.
+* **Year-ago balance sheet.** ROE and ROA averaged fiscal-year ends; they now average the balance
+  sheets a year apart. NVDA's ROE reads 117.2%, as yfinance does, instead of 99.9%.
+* **False "no quarterly figures" note** for companies whose 10-Qs SEC had not yet published as XBRL
+  (C); the note now names the filings that are waiting.
+* **Filing sections.** A Risk Factors heading on the same line as "PART II" was missed, and short
+  10-Q Risk Factors ("no material changes") were dropped as not found.
+* **Form 20-F filers** (TSM) are told where to read their statements; an invalid email is reported
+  once, not once per filing.
+
+### 38. Ratios, model and simulation: second round
+**First Version / Current Version:**
+* **Debt in the ratios.** Valuation no longer decides or notes debt; it uses the SEC figure, and
+  leaves EV, EV/EBIT, net debt, debt/equity, ROIC and the DCF's net cash blank when debt is unknown.
+* **Old interest expense.** Interest coverage used the newest year with any interest expense, so
+  AAPL's came from FY2023 and PLTR's 759x from years ago. Only TTM or the last fiscal year is used now.
+* **CAGR** counted reported values instead of years, so DELL's "5-year" EPS CAGR ran over six years.
+* **One financial-company test** for ratios, the DCF, Piotroski and Altman, covering exchanges and
+  brokers (CME, GS, SCHW) and not insurance brokers (AON).
+* **Strategy equity** could go below zero for a short position and keep compounding (drawdowns
+  above 1,000%, a CAGR of "+nan%"); capital that is gone now stays gone. A loss in the first period
+  now counts toward the maximum drawdown.
+* **Information coefficient.** A significantly negative IC (forecasts ranking outcomes backwards)
+  was shown without a flag; only a significantly positive one clears it now.
+* **Evaluation messages.** No forecast at all raised a KeyError; advice to try a shorter horizon
+  named horizons the model does not offer ("4 days"); "about 1 months" now reads "about 1 month".
+* **Constant prices** (a money market fund such as VMFXX) crashed v1.0 with an IndexError, as the
+  original did; it now refuses with a message that says why. Every other input gives exactly the
+  original's numbers (the v1.0 reproduction test is unchanged).
+* **Volatility override.** With historical drift, raising the volatility raised the expected return
+  (MSFT +22% to +95% a year); the historical arithmetic return is now kept.
+* **Implied volatility** returned the 500% search bound when no volatility reaches the premium; it
+  now returns nothing and the Market-implied row is dropped.
+* **Monte Carlo and calibration messages.** A history too short for the simulation no longer says
+  "shorten the lookback"; when calibration cannot run, the window shows the reason.
+* **BRK.B** is loaded as BRK-B, the spelling Yahoo uses, so SEC lookups and headlines match it.
+* **ALGORITHMS.md** now describes the regression trend step as the code computes it (h steps past
+  the last point).
+
+### 39. Research note, inputs and settings: second round
+**First Version / Current Version:**
+* **Claude engine.** Only the first text block was kept, so when the server-side fallback finished a
+  note in a second block, half the JSON was lost; all text blocks are joined now. Cancel was checked
+  only once answer text arrived; every stream event is checked now and the stream is closed. An
+  error inside the stream read "error (200)"; it now names the error (for example "overloaded"). A
+  context-window stop is reported as such instead of as invalid JSON.
+* **OpenAI engine.** Cancel did nothing and the note appeared anyway; a cancelled run now discards
+  it, and the window ignores a note that arrives after Cancel. A cut-off answer ("length") and a 400
+  error now say what happened and what to change.
+* **Citations.** "S1, S3" in one entry was read as one unknown ID and the fact marked unverified;
+  unknown IDs in interpretations and risks were dropped silently and are now named in a warning.
+* **Brief.** Trailing returns counted trading sessions while the screen uses calendar days (AAPL 1Y
+  +35.1% in the brief, +29.9% on screen); both use one table now. "52-week range" is labelled
+  "Range since ..." for a shorter history. The DCF lines now cite the price and the filings.
+* **Rules engine.** A negative free cash flow yield "prices in substantial growth", and an operating
+  loss "covers interest -3.2 times"; both are now described as cash burn and no interest cover.
+* **Number fields** deleted every comma, so "102,5" became 1025; a comma must now separate thousands
+  ("1,000"), and anything else is refused with a message.
+* **Suggestions and bounds.** "-3.5 paths" suggested -3, which the same field refuses, and bounds
+  printed as "1e+06"; suggestions now fall inside the allowed range and numbers are written out.
+* **Hidden characters** in a pasted key or email (a zero-width space) passed and later crashed the
+  request; they are refused with a message.
+* **Settings file.** Out-of-range values in a hand-edited `settings.json` (a negative excerpt length,
+  an unknown engine) are dropped so the defaults apply.
+* **Credential store.** With no secure store, Settings said keys were kept in "Keyring"; it now says
+  the store is unavailable.
+* **Money format.** 999,960 printed "$1,000.0K"; it now prints "$1.0M". An unknown currency no longer
+  leaves "None" or a trailing space.

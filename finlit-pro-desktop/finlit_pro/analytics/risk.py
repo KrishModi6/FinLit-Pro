@@ -15,6 +15,9 @@ import pandas as pd
 from finlit_pro.analytics.indicators import drawdown_series
 
 TD = 252
+# Calendar-day windows behind the 1M ... 10Y ranges. The window, the research brief and the
+# rules engine all use this one table so their figures agree.
+RANGE_DAYS = {"1M": 31, "3M": 92, "6M": 183, "1Y": 365, "3Y": 1096, "5Y": 1826, "10Y": 3653}
 
 
 @dataclass

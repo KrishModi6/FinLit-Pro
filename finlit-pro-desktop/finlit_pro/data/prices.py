@@ -14,6 +14,7 @@ exist stops the chain at once: no other provider will know it either.
 
 from __future__ import annotations
 
+import csv
 import io
 import re
 import warnings
@@ -107,20 +108,51 @@ def decode_csv(data: bytes) -> str:
     raise DataError("That file is not a text CSV. Save it as CSV (UTF-8) and import it again.")
 
 
-def _layout(text: str) -> tuple[str, str]:
-    """(text, delimiter): drops an Excel "sep=" line and yfinance's extra header rows, then sniffs ',' or ';'."""
+def _layout(text: str, symbol: str) -> tuple[str, str]:
+    """(text, delimiter): drops an Excel "sep=" line, sniffs ',' ';' or tab, and reduces yfinance's three header rows to one."""
     lines = text.lstrip("\ufeff").splitlines()
     sep = None
     if lines and re.fullmatch(r"sep=.", lines[0].strip(), re.IGNORECASE):
         sep, lines = lines[0].strip()[4], lines[1:]
-    # yf.download(...).to_csv() writes "Price,Close,...", "Ticker,AAPL,...", "Date,,,..." before the rows.
-    if len(lines) > 2 and lines[0].startswith("Price") and lines[1].startswith("Ticker") and lines[2].startswith("Date"):
-        lines = ["Date" + lines[0][len("Price"):]] + lines[3:]
     if sep is None:
         header = next((line for line in lines if line.strip()), "")
         counts = {c: header.count(c) for c in (",", ";", "\t")}
         sep = max(counts, key=lambda c: counts[c]) if any(counts.values()) else ","
+    # yf.download(...).to_csv() writes "Price,Close,...", "Ticker,AAPL,...", "Date,,,..." before the rows
+    # (with group_by="ticker" the Ticker row comes first).
+    if len(lines) > 2 and {lines[0].split(sep)[0].strip(), lines[1].split(sep)[0].strip()} == {"Price", "Ticker"} and lines[2].startswith("Date"):
+        lines = _one_ticker(lines, sep, symbol)
     return "\n".join(lines), sep
+
+
+def _one_ticker(lines: list[str], sep: str, symbol: str) -> list[str]:
+    """yfinance's three header rows as one, keeping only the columns of `symbol`.
+
+    First Version: the Ticker row was dropped and the first Close column used, so a
+    yf.download(["AAPL", "MSFT"]) file imported as MSFT got AAPL's prices (off by up
+    to 273 a share), with no warning. Current Version: only the columns whose Ticker
+    is the symbol being imported are kept (BRK.B also matches BRK-B), and a file with
+    no column for that symbol is refused, naming the tickers it does have.
+    """
+    first, second = (next(csv.reader([line], delimiter=sep)) for line in lines[:2])
+    fields, tickers = (first, second) if first[0].strip() == "Price" else (second, first)
+    names = [t.strip().upper() for t in tickers]
+    present = list(dict.fromkeys(n for n in names[1:] if n))
+    wanted = {symbol.upper(), symbol.upper().replace(".", "-"), symbol.upper().replace("-", ".")}
+    keep = [0] + [i for i in range(1, len(fields)) if not present or (i < len(names) and names[i] in wanted)]
+    if len(keep) == 1:
+        listed = " and ".join(present) if len(present) <= 2 else ", ".join(present[:-1]) + " and " + present[-1]
+        raise DataError(
+            f"That file has prices for {listed}, not {symbol}. Import it under {'that symbol' if len(present) == 1 else 'one of those symbols'}, "
+            f"or download {symbol} on its own and import that file."
+        )
+    out = io.StringIO()
+    writer = csv.writer(out, delimiter=sep, lineterminator="\n")
+    writer.writerow(["Date", *(fields[i] for i in keep[1:])])
+    for row in csv.reader(lines[3:], delimiter=sep):
+        if row:
+            writer.writerow([row[i] if i < len(row) else "" for i in keep])
+    return out.getvalue().splitlines()
 
 
 def _dates(values: pd.Series) -> pd.Series:
@@ -157,10 +189,74 @@ def _one_date(value: str, dayfirst: bool) -> pd.Timestamp:
     return stamp.tz_localize(None) if isinstance(stamp, pd.Timestamp) and stamp.tz is not None else stamp
 
 
-def _numbers(values: pd.Series, decimal_comma: bool) -> pd.Series:
+CURRENCY_AND_SPACE = r"[\s$\u00a3\u20ac\u00a0]"
+NUMBER = re.compile(r"[-+]?(\d[\d.,]*|[.,]\d+)")
+
+
+def _style(number: str) -> str | None:
+    """How one number writes its decimals: "point" (1,234.56), "comma" (1.234,56), "either", or None.
+
+    "either" is one separator followed by exactly three digits after a short whole
+    part, such as 3.010 or 1,234, which is a thousands separator in one convention
+    and a decimal mark in the other. None means the number has no separator.
+    """
+    digits = number.lstrip("-+")
+    dots, commas = digits.count("."), digits.count(",")
+    if not dots and not commas:
+        return None
+    if dots and commas:  # the later mark is the decimal one
+        return "point" if digits.rfind(".") > digits.rfind(",") else "comma"
+    mark = "." if dots else ","
+    if dots + commas > 1:  # 1.234.567 or 1,234,567: a repeated mark groups thousands
+        return "comma" if mark == "." else "point"
+    whole, frac = digits.split(mark)
+    if len(frac) != 3 or whole in ("", "0") or len(whole) > 3:
+        return "point" if mark == "." else "comma"
+    return "either"
+
+
+def _number_style(frame: pd.DataFrame, sep: str) -> str:
+    """"point" or "comma" for the whole file, from every price and volume column.
+
+    First Version: a semicolon file was read with decimal commas column by column,
+    whenever a column had a digit-comma-digit. "2,007.00" became 1.9414, "3.010" (a
+    dot grouping thousands, as in yen prices) became 3.01, and a volume of 1.234.567
+    in a decimal-comma file became 0, all with no warning. Current Version: the
+    convention is decided once for the file from the numbers that show it (both
+    marks, a repeated mark, or a mark not followed by three digits). A file that
+    shows both conventions is refused, and so is a semicolon or tab file whose
+    numbers could be read either way. Comma-separated files keep the decimal point
+    unless their numbers show otherwise.
+    """
+    seen: dict[str, str] = {}
+    for c in NUMERIC:
+        if c not in frame:
+            continue
+        for value in pd.unique(frame[c].dropna().astype(str).str.replace(CURRENCY_AND_SPACE, "", regex=True)):
+            if NUMBER.fullmatch(value) and (style := _style(value)):
+                seen.setdefault(style, value)
+    if "point" in seen and "comma" in seen:
+        raise DataError(
+            f'The numbers in that file are written two ways ("{seen["point"]}" and "{seen["comma"]}"), so their size cannot be read reliably. '
+            "Save it with a decimal point and no thousands separators (like 2007.50), then import it again."
+        )
+    if "point" in seen or "comma" in seen:
+        return "point" if "point" in seen else "comma"
+    if "either" in seen and sep != ",":
+        example = seen["either"]
+        whole, frac = example.lstrip("-+").replace(",", ".").split(".")
+        small, big = f"{float(whole + '.' + frac):g}", str(int(whole + frac))
+        raise DataError(
+            f'Some numbers in that file can be read two ways: "{example}" could be {small} or {big}. '
+            f"Save it with a decimal point and no thousands separators (like {big} or {small}), then import it again."
+        )
+    return "point"
+
+
+def _numbers(values: pd.Series, style: str) -> pd.Series:
     """Numbers as broker exports write them: currency signs, thousands separators, or decimal commas."""
-    text = values.astype(str).str.replace(r"[\s$\u00a3\u20ac\u00a0]", "", regex=True)
-    if decimal_comma:
+    text = values.astype(str).str.replace(CURRENCY_AND_SPACE, "", regex=True)
+    if style == "comma":
         text = text.str.replace(".", "", regex=False).str.replace(",", ".", regex=False)
     else:
         text = text.str.replace(",", "", regex=False)
@@ -181,12 +277,12 @@ def parse_csv(text: str | bytes, symbol: str) -> PriceHistory:
         return _parse_csv(text, symbol)
     except DataError:
         raise
-    except (ValueError, TypeError, OverflowError) as exc:
+    except (ValueError, TypeError, OverflowError, csv.Error) as exc:
         raise DataError(f"Could not read daily prices from that file ({exc.__class__.__name__}). {HOW_TO_FIX}") from None
 
 
 def _parse_csv(text: str, symbol: str) -> PriceHistory:
-    body, sep = _layout(text)
+    body, sep = _layout(text, symbol)
     try:
         frame = pd.read_csv(io.StringIO(body), sep=sep, dtype=str, skipinitialspace=True)
     except (ValueError, pd.errors.ParserError) as exc:
@@ -194,16 +290,23 @@ def _parse_csv(text: str, symbol: str) -> PriceHistory:
     cols = {c: ALIASES.get(str(c).strip().lower()) for c in frame.columns}
     frame = frame.rename(columns={k: v for k, v in cols.items() if v})
     if "date" not in frame or "close" not in frame:
-        raise DataError("The CSV needs at least a Date column and a Close column.")
+        # First Version: "The CSV needs at least a Date column and a Close column." with no
+        # word on what the file had or what to do. Current Version: it names the file's
+        # columns and says how to fix the file, like the other import messages.
+        found = ", ".join(str(c).strip() for c in list(cols)[:8]) + (", ..." if len(cols) > 8 else "")
+        raise DataError(
+            f"The CSV needs at least a Date column and a Close column; this file has {found or 'no column names'}. "
+            "Name the date column Date and the closing price column Close, with one row per trading day, then import it again."
+        )
     frame = frame.loc[:, ~frame.columns.duplicated()]
     frame["date"] = _dates(frame["date"])
     frame = frame.dropna(subset=["date"])
     if frame.empty:
         raise DataError(f"None of the dates in that CSV could be read. Use dates like 2024-01-31 or 01/31/2024. {HOW_TO_FIX}")
+    style = _number_style(frame, sep)
     for c in NUMERIC:
         if c in frame:
-            decimal_comma = sep == ";" and bool(frame[c].astype(str).str.contains(r"\d,\d", regex=True).any())
-            frame[c] = _numbers(frame[c], decimal_comma)
+            frame[c] = _numbers(frame[c], style)
     frame = frame[frame["close"] > 0]
     frame = frame.drop_duplicates().set_index("date").sort_index()
     if frame.index.has_duplicates:
@@ -223,7 +326,10 @@ def _parse_csv(text: str, symbol: str) -> PriceHistory:
     return PriceHistory(
         symbol=symbol,
         name=symbol,
-        currency="USD",
+        # First Version: every imported file was labelled USD, so a 7203.T or SAP.DE
+        # file showed yen or euro prices as dollars. Current Version: a CSV states no
+        # currency, so it is left blank (""), never assumed.
+        currency="",
         exchange=None,
         instrument_type=None,
         price=float(bars["close"].iloc[-1]),

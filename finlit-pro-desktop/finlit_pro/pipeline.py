@@ -81,6 +81,10 @@ def load(
     symbol = validation.ticker(symbol)
     ws = Workspace(symbol)
     load_prices(ws)
+    # First Version: "brk.b" kept ws.symbol "BRK.B" while the prices came back as Yahoo's "BRK-B", and the SEC
+    # lookup and headlines used the typed spelling. Current Version: the Yahoo spelling is adopted, as the window does.
+    if ws.history and ws.history.symbol:
+        ws.symbol = symbol = ws.history.symbol
     # First Version: risk, the model, Monte Carlo and calibration were not wrapped, so a listing with fewer
     # than 60 sessions made the whole load fail, and the evaluation's reason was dropped. Current Version:
     # each step that cannot run records its message on the Workspace and the rest still run.
@@ -101,9 +105,16 @@ def load(
     cfg = mc_config or montecarlo.MCConfig()
     try:
         ws.mc = montecarlo.simulate(ws.history.closes, cfg, start_price=ws.history.price)
-        ws.calibration = montecarlo.calibration(ws.history.closes, cfg.horizon_days, cfg.lookback_days)
     except ValueError as exc:
-        ws.mc_error = str(exc) if ws.mc is None else f"The Monte Carlo ran, but its calibration check could not: {exc}"
+        ws.mc_error = str(exc)
+    # First Version: calibration() returns None (it does not raise) when the history is too short, so FIG and CRCL
+    # had no calibration and no reason. Current Version: Workspace.calibration_error says why, either way.
+    try:
+        ws.calibration = montecarlo.calibration(ws.history.closes, cfg.horizon_days, cfg.lookback_days)
+        if ws.calibration is None:
+            ws.calibration_error = montecarlo.calibration_reason(ws.history.closes, cfg.horizon_days, cfg.lookback_days)
+    except ValueError as exc:
+        ws.calibration, ws.calibration_error = None, f"The calibration check could not run: {exc}"
     # Funds, indices and the like file no company statements: say so instead of asking the SEC.
     reason = sec.not_a_company(ws.history.instrument_type, ws.history.name)
     if reason:

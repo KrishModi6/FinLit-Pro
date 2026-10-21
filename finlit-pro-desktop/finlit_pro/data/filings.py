@@ -11,6 +11,8 @@ as the real heading, so for each item the longest span between its heading
 and the next item's heading is taken; table-of-contents spans are a line long.
 Headings start a line; the same words inside a sentence, usually in quotes
 ('see "Item 1A. Risk Factors" in Part I'), are cross-references and are skipped.
+A heading may also follow its Part heading on the same line
+("PART II. OTHER INFORMATION Item 1A. Risk Factors").
 """
 
 from __future__ import annotations
@@ -38,6 +40,11 @@ SECTIONS = {
         ("Risk Factors", rf"item\s*1a{DASH}risk\s+factors", rf"item\s*2{DASH}unregistered|item\s*5{DASH}other|item\s*6{DASH}exhibits"),
     ],
 }
+
+# Shortest text kept as a section. A 10-Q's Risk Factors item only has to say whether anything changed since the
+# 10-K, so it is often a few sentences: JPM's 10-Q has 402 characters there.
+MIN_SECTION_CHARS = 500
+MIN_CHARS_FOR = {("10-Q", "Risk Factors"): 150}
 
 BLOCK_TAGS = {"p", "div", "br", "tr", "li", "h1", "h2", "h3", "h4", "h5", "h6", "table", "section"}
 SKIP_TAGS = {"script", "style", "head", "ix:header", "title"}
@@ -111,6 +118,15 @@ def _headings(text: str, pattern: str) -> tuple[list[int], list[int]]:
     return line, loose
 
 
+# Text before an item heading on its line that makes it a heading: a Part heading such as "PART II. OTHER INFORMATION".
+_PART_PREFIX = re.compile(r"\s*part\s+(?:i{1,3}|iv)\b[\s.:|\-\u2013\u2014]*(?:[a-z][a-z ,&]{0,40}?[\s.:|\-\u2013\u2014]*)?", re.IGNORECASE)
+
+
+def _after_part_heading(text: str, offsets: list[int]) -> list[int]:
+    """The offsets whose line holds only a Part heading before them."""
+    return [p for p in offsets if _PART_PREFIX.fullmatch(text, text.rfind("\n", 0, p) + 1, p)]
+
+
 def _contents(span: str) -> bool:
     """A table of contents: at least three bare page numbers, and a third or more of the lines are page numbers."""
     lines = [line for line in span.split("\n") if line.strip()]
@@ -142,11 +158,23 @@ def extract_section(text: str, start_pattern: str, end_pattern: str) -> str:
     Current Version: a heading must start its line and not be quoted or followed by a closing
     quote or a comma; end headings likewise (an end that is not at a line start is used only
     when no line-start end follows). The old rule applies only when no line-start heading exists.
+
+    First Version (of that rule): line-start headings excluded every other match, so a real heading
+    sharing its line with the Part heading ("PART II. OTHER INFORMATION Item 1A. Risk Factors") lost
+    to the 24-character contents entry. Current Version: when every line-start span is shorter than
+    MIN_SECTION_CHARS, headings that follow a Part heading on their line are tried too, and the
+    longer span wins. Other mid-line matches stay excluded: JPM's 10-Q says "Refer to Part I, Item
+    1A: Risk Factors on pages 9-31 of the 10-K" right after its real, short Risk Factors heading.
     """
     starts, loose_starts = _headings(text, start_pattern)
     ends, loose_ends = _headings(text, end_pattern)
     if starts:
-        return _longest(text, starts, ends, loose_ends)
+        best = _longest(text, starts, ends, loose_ends)
+        if len(best) < MIN_SECTION_CHARS:
+            shared = _after_part_heading(text, [s for s in loose_starts if s not in starts])
+            other = _longest(text, shared, ends, loose_ends) if shared else ""
+            best = other if len(other) > len(best) else best
+        return best
     if loose_starts:
         return _longest(text, loose_starts, loose_ends)
     every_start = [m.start() for m in re.finditer(start_pattern, text, flags=re.IGNORECASE)]
@@ -188,7 +216,9 @@ def read(filing: Filing, email: str, limit_chars: int = 40_000) -> FilingText:
     sections, cut, sizes, notes = {}, {}, {}, []
     for name, start, end in SECTIONS.get(base, []):
         body = extract_section(text, start, end)
-        if len(body) < 500:
+        # First Version: a section under 500 characters was "not found", which dropped JPM's real 10-Q Risk Factors
+        # (402 characters: no material changes, see the 10-K). Current Version: a 10-Q's Risk Factors needs 150.
+        if len(body) < MIN_CHARS_FOR.get((base, name), MIN_SECTION_CHARS):
             notes.append(f"{name} not found in the {filing.form}; the filing may incorporate it by reference.")
             continue
         sizes[name] = len(body)
@@ -245,6 +275,13 @@ def latest_reports(fund: Fundamentals, email: str, limit_chars: int = 40_000) ->
     forms = [f.form.split("/")[0] for f in (annual, quarterly) if f is not None]
     if quarterly and annual and quarterly.filed < annual.filed:
         forms = ["10-K"]
+    if forms:
+        # First Version: a bad SEC contact email failed each filing separately, so the same message appeared once
+        # for the 10-K and again for the 10-Q. Current Version: the email is checked once, before any request.
+        try:
+            sec_headers(email)
+        except DataError as exc:
+            return out, [str(exc)]
     for form in forms:
         ft = _read_report(fund, form, email, limit_chars, problems)
         if ft is not None:

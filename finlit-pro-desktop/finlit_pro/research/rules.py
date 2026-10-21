@@ -12,6 +12,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from finlit_pro.analytics.risk import RANGE_DAYS
 from finlit_pro.fmt import money, num, pct
 from finlit_pro.research.note import Fact, Interpretation, Note, Risk, Uncertainty
 from finlit_pro.research.sources import SourceRegistry
@@ -37,10 +38,11 @@ def build_note(ws: Workspace, reg: SourceRegistry) -> Note:
         interp.append(Interpretation(statement, confidence, [i for i in ids if i]))
 
     s_price = reg.dataset(h.source)
-    facts.append(Fact("Price and risk", f"{h.symbol} last traded at {num(h.price)} {h.currency} on {h.bars.index[-1].date()}.", [s_price]))
+    cur = f" {h.currency}" if h.currency else ""  # never "None" when the currency is unknown
+    facts.append(Fact("Price and risk", f"{h.symbol} last traded at {num(h.price)}{cur} on {h.bars.index[-1].date()}.", [s_price]))
     # One calendar year, matching the 1Y window of the Returns and Risk view
     # (First Version used 252 sessions, which disagreed with that view by a few days).
-    year_ago = h.closes[h.closes.index <= h.closes.index[-1] - pd.Timedelta(days=365)]
+    year_ago = h.closes[h.closes.index <= h.closes.index[-1] - pd.Timedelta(days=RANGE_DAYS["1Y"])]
     if len(year_ago):
         r1y = h.closes.iloc[-1] / year_ago.iloc[-1] - 1
         facts.append(Fact("Price and risk", f"Total return over the past year was {pct(r1y, 1, True)}.", [s_price]))
@@ -79,13 +81,22 @@ def build_note(ws: Workspace, reg: SourceRegistry) -> Note:
             if _ok(g3):
                 judge(2 if g3 > 0.15 else (1 if g3 > 0.05 else (-1 if g3 < 0 else 0)), f"Revenue has compounded {pct(g3)} a year over three years.", "Medium", [s_facts, calc_ratios])
             fy = r.get("fcf_yield")
-            if _ok(fy):
+            # First Version: a negative yield read "A -3.1% free cash flow yield prices in substantial growth".
+            # Current Version: a cash-burning company is described as consuming cash (same score).
+            if _ok(fy) and fy < 0:
+                judge(-1, f"Free cash flow is negative ({pct(fy)} of market value): the company is consuming cash.", "Medium", [s_facts, s_price, calc_ratios])
+            elif _ok(fy):
                 judge(2 if fy > 0.06 else (1 if fy > 0.04 else (-1 if fy < 0.02 else 0)), f"A {pct(fy)} free cash flow yield {'is attractive' if fy > 0.04 else ('is undemanding' if fy > 0.02 else 'prices in substantial growth')}.", "Medium", [s_facts, s_price, calc_ratios])
             if ws.implied_growth is not None and _ok(r.get("fcf_cagr_5y")):
                 gap = ws.implied_growth - r["fcf_cagr_5y"]
                 judge(-1 if gap > 0.05 else (1 if gap < -0.05 else 0), f"The price implies {pct(ws.implied_growth)} annual FCF growth against {pct(r['fcf_cagr_5y'])} delivered over five years.", "Medium", [s_price, s_facts, reg.computation("discounted cash flow", "")])
             cov = r.get("interest_coverage")
-            if _ok(cov):
+            # First Version: an operating loss read "Operating income covers interest -3.2 times".
+            # Current Version: negative coverage says plainly that there is no earnings cover.
+            if _ok(cov) and cov < 0:
+                judge(-2, "Operating income is negative, so it does not cover interest expense.", "High", [s_facts, calc_ratios])
+                risks.append(Risk("Operating losses leave no earnings cover for interest payments.", [s_facts]))
+            elif _ok(cov):
                 judge(-2 if cov < 2 else (1 if cov > 8 else 0), f"Operating income covers interest {num(cov, 1)} times.", "High" if cov < 2 or cov > 15 else "Medium", [s_facts, calc_ratios])
                 if cov < 3:
                     risks.append(Risk(f"Thin interest coverage ({num(cov, 1)}x) leaves little room if operating income falls.", [s_facts]))

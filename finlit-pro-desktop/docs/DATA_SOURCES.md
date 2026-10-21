@@ -46,14 +46,24 @@ data. FinLit Pro is built on that basis: single-user, personal research, nothing
 **How FinLit Pro treats them.**
 
 * At most 2 requests per second to Yahoo hosts, from all views combined.
-* Retries with backoff on HTTP 429 and 5xx, honouring `Retry-After`; a 15-second timeout.
+* Timeouts of about 5 seconds to connect and 15 seconds between bytes of the answer (30 seconds for
+  filed documents). A failed connection or read is retried once; HTTP 429 and 5xx are retried up to
+  three times with backoff, honouring `Retry-After`. When `query1` still fails, `query2` is asked
+  before any old copy is used.
 * Everything cached on disk (`%LOCALAPPDATA%\FinLitPro\cache` on Windows).
 * A provider chain for prices: chart API, then `yfinance`, then the last cached copy, then a CSV you
   imported. Each failed step is recorded and shown in the provider log beside the sources table,
   and in a notice above the views.
 * An unknown symbol stops the chain at once with a clear message, rather than asking every provider.
-* Delayed quotes: option and price data may be 15 minutes old or more during market hours. The
-  as-of date shown is the date of the last bar, and the retrieval time is when FinLit Pro fetched it.
+* Delayed quotes: option and price data may be 15 minutes old or more during market hours. For
+  prices the as-of date is the date of the last bar. For an option chain it is the exchange-local
+  date of the newest trade in the chain (`lastTradeDate`); when Yahoo reports no trade times it is
+  left blank and the source detail says so. The retrieval time is when FinLit Pro fetched it.
+* Each bar is dated with the exchange's own time zone, so futures and currencies keep the right
+  trading day across daylight-saving changes.
+* A watchlist quote older than its 2-minute lifetime is not shown as current: when Yahoo cannot be
+  reached the row stays blank.
+* An answer that arrives but holds no usable prices never replaces the last good offline copy.
 
 **Adjustments.** Returns, the prediction model and the Monte Carlo use the adjusted close
 (dividends and splits); the chart shows traded prices. Split events also restate per-share figures
@@ -82,7 +92,19 @@ still works.
 * Annual figures from 10-K, 20-F and 40-F filings, ten fiscal years, choosing for each year the
   most recently filed value (restatements win) and merging the XBRL tags companies switch between.
 * Trailing-twelve-month flows from the latest 10-Q's year-to-date figures.
-* The latest balance sheet and the cover-page share count.
+* The latest balance sheet, the balance sheet about a year earlier (so ROE and ROA can use the
+  average over the trailing year), and the cover-page share count.
+* **Share count.** The cover-page count is used when it is recent. When it is missing, older than
+  about 15 months, or outside 0.5 to 2 times the diluted weighted-average count in the same filing
+  (a sign it counts only one share class), the diluted count is used instead, with a note. If no
+  count can be trusted, market cap and per-share values are left blank with a note.
+* **Debt.** FinLit Pro decides once, for the latest balance sheet, and shows at most one note:
+  *reported* (a total built from the debt tags, including notes, convertible notes, credit lines and
+  commercial paper, without double counting), *none* (no debt figure of any kind in the last 15
+  months: treated as zero, with the note "No debt is reported in the filings"), or *unknown* (the
+  filings show debt but no standard total: enterprise value and the debt-based ratios are left
+  blank, and the note says why). Finance leases are not added separately, because companies that
+  count them already include them in their combined debt line.
 * Every figure keeps the filing it came from (form, filed date, accession number, link). Hover a cell
   in the Fundamentals table to see it; double-click to open the filing on sec.gov.
 * Filing text: Item 1, 1A and 7 of the latest 10-K, and Item 2 and 1A of a newer 10-Q, extracted
@@ -91,7 +113,8 @@ still works.
 
 **Limits.** ETFs, indices, funds, crypto and most non-US listings do not file XBRL financial
 statements; for those, the price, model, Monte Carlo and options views work and the Fundamentals
-view says why it is empty. Foreign filers that report under IFRS are not parsed. XBRL tagging varies
+view says why it is empty. Foreign filers that report under IFRS (Form 20-F or 40-F, for example
+TSM) are not parsed; the Fundamentals view says so and points to the annual report on sec.gov. XBRL tagging varies
 between companies; a missing figure is shown as n/a, never guessed.
 
 ## Analysis engines (optional)

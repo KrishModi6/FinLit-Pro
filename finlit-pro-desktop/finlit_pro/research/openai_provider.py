@@ -43,11 +43,25 @@ class OpenAIEngine:
             raise AnalysisError(f"This OpenAI key cannot use {self.model} or {FALLBACK_MODEL}.") from None
         except openai.RateLimitError:
             raise AnalysisError("OpenAI is rate limiting this key or it is out of credit.") from None
+        except openai.BadRequestError as exc:
+            # First Version: a 400 fell through to "OpenAI returned an error (400)" and the cause was dropped.
+            raise AnalysisError(f"OpenAI rejected the request: {exc.message}") from None
         except openai.APIStatusError as exc:
             raise AnalysisError(f"OpenAI returned an error ({exc.status_code}).") from None
         except openai.APIConnectionError:
             raise AnalysisError("Could not reach OpenAI. Check the internet connection.") from None
-        message = resp.choices[0].message if resp.choices else None
+        # First Version: this call cannot be interrupted, and a note that finished after Cancel was shown anyway.
+        # Current Version: a cancelled run discards the answer.
+        if cancelled and cancelled():
+            raise AnalysisError("Analysis cancelled.")
+        choice = resp.choices[0] if resp.choices else None
+        if choice is not None and getattr(choice, "finish_reason", None) == "length":
+            # First Version: a cut-off answer was reported as "no analysis" or as invalid JSON.
+            raise AnalysisError(
+                "The analysis exceeded the output limit (the model's reasoning counts toward it). "
+                "Reduce the filing excerpt length in Settings or choose another model, then run it again."
+            )
+        message = choice.message if choice is not None else None
         if message is not None and getattr(message, "refusal", None):
             raise AnalysisError("The model declined to produce this analysis.")
         text = (message.content if message is not None else "") or ""

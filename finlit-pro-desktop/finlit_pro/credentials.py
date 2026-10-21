@@ -70,4 +70,9 @@ def backend() -> str:
     keyring, _ = _keyring()
     if keyring is None:
         return "unavailable"
-    return type(keyring.get_keyring()).__name__
+    # First Version reported "Keyring" for keyring's fail backend, which is what keyring falls back to when
+    # there is no secure store, so Settings claimed keys were kept there. Current Version: says unavailable.
+    kr = keyring.get_keyring()
+    if type(kr).__module__.startswith("keyring.backends.fail") or getattr(kr, "priority", 1) <= 0:
+        return "unavailable"
+    return type(kr).__name__

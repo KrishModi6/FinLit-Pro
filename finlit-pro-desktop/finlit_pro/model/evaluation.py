@@ -68,17 +68,60 @@ def _spearman(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def _max_drawdown(growth: np.ndarray) -> float:
-    peak = np.maximum.accumulate(growth)
-    return float((1 - growth / peak).max()) if len(growth) else 0.0
+    """Largest fall from a running peak, measured from the starting value of 1.
+
+    First Version: the peak started at the first period's value, so a strategy wiped out in its first period
+    read 0/0. Current Version: the series is prefixed with 1, the capital before the first period.
+    """
+    if not len(growth):
+        return 0.0
+    g = np.r_[1.0, growth]
+    peak = np.maximum.accumulate(g)
+    return float((1 - g / peak).max())
+
+
+def _equity(rets: np.ndarray) -> tuple[np.ndarray, int | None]:
+    """Growth of 1 from period returns, held at 0 from the first period that loses all the capital.
+
+    First Version: cumprod(1 + returns) had no floor, so a short position in a stock that more than doubled
+    (GME, AMC) took the equity below zero, after which it kept compounding and flipped sign: drawdowns of
+    1294%, a CAGR of "+nan%", or a finite CAGR after a wipe-out. Current Version: capital that is gone stays
+    gone, so the drawdown is 100% and the CAGR -100%. Returns (equity, index of the ruinous period or None).
+    """
+    growth = np.cumprod(1 + rets)
+    ruin = np.flatnonzero(growth <= 0)
+    if len(ruin):
+        growth[ruin[0]:] = 0.0
+        return growth, int(ruin[0])
+    return growth, None
 
 
 MIN_ORIGINS = 8
 
 
 def _span(days: float) -> str:
-    """Calendar days as a span a reader can picture: about 2 years, about 15 months."""
+    """Calendar days as a span a reader can picture: about 2 years, about 15 months, about 1 month.
+
+    First Version: "about 0 months" and "about 1 months". Current Version: "less than a month" and "about 1 month".
+    """
     months = round(days / 30.44)
+    if months < 1:
+        return "less than a month"
+    if months == 1:
+        return "about 1 month"
     return f"about {months // 12} years" if months >= 24 and months % 12 == 0 else f"about {months} months"
+
+
+def _history_span(days: float, lookback_days: int) -> str:
+    """The history's span, never worded the same as the longer lookback it falls short of.
+
+    First Version: 520 sessions read "(about 2 years)" right after "needs about 2 years". Current Version:
+    "just under 2 years, 728 calendar days".
+    """
+    span = _span(days)
+    if days < lookback_days and span == _span(lookback_days):
+        span = "just under " + span.removeprefix("about ")
+    return f"{span}, {int(days)} calendar days"
 
 
 def _origin_count(n_bars: int, first: int, horizon: int, step: int) -> int:
@@ -92,6 +135,10 @@ def _too_few_message(model: PredictionModel, bars: pd.DataFrame, horizon: int, s
     model's two-year lookback (FIG, KLAR, CRCL), where no horizon fits a single test. Current Version: that
     case names the history the model needs, the history there is, and when the first test becomes possible;
     the shorter-horizon advice is given only when a shorter horizon would fit at least 8 forecasts.
+    First Version: the advice searched every whole number of days, so TEM was told "11 days or shorter" and a
+    short DEMO "4 days", which the model does not offer (7, 14, 30, 60, 90), and the lookback was "needed before
+    its first forecast" although the model forecasts today. Current Version: only the model's own horizons are
+    searched, and the lookback is needed before the first test forecast.
     """
     n, index = len(bars), bars.index
     start = index[first] if first < n else index[0] + pd.Timedelta(days=model.lookback_calendar_days)
@@ -101,14 +148,15 @@ def _too_few_message(model: PredictionModel, bars: pd.DataFrame, horizon: int, s
         first_test = (start + pd.offsets.BDay(horizon)).date()
         return (
             f"The {model.name} needs {_span(model.lookback_calendar_days)} of history ({model.lookback_calendar_days} calendar days) "
-            f"before its first forecast, plus {horizon} sessions to score it. This history has {n} sessions from {index[0].date()} "
-            f"({_span((index[-1] - index[0]).days)}), so no out-of-sample test fits yet at any horizon. The first test becomes possible "
-            f"around {first_test}, and the {MIN_ORIGINS} the evaluation needs around {eighth}."
+            f"before its first test forecast, plus {horizon} sessions to score it. This history has {n} sessions from {index[0].date()} "
+            f"({_history_span((index[-1] - index[0]).days, model.lookback_calendar_days)}), so no out-of-sample test fits yet at any horizon. "
+            f"The first test becomes possible around {first_test}, and the {MIN_ORIGINS} the evaluation needs around {eighth}."
         )
-    shorter = next((h for h in range(horizon - 1, 0, -1) if _origin_count(n, first, h, step if fixed_step else h) >= MIN_ORIGINS), None)
+    offered = sorted((h for h in getattr(model, "horizons", ()) if h < horizon), reverse=True)
+    shorter = next((h for h in offered if _origin_count(n, first, h, step if fixed_step else h) >= MIN_ORIGINS), None)
     head = f"Only {found} out-of-sample forecasts fit in this history at a {horizon}-day horizon. The evaluation needs at least {MIN_ORIGINS}; "
     if shorter:
-        return head + f"choose a horizon of {shorter} days or shorter, or a ticker with a longer history."
+        return head + f"choose a horizon of {shorter} days or shorter, or a ticker with a longer history."  # one the model offers
     return head + f"a shorter horizon would not fit {MIN_ORIGINS} either. At this horizon they fit around {eighth}; until then, choose a ticker with a longer history."
 
 
@@ -166,9 +214,15 @@ def walk_forward(
         )
         if progress:
             progress(n + 1, len(origins))
+    # First Version: with no forecast produced at all, DataFrame([]).set_index("date") raised a KeyError before
+    # this check. Current Version: the rows are counted first, so the message below is what the user sees.
+    if len(rows) < MIN_ORIGINS:
+        raise ValueError(
+            f"Only {len(rows)} of {len(origins)} test dates produced a forecast (the model refused the others, usually because "
+            f"its window held too little or unchanging history), and the evaluation needs at least {MIN_ORIGINS}. Choose a ticker with a longer, "
+            "regularly traded history."
+        )
     rec = pd.DataFrame(rows).set_index("date")
-    if len(rec) < 8:
-        raise ValueError("Too few forecasts could be produced to evaluate the model on this ticker.")
 
     n = len(rec)
     pred, real = rec["pred_return"].to_numpy(), rec["realized_return"].to_numpy()
@@ -200,7 +254,15 @@ def walk_forward(
     # Ranking skill
     ic = _spearman(pred, real)
     t_ic = ic * math.sqrt((n - 2) / max(1 - ic**2, 1e-9)) if np.isfinite(ic) else float("nan")
-    metrics.append(Metric("Information coefficient", ic, f"{ic:+.3f}", "Spearman rank correlation between forecast and realised returns.", "Above 0.05 is considered useful in equity research", "" if np.isfinite(t_ic) and abs(t_ic) >= 2 else "not significant (|t| < 2)"))
+    # First Version: the flag cleared whenever |t| >= 2, so a significantly NEGATIVE IC (forecasts ranking outcomes
+    # backwards) was shown unflagged and passed the rules engine. Current Version: only t >= 2 clears it.
+    if np.isfinite(t_ic) and t_ic >= 2:
+        ic_flag = ""
+    elif np.isfinite(t_ic) and t_ic <= -2:
+        ic_flag = "negative: forecasts rank outcomes backwards"
+    else:
+        ic_flag = "not significant (|t| < 2)"
+    metrics.append(Metric("Information coefficient", ic, f"{ic:+.3f}", "Spearman rank correlation between forecast and realised returns.", "Above 0.05 is considered useful in equity research", ic_flag))
     metrics.append(Metric("IC t-statistic", t_ic, f"{t_ic:+.2f}", "Significance of the information coefficient."))
 
     # Uncertainty calibration
@@ -224,10 +286,15 @@ def walk_forward(
     for name, pos in positions.items():
         turnover = np.abs(np.diff(np.concatenate([[0.0], pos])))
         rets = pos * real - turnover * cost
-        growth = np.cumprod(1 + rets)
+        growth, ruin = _equity(rets)
+        if ruin is not None:
+            # Nothing is left to trade after the wipe-out: that period loses 100% and later periods return 0.
+            rets = rets.copy()
+            rets[ruin], rets[ruin + 1:] = -1.0, 0.0
+            notes.append(f"{name}: the strategy lost all its capital in the period from {rec.index[ruin].date()}, so its equity stays at zero after it.")
         equity[name] = growth
         years = n / periods_per_year
-        cagr = growth[-1] ** (1 / years) - 1 if years > 0 and growth[-1] > 0 else float("nan")
+        cagr = (growth[-1] ** (1 / years) - 1 if growth[-1] > 0 else -1.0) if years > 0 else float("nan")
         vol = float(np.std(rets, ddof=1) * math.sqrt(periods_per_year))
         sharpe = float(np.mean(rets) * periods_per_year / vol) if vol > 0 else float("nan")
         metrics.append(Metric(f"{name} CAGR", cagr, f"{cagr:+.1%}", f"Annualised return holding the {name.lower()} position from each verdict for the horizon, after {cost_bps:g} bp per trade."))

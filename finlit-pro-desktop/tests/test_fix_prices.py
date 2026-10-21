@@ -7,7 +7,7 @@ and the yfinance module are replaced by fakes, so nothing here goes online.
 import json
 import threading
 from collections.abc import Mapping
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
@@ -105,7 +105,9 @@ def test_null_close_for_the_latest_session_is_rebuilt_from_meta():
     last = h.bars.iloc[-1]
     assert last["close"] == last["adjclose"] == h.price  # the model's last price matches the Monte Carlo's
     assert (last["high"], last["low"], last["volume"]) == (265.34, 260.42, 34498734)
-    assert last["open"] == 262.45  # no open in meta: the previous close stands in
+    # No open in the null bar or in meta: the close stands in, as for every other bar.
+    # (Before test_fix2_prices: the previous close, 262.45, which made up a price move.)
+    assert last["open"] == 262.63
     assert h.bars.index.is_monotonic_increasing and not h.bars.index.has_duplicates
     assert h.bars.index.dtype == h.bars.index[:-1].dtype  # same resolution as Yahoo's own bars
 
@@ -113,10 +115,10 @@ def test_null_close_for_the_latest_session_is_rebuilt_from_meta():
 def test_rebuilt_session_open_stays_inside_the_days_range():
     meta = dict(AMZN_AFTER_CLOSE, regularMarketDayHigh=240.0, regularMarketDayLow=230.0, regularMarketPrice=235.0)
     last = yahoo.parse_chart(chart("AMZN", meta=meta), "AMZN").bars.iloc[-1]
-    assert last["low"] <= last["open"] <= last["high"] and last["open"] == 240.0  # gap down: open clipped to the high
+    assert last["low"] <= last["open"] <= last["high"] and last["open"] == 235.0  # unknown open: the close, not the previous close
     bare = {"regularMarketPrice": 263.0, "regularMarketTime": utc("2026-10-20T20:00:00")}
     last = yahoo.parse_chart(chart("AMZN", meta=bare), "AMZN").bars.iloc[-1]
-    assert (last["open"], last["high"], last["low"], last["volume"]) == (262.45, 263.0, 262.45, 0)
+    assert (last["open"], last["high"], last["low"], last["volume"]) == (263.0, 263.0, 263.0, 0)  # nothing made up
 
 
 def test_no_extra_session_when_meta_is_on_the_last_bars_date():
@@ -364,7 +366,7 @@ def test_yfinance_fallback_takes_currency_name_and_exchange_from_metadata(monkey
 def test_yfinance_fallback_never_assumes_usd(monkeypatch):
     monkeypatch.setattr(yf_provider, "_yf", lambda: fake_yf({"SAP.DE": yf_frame()}, {"SAP.DE": {"shortName": "SAP SE   "}}))
     h = yf_provider.history("SAP.DE")
-    assert h.currency is None and h.name == "SAP SE" and h.exchange is None
+    assert h.currency == "" and h.name == "SAP SE" and h.exchange is None  # blank, never "None" in text
 
 
 def test_yfinance_fallback_finds_class_shares_by_dash(monkeypatch):
@@ -374,11 +376,12 @@ def test_yfinance_fallback_finds_class_shares_by_dash(monkeypatch):
     assert h.symbol == "BRK-B" and h.currency == "USD"
 
 
-def test_option_chain_source_is_as_of_today_with_the_expiry_in_detail(monkeypatch):
+def test_option_chain_source_names_the_expiry_in_detail_not_as_of(monkeypatch):
+    # as_of is now the newest lastTradeDate (see test_fix2_prices); this fake chain reports none.
     yf_provider._chains.clear()
     monkeypatch.setattr(yf_provider, "_yf", lambda: fake_yf({}, {}, options=["2099-11-20", "2099-12-18"]))
     chain = yf_provider.option_chain("TESTOPT", "2099-11-20", 100.0)
-    assert chain.source.as_of == date.today().isoformat()
+    assert chain.source.as_of is None and "no trade times" in chain.source.detail
     assert "Expiry 2099-11-20" in chain.source.detail and "delayed 15 minutes" in chain.source.detail
     assert "as of 2099" not in chain.source.label()
 

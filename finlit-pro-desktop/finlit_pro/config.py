@@ -9,6 +9,7 @@ login and never appear in a file in the app's folders.
 from __future__ import annotations
 
 import json
+import math
 import os
 import sys
 from dataclasses import asdict, dataclass, field, fields
@@ -93,7 +94,26 @@ def load_settings() -> Settings:
             clean[f.name] = value
     if "watchlist" in clean:
         clean["watchlist"] = [s for s in clean["watchlist"] if isinstance(s, str)][:50]
+    # First Version checked types only, so a hand-edited file could set a negative excerpt length or an
+    # unknown engine name. Current Version: values outside what the Settings dialog allows are dropped,
+    # so the default applies.
+    for name, ok in _ALLOWED.items():
+        if name in clean and not ok(clean[name]):
+            del clean[name]
     return Settings(**clean)
+
+
+def _in(lo: float, hi: float):
+    return lambda v: math.isfinite(v) and lo <= v <= hi
+
+
+_ALLOWED = {
+    "ai_provider": lambda v: v in ("auto", "claude", "openai", "rules"),
+    "anthropic_effort": lambda v: v in ("low", "medium", "high", "xhigh", "max"),
+    "filing_section_chars": _in(2_000, 400_000),
+    "risk_free_rate_pct": _in(0, 25),
+    "transaction_cost_bps": _in(0, 200),
+}
 
 
 def save_settings(settings: Settings) -> None:

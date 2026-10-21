@@ -11,6 +11,7 @@ trusted.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 
 from finlit_pro.research.sources import SourceRegistry
@@ -114,10 +115,14 @@ class NoteError(ValueError):
 
 
 def _clean_ids(values, valid: set[str]) -> tuple[list[str], list[str]]:
+    # First Version: "S1, S3" in one array item was read as a single unknown ID and the fact was marked
+    # unverified. Current Version: each item is split on commas, semicolons and spaces first.
     good, bad = [], []
     for v in values or []:
-        sid = str(v).strip().strip("[]").upper()
-        (good if sid in valid else bad).append(sid)
+        for part in re.split(r"[,;\s]+", str(v).strip().strip("[]")):
+            sid = part.strip("[]").upper()
+            if sid:
+                (good if sid in valid else bad).append(sid)
     return list(dict.fromkeys(good)), bad
 
 
@@ -131,8 +136,20 @@ def from_dict(data: dict, registry: SourceRegistry, engine: str) -> Note:
             if bad:
                 warnings.append(f"A fact cited unknown source IDs {', '.join(bad)}; it is marked unverified.")
             facts.append(Fact(raw.get("topic") or "Other", raw["statement"], ids, verified=bool(ids) and not bad))
-        interp = [Interpretation(i["statement"], i.get("confidence") if i.get("confidence") in LEVELS else "Low", _clean_ids(i.get("based_on"), valid)[0]) for i in data["interpretation"]]
-        risks = [Risk(r["risk"], _clean_ids(r.get("sources"), valid)[0]) for r in data["risks"]]
+        # First Version: unknown IDs cited by interpretations and risks were dropped without a word.
+        # Current Version: they are dropped and named in a warning, as for facts.
+        interp = []
+        for i in data["interpretation"]:
+            ids, bad = _clean_ids(i.get("based_on"), valid)
+            if bad:
+                warnings.append(f"An interpretation cited unknown source IDs {', '.join(bad)}; they were removed.")
+            interp.append(Interpretation(i["statement"], i.get("confidence") if i.get("confidence") in LEVELS else "Low", ids))
+        risks = []
+        for r in data["risks"]:
+            ids, bad = _clean_ids(r.get("sources"), valid)
+            if bad:
+                warnings.append(f"A risk cited unknown source IDs {', '.join(bad)}; they were removed.")
+            risks.append(Risk(r["risk"], ids))
         unc = [Uncertainty(u["issue"], u["effect"]) for u in data["uncertainties"]]
         rec = data["recommendation"] if data["recommendation"] in RECOMMENDATIONS else "No recommendation"
         conviction = data["conviction"] if data["conviction"] in LEVELS else "Low"

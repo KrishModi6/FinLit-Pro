@@ -1,9 +1,9 @@
 """Regression tests for the second round of window fixes (see docs/FIXLOG.md)."""
 
+from datetime import datetime
+
 import pandas as pd
 import pytest
-
-from datetime import datetime
 
 from finlit_pro.data.models import PriceHistory, Source
 from finlit_pro.workspace import Workspace

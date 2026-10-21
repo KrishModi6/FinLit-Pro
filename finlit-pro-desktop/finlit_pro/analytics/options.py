@@ -94,7 +94,12 @@ def implied_vol(kind: str, price: float, s: float, k: float, t: float, r: float,
     """Volatility that reproduces `price`, by bisection on [0.1%, 500%]. None if no solution."""
     lo, hi = 1e-3, 5.0
     intrinsic = max(s * math.exp(-q * t) - k * math.exp(-r * t), 0.0) if kind == "call" else max(k * math.exp(-r * t) - s * math.exp(-q * t), 0.0)
-    if price <= intrinsic + 1e-9 or price >= (s if kind == "call" else k):
+    # First Version: only price >= S (call) or K (put) was refused, so a premium above what any volatility in the
+    # search range gives (a 7-day ATM call at 30.00 on a 100 stock) returned the 500% bound as if it were the
+    # answer. Current Version: the no-arbitrage ceiling S e^(-qt) or K e^(-rt) is used, and None is returned
+    # unless the price at 500% reaches the premium.
+    upper = s * math.exp(-q * t) if kind == "call" else k * math.exp(-r * t)
+    if price <= intrinsic + 1e-9 or price >= upper or bsm(kind, s, k, t, r, q, hi)["price"] < price:
         return None
     for _ in range(100):
         mid = (lo + hi) / 2

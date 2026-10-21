@@ -164,8 +164,11 @@ def test_total_debt_is_nan_without_any_debt_tag():
     assert pd.isna(sec.total_debt({}))
     assert pd.isna(sec.total_debt({"debt_long_total": float("nan"), "cash": 5}))
     ex = sec.extract(company())
-    assert pd.isna(ex.latest["total_debt"]) and ex.table["total_debt"].isna().all()
-    assert any(n.startswith("Total debt is n/a") for n in ex.notes)
+    assert ex.table["total_debt"].isna().all()  # the rows hold only what the tags say
+    # The debt policy (test_fix2_sec.py): with no debt figure of any kind, the latest balance sheet's debt is
+    # zero, with one note saying so. A company that does show debt somewhere gets n/a instead.
+    assert ex.latest["total_debt"] == 0.0 and ex.debt_status == "none"
+    assert ex.notes.count(sec.NO_DEBT_NOTE) == 1 and not any(n.startswith("Total debt is n/a") for n in ex.notes)
 
 
 def test_jpm_long_term_debt_tag_is_counted_once():

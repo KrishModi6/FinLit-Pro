@@ -50,6 +50,8 @@ exactly) and **v1.1** (the corrected version).
 input  = the last 730 calendar days of daily bars, auto-adjusted:
          open/high/low/close *= adjclose / close      # what yfinance history(period="730d") returned
 require at least 60 sessions
+v1.0: if the rolling-mean RSI is undefined in every window (a price that never moves), refuse with a
+      ValueError that says so (the original failed here with an IndexError)
 
 1. Monte Carlo (40% weight)
    mu, sigma = mean and population stdev (ddof 0) of daily log returns
@@ -58,7 +60,7 @@ require at least 60 sessions
    mc_median = median(terminal); P10..P90; prob_up = share of terminal > P_0
 
 2. Regression trend (30% weight)
-   least-squares line through the last 120 closes, evaluated h - 1 steps past the last point
+   least-squares line through the last 120 closes (x = 0..119), evaluated h steps past the last point (x = 119 + h)
    R^2 reported as a diagnostic
 
 3. EMA momentum (30% weight)
@@ -112,12 +114,21 @@ coverage       = share of realised prices inside [P10, P90]   (calibrated = abou
 Brier          = mean (prob_up - 1[realised > 0])^2,  against the constant base rate
 strategy       long/flat: +1 on BUY or STRONG BUY else 0;  long/short adds -1 on SELL or STRONG SELL
                period return = position * realised - |change in position| * cost
-               CAGR, Sharpe (annualised with 252/h periods per year), max drawdown, exposure
+               equity = cumulative product of (1 + period return), held at 0 from the first period
+                        it reaches 0 or below (all capital lost: that period returns -100%, later ones 0)
+               CAGR = equity_end^(1/years) - 1, or -100% after a wipe-out;
+               Sharpe (annualised with 252/h periods per year); max drawdown measured from the starting 1;
+               exposure
 buckets        per verdict: count, mean realised return, hit rate, mean forecast
 ```
 
 Flags appear next to a metric when it fails its comparison (for example "not significantly better
-than the naive call"). Every figure is computed for the selected ticker at run time; none is
+than the naive call"). The IC flag clears only when t >= 2; t <= -2 is flagged "negative: forecasts
+rank outcomes backwards".
+
+When the evaluation cannot run, the message says why: a history shorter than the model's lookback
+names when the first test becomes possible; otherwise a shorter horizon is suggested only from the
+horizons the model offers (7, 14, 30, 60, 90 for the FinLit AI Predictor) and only if it fits 8 tests. Every figure is computed for the selected ticker at run time; none is
 stored or quoted as general performance.
 
 ## 4. Monte Carlo simulation (`analytics/montecarlo.py`)
@@ -125,14 +136,16 @@ stored or quoted as general performance.
 ### Estimation
 
 ```
-r       = last `lookback` daily log returns            # default 3 years
+r       = last `lookback` daily log returns            # default 3 years; at least 60 are needed
 hist_mu = mean(r);  sigma = stdev(r)   (or the user's volatility override / sqrt(252))
 kurt    = mean((r - hist_mu)^4) / mean((r - hist_mu)^2)^2 - 3
 t_df    = clamp(4 + 6 / kurt, 3, 30)  if kurt > 0 else 30
           # excess kurtosis of a Student-t is 6 / (df - 4), inverted
 
 drift (daily log drift actually simulated):
-    historical: mu = hist_mu                          # already a log drift: no correction
+    historical: mu = hist_mu + (sigma_hist^2 - sigma^2) / 2
+                # hist_mu is already a log drift: no correction without an override (sigma = sigma_hist).
+                # With a volatility override the historical ARITHMETIC return is kept, as in the other modes.
     zero:       mu = -sigma^2 / 2                     # makes E[P_h] = P_0
     custom R:   mu = ln(1 + R) / 252 - sigma^2 / 2    # arithmetic R -> log drift
 ```
@@ -163,6 +176,8 @@ for origin t = lookback, lookback + step, ... while t + h is in the data:
     pit = NormalCDF(z)                                 # where the outcome fell, 0..1
 coverage(lo..hi) = share of pit inside [lo, hi]
 verdict: too narrow if 10-90 coverage < 70%, too wide if > 90%, else reasonably calibrated
+step  = max(5, h / 4);  needs at least 10 usable origins, so lookback + h + 1 + max(20, 9 step) sessions
+        (pipeline.load records the reason in Workspace.calibration_error when it cannot run)
 ```
 
 ## 5. Options (`analytics/options.py`)
@@ -174,7 +189,9 @@ Black-Scholes-Merton with dividends:
     d1 = (ln(S/K) + (r - q + vol^2/2) t) / (vol sqrt t);   d2 = d1 - vol sqrt t
     call = S e^(-qt) N(d1) - K e^(-rt) N(d2);   put = K e^(-rt) N(-d2) - S e^(-qt) N(-d1)
     Greeks: delta, gamma, theta per calendar day, vega and rho per 1 percentage point
-implied vol = bisection on [0.1%, 500%] until BSM price = premium (none below intrinsic)
+implied vol = bisection on [0.1%, 500%] until BSM price = premium
+              none if premium <= intrinsic, >= S e^(-qt) (call) or K e^(-rt) (put),
+              or above the BSM price at 500%
 
 Under a lognormal price with continuous drift mu and volatility vol:
     P(S_T > x) = N( (ln(S/x) + (mu - vol^2/2) t) / (vol sqrt t) )
@@ -228,6 +245,16 @@ elif DebtCurrent exists:      debt = LongTermDebtNoncurrent + DebtCurrent   # De
 else:                         debt = noncurrent + current portion + short-term borrowings
 ```
 
+Debt is decided once, for the latest balance sheet, and recorded as `debt_status`:
+
+```
+reported: a total could be built from the debt tags (including convertible notes)  -> that total
+none:     no debt tag, convertible tag or debt disclosure above zero in ~15 months -> 0.0, one note
+unknown:  the filings show debt that no standard total captures                   -> n/a, one note
+```
+
+`analytics/valuation.py` uses the total as given; it never decides or notes debt itself.
+
 ### Stock splits
 
 ```
@@ -253,22 +280,37 @@ latest reports = the newest 10-K, plus the newest 10-Q if it was filed after tha
 ## 8. Ratios, quality scores and valuation (`analytics/valuation.py`)
 
 ```
+flows      = TTM if reported, else the last fiscal year's value; never an older year's (n/a instead)
+balances   = the latest balance sheet, else the last fiscal year end; never an older year's
+total debt = as decided in sec.py: 0 for "none", n/a for "unknown" (then EV, EV/EBIT, EV/Sales,
+             net debt, debt/equity, ROIC and the DCF's net cash are n/a)
 market cap = price * cover-page shares outstanding
 EV         = market cap + total debt - cash - short-term investments
 P/E        = market cap / TTM net income          (only when net income > 0)
 FCF        = operating cash flow - capex;  FCF yield = FCF / market cap
-ROE        = net income / average of the last two years' equity
+ROE        = TTM net income / average of the latest equity and the equity about 12 months earlier
+             (else: TTM income over the average of the latest 10-Q and the last fiscal year end;
+              else: the last fiscal year's income over its opening and closing equity)
+ROA        = the same with total assets
 ROIC       = operating income * (1 - tax rate) / (debt + equity - cash)
              tax rate = tax / pretax income, or 21% if that is outside 0..50%
-CAGR(n)    = (last / value n years earlier)^(1/n) - 1
+             n/a when invested capital is under 10% of debt + equity
+CAGR(n)    = (latest reported / value of the fiscal year n rows earlier)^(1/n) - 1
+             n/a if that year is not reported or the dates do not span about n years
 ```
+
+Financial companies (banks, insurers, brokers and lenders) are recognised from the SEC industry
+description: banks, savings institutions, insurers (not insurance agents and brokers such as AON),
+security and commodity brokers, dealers and exchanges (GS, SCHW, CME), credit institutions and finance
+services or lessors (AXP, COIN). The same test applies to the ratios, the DCF, Piotroski and Altman:
+cash-flow and leverage measures are n/a for them, with one note.
 
 **Piotroski F-score** (current year vs prior): ROA > 0; CFO > 0; ROA rose; CFO > net income;
 debt to average assets fell; current ratio rose; diluted shares did not rise; gross margin rose;
 asset turnover rose. A test without inputs is n/a and not counted.
 
 **Altman Z** = 1.2 WC/TA + 1.4 RE/TA + 3.3 EBIT/TA + 0.6 MVE/TL + 1.0 Sales/TA. Safe above 2.99,
-distress below 1.81, not meaningful for banks and insurers.
+distress below 1.81, not meaningful for financial companies or REITs.
 
 **DCF**
 

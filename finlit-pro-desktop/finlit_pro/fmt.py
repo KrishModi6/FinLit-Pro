@@ -36,11 +36,17 @@ def money(v, currency: str = "USD") -> str:
     sign = "-" if v < 0 else ""
     a = abs(v)
     prefix = "$" if currency == "USD" else ""
-    suffix = "" if currency == "USD" else f" {currency}"
-    for size, unit in ((1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "K")):
-        if a >= size:
-            return f"{sign}{prefix}{a / size:,.1f}{unit}{suffix}"
-    return f"{sign}{prefix}{a:,.2f}{suffix}"
+    suffix = "" if currency == "USD" or not currency else f" {currency}"
+    # First Version picked the unit before rounding, so 999,960 printed as "$1,000.0K".
+    # Current Version: when rounding reaches 1,000 of a unit, the next unit up is used ("$1.0M").
+    units = ((1e3, "K"), (1e6, "M"), (1e9, "B"), (1e12, "T"))
+    if round(a, 2) < 1e3:
+        return f"{sign}{prefix}{a:,.2f}{suffix}"
+    k = max((i for i, (size, _) in enumerate(units) if a >= size), default=0)
+    if k + 1 < len(units) and round(a / units[k][0], 1) >= 1000:
+        k += 1
+    size, unit = units[k]
+    return f"{sign}{prefix}{a / size:,.1f}{unit}{suffix}"
 
 
 def dollars(v, sign: bool = False) -> str:
@@ -58,4 +64,5 @@ def price(v, currency: str = "USD") -> str:
     symbol = {"USD": "$", "EUR": "€", "GBP": "£", "CAD": "C$", "JPY": "¥"}.get(currency, "")
     if currency == "GBp":
         return f"{v:,.2f}p"
-    return f"{symbol}{v:,.2f}" + ("" if symbol else f" {currency}")
+    # First Version: an unknown currency printed "262.63 None" or left a trailing space. Current Version: omitted.
+    return f"{symbol}{v:,.2f}" + ("" if symbol or not currency else f" {currency}")

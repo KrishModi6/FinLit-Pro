@@ -18,6 +18,7 @@ from __future__ import annotations
 import re
 import threading
 import time
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse
 
@@ -166,17 +167,26 @@ def get_json(
     service: str = "the data provider",
     allow_stale: bool = True,
     cache_key: str | None = None,
+    check: Callable[[Any], object] | None = None,
 ) -> Fetched:
     """JSON from `url`, through the cache.
 
     cache_key stores the response under a logical name instead of the URL, for
     URLs that change over time but name the same data (Yahoo's period2 is "now").
     A NotFoundError is never hidden behind an old copy: the provider has said the
-    thing does not exist.
+    thing does not exist. ttl_s of 0 or less asks the network without reading
+    the cache first.
+
+    First Version: any JSON that came back was saved, readable or not. With a
+    stable cache_key, one HTTP 200 with an empty history replaced the only good
+    copy: it was served as a fresh copy for 15 minutes, and offline the app then
+    had no price data at all. Current Version: `check`, when given, is called with
+    the payload before it is saved and raises DataError when the payload cannot be
+    used; such a payload is never saved and counts as a failed request.
     """
     key = cache_key or url
     store = cache()
-    fresh = store.get(key, ttl_s)
+    fresh = store.get(key, ttl_s) if ttl_s > 0 else None
     if fresh is not None:
         return Fetched(fresh[0], CACHE, fresh[1], url)
     try:
@@ -185,6 +195,8 @@ def get_json(
             value = resp.json()
         except ValueError:
             raise DataError(f"{service} returned data that could not be read. Try again later.") from None
+        if check is not None:
+            check(value)
     except NotFoundError:
         raise
     except DataError:

@@ -242,6 +242,16 @@ class FinLitPredictor:
         if len(raw) < MIN_BARS:
             raise ValueError(f"The model needs at least {MIN_BARS} sessions of history; {len(raw)} are available.")
         data = legacy_indicators(raw, self.variant)
+        # First Version: a price that never moves (a money market fund such as VMFXX) gives the original's
+        # rolling-mean RSI 0/0 in every window, and the signal step failed with "IndexError: single positional
+        # indexer is out-of-bounds", which the original raised too. Current Version: the same refusal, as a
+        # ValueError that says why. Every other input is computed exactly as before.
+        if data["RSI"].notna().sum() == 0:
+            raise ValueError(
+                f"The price did not change in any 14-session window of the last {LOOKBACK_CALENDAR_DAYS} calendar days (a constant-price "
+                "fund such as a money market fund gives this), so the model's RSI is undefined and it cannot forecast. "
+                "Choose a ticker whose price moves."
+            )
         closes = data["close"].dropna().values
         price = float(closes[-1])
 
