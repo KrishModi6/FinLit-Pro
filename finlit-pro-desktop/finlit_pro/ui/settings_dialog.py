@@ -169,6 +169,21 @@ class SettingsDialog(QDialog):
         except validation.ValidationError as exc:
             self.notice.show_message(str(exc), "error")
             return
+        # First Version: keys were stored or deleted first and the engine check ran afterwards, so a
+        # failed check still left the credential store changed even though Save was refused.
+        # Current Version: work out whether the selected engine will have a key, refuse before
+        # touching the store, then store, then refresh each row's "stored in" label.
+        provider = self.provider.currentData()
+        needs = {"claude": ("anthropic", self.claude_key, "Claude", "Anthropic"), "openai": ("openai", self.openai_key, "OpenAI", "OpenAI")}
+        if provider in needs:
+            name, row, engine, vendor = needs[provider]
+            env_key = credentials.source(name).startswith("environment")
+            will_have = bool(new_keys[name]) or env_key or (bool(credentials.get(name)) and not row.remove.isChecked())
+            if not will_have:
+                self.notice.show_message(
+                    f"{engine} is selected but no {vendor} key would be stored. Paste a key, untick Remove, or choose the built-in rules engine.", "error"
+                )
+                return
         try:
             for row in (self.claude_key, self.openai_key):
                 if new_keys[row.name]:
@@ -178,13 +193,9 @@ class SettingsDialog(QDialog):
         except credentials.CredentialError as exc:
             self.notice.show_message(str(exc), "error")
             return
-        provider = self.provider.currentData()
-        if provider == "claude" and not credentials.get("anthropic"):
-            self.notice.show_message("Claude is selected but no Anthropic key is stored.", "error")
-            return
-        if provider == "openai" and not credentials.get("openai"):
-            self.notice.show_message("OpenAI is selected but no OpenAI key is stored.", "error")
-            return
+        finally:
+            for row in (self.claude_key, self.openai_key):
+                row.refresh()
         self.result_settings = replace(
             self.original,
             sec_contact_email=email,

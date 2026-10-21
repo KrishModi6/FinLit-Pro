@@ -5,7 +5,7 @@ from __future__ import annotations
 import dataclasses
 
 import pandas as pd
-from PySide6.QtCore import QByteArray, QDate, QStringListModel, Qt, QTimer, QUrl
+from PySide6.QtCore import QByteArray, QDate, QStringListModel, Qt, QThreadPool, QTimer, QUrl
 from PySide6.QtGui import QAction, QColor, QDesktopServices, QKeySequence
 from PySide6.QtWidgets import (
     QComboBox,
@@ -98,6 +98,12 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.settings = settings
         self.runner = Runner()
+        # Watchlist quotes get their own single thread, so a long watchlist never queues ahead of the
+        # symbol being loaded. (First Version: they shared the pool and could delay the load.)
+        self.quote_pool = QThreadPool(self)
+        self.quote_pool.setMaxThreadCount(1)
+        self.quote_runner = Runner(self.quote_pool)
+        self._pending_bench: str | None = None
         self.ids = {k: 0 for k in ("load", "model", "eval", "mc", "chain", "research", "filings", "search", "bench")}
         self.ws: Workspace | None = None
         self.jobs: dict[str, Job] = {}
@@ -413,8 +419,9 @@ class MainWindow(QMainWindow):
     def _refresh_watchlist(self) -> None:
         syms = self.settings.watchlist
         self.watch.fill([[s, "", ""] for s in syms])
+        self.quote_runner.cancel_all()
         for s in syms:
-            self.runner.start(Job(0, _quote, s), self._watch_quote, lambda *_: None)
+            self.quote_runner.start(Job(0, _quote, s), self._watch_quote, lambda *_: None)
 
     def _watch_quote(self, _rid: int, result) -> None:
         sym, price, change = result
@@ -427,7 +434,8 @@ class MainWindow(QMainWindow):
                     item.setForeground(QColor(theme.UP if change >= 0 else theme.DOWN))
 
     def _watch_add(self) -> None:
-        if not self.ws:
+        if not self.ws or not self.ws.history:  # only symbols that actually loaded
+            self.notice.show_message("Load a symbol successfully before adding it to the watchlist.", "info")
             return
         if self.ws.symbol in self.settings.watchlist:
             return
@@ -471,9 +479,20 @@ class MainWindow(QMainWindow):
             return
         self.notice.clear()
         rid = self._next("load")
+        # Stop and disown everything still running for the previous symbol. (First Version: a research note
+        # or evaluation started for the old symbol kept running, left its buttons disabled, and showed its
+        # progress under the new one.)
+        for kind in ("research", "eval"):
+            self._cancel(kind)
+        for kind in ("model", "eval", "mc", "chain", "research", "filings", "bench"):
+            self._next(kind)
+        self.research.finish()
+        self._previous = self.ws if self.ws and self.ws.history else None
         self.ws = Workspace(sym)
         self.option_chain = None
         self.research.reset()
+        self.prediction.clear()
+        self.mc_view.clear()
         self.symbol.setText(sym)
         self.quote.setText(f"{sym}  loading")
         self.statusBar().showMessage(f"Loading {sym}")
@@ -491,9 +510,30 @@ class MainWindow(QMainWindow):
     def _prices_failed(self, rid: int, message: str) -> None:
         if rid != self.ids["load"]:
             return
-        self.quote.setText("")
-        self.notice.show_message(message + "  For an offline trial, load DEMO.", "error")
-        self.statusBar().showMessage("Load failed")
+        failed = self.ws.symbol if self.ws else ""
+        prev = getattr(self, "_previous", None)
+        if prev is not None:
+            # Keep showing the symbol that did load, rather than its charts under the failed symbol's name.
+            # (First Version: the old charts stayed up while the window and the Add button used the new name.)
+            self._next("load")  # SEC and news results for the failed symbol are ignored
+            self.ws = prev
+            self.symbol.setText(prev.symbol)
+            self.prediction.render(prev)
+            if prev.evaluation:
+                self.prediction.render_evaluation(prev.evaluation)
+            self.mc_view.render(prev)
+            self.fundamentals.render(prev)
+            self.filings.render(prev)
+            self._show_quote(prev.history)
+            self.notice.show_message(f"{message}  Still showing {prev.symbol}.", "error")
+        else:
+            self.quote.setText("")
+            self.setWindowTitle(APP_NAME)
+            self.status_prices.setText("")
+            self.status_sec.setText("")
+            self.fundamentals.render(self.ws)
+            self.notice.show_message(message + "  For an offline trial, load DEMO.", "error")
+        self.statusBar().showMessage(f"Could not load {failed}")
 
     def _prices_done(self, rid: int, loaded: Workspace) -> None:
         if not self._current("load", rid, loaded.symbol):
@@ -508,14 +548,19 @@ class MainWindow(QMainWindow):
         self._check_fund_applies()
         if not ws.is_demo:
             self.runner.start(Job(rid, yahoo.news, ws.symbol, 10, h.name), self._news_done, lambda *_: None)
-        ch = h.day_change
-        color = theme.UP if (ch or 0) >= 0 else theme.DOWN
-        self.quote.setText(f"<span style='color:{theme.MUTED}'>{h.symbol}</span>  {h.price:,.2f} {h.currency}  <span style='color:{color}'>{(h.price - h.previous_close):+,.2f}  {ch:+.2%}</span>" if ch is not None else f"{h.symbol} {h.price:,.2f}")
-        self.setWindowTitle(f"{APP_NAME} - {h.symbol} {h.name}")
+        self._show_quote(h)
         self._range_changed(self.range_box.currentText())
         self.options.render(ws)
         if ws.fundamentals and self._check_fund_applies():
             self._compute_fundamentals()
+        elif ws.fundamentals is None and ws.fundamentals_error:
+            # SEC answered (with an error) before the prices did; draw that now. (First Version: the tab kept
+            # the previous company's statements and a "Loading" notice forever.)
+            self.fundamentals.render(ws)
+            self.filings.render(ws)
+        if self._pending_bench:
+            bench, self._pending_bench = self._pending_bench, None
+            self._benchmark_changed(bench)
         self.run_model(*self.prediction.selection())
         self.run_mc(self.mc_view.config() or montecarlo.MCConfig())
         self._refresh_sources()
@@ -524,6 +569,17 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"{ws.symbol}: {len(h.bars):,} daily bars from {h.bars.index[0].date()} to {h.bars.index[-1].date()}")
         if h.attempts:
             self.notice.show_message(f"Prices came from {h.source.name} after: " + " ".join(h.attempts), "warn")
+
+    def _show_quote(self, h) -> None:
+        ch = h.day_change
+        color = theme.UP if (ch or 0) >= 0 else theme.DOWN
+        cur = f" {h.currency}" if h.currency else ""
+        self.quote.setText(
+            f"<span style='color:{theme.MUTED}'>{h.symbol}</span>  {h.price:,.2f}{cur}  <span style='color:{color}'>{(h.price - h.previous_close):+,.2f}  {ch:+.2%}</span>"
+            if ch is not None
+            else f"{h.symbol} {h.price:,.2f}{cur}"
+        )
+        self.setWindowTitle(f"{APP_NAME} - {h.symbol} {h.name}")
 
     def _check_fund_applies(self) -> bool:
         """Drop SEC statements for funds, indices and the like, whichever of prices or SEC arrived first."""
@@ -580,12 +636,13 @@ class MainWindow(QMainWindow):
 
     def _benchmark_changed(self, sym: str) -> None:
         if not self.ws or not self.ws.history:
+            self._pending_bench = sym  # applied when the prices arrive
             return
         rid = self._next("bench")
         target = self.ws.symbol
 
         def done(r, hist):
-            if r == self.ids["bench"] and self.ws and self.ws.symbol == target:
+            if r == self.ids["bench"] and self.ws and self.ws.symbol == target and self.ws.history is not None:
                 self.ws.benchmark = hist
                 self._compute_risk()
                 self._refresh_sources()
@@ -703,7 +760,11 @@ class MainWindow(QMainWindow):
     def _update_engine_label(self) -> None:
         try:
             engine = research.engine_for(self.settings)
-            self.research.set_engine(engine.label if engine else "FinLit Pro rules engine (no API key stored)")
+            if engine:
+                self.research.set_engine(engine.label)
+            else:
+                chosen = self.settings.ai_provider == "rules"
+                self.research.set_engine("FinLit Pro rules engine" + (" (selected in Settings)" if chosen else " (no API key stored)"))
         except research.AnalysisError as exc:
             self.research.set_engine(str(exc))
 
@@ -759,9 +820,17 @@ class MainWindow(QMainWindow):
             path, _ = QFileDialog.getSaveFileName(self, "Export report", f"{ws.symbol}_report.html", "HTML (*.html)")
         if not path:
             return None
+        # Charts are chosen from what has been computed for this symbol, not from what a widget happens
+        # to show. (First Version: a payoff chart left over from the previous symbol could be exported.)
         charts = {}
-        for caption, widget in (("Price", self.chart.view), ("Returns and drawdown", self.returns.growth), ("Prediction model", self.prediction.fan), ("Monte Carlo", self.mc_view.fan), ("Options payoff", self.options.payoff)):
-            if widget.isVisible() or widget.width() > 10:
+        for caption, widget, present in (
+            ("Price", self.chart.view, ws.history is not None),
+            ("Returns and drawdown", self.returns.growth, ws.risk is not None),
+            ("Prediction model", self.prediction.fan, ws.forecast is not None),
+            ("Monte Carlo", self.mc_view.fan, ws.mc is not None),
+            ("Options payoff", self.options.payoff, not self.options.res_frame.isHidden()),
+        ):
+            if present:
                 charts[caption] = report.widget_png(widget)
         try:
             with open(path, "w", encoding="utf-8") as fh:
@@ -776,9 +845,15 @@ class MainWindow(QMainWindow):
         if not self.ws or not self.ws.history:
             return
         path, _ = QFileDialog.getSaveFileName(self, "Export prices", f"{self.ws.symbol}_prices.csv", "CSV (*.csv)")
-        if path:
+        if not path:
+            return
+        try:
             with open(path, "w", encoding="utf-8", newline="") as fh:
                 fh.write(report.price_csv(self.ws))
+        except OSError as exc:
+            self.notice.show_message(f"Could not write the CSV ({exc.strerror}). Choose another folder or close the file if it is open elsewhere.", "error")
+            return
+        self.statusBar().showMessage(f"Prices saved to {path}")
 
     def open_settings(self) -> None:
         dlg = SettingsDialog(self.settings, self)
@@ -789,6 +864,11 @@ class MainWindow(QMainWindow):
             self._update_engine_label()
             if self.ws and (old.sec_contact_email != self.settings.sec_contact_email or old.benchmark != self.settings.benchmark):
                 self.load(self.ws.symbol)
+            elif self.ws and self.ws.history and self.ws.risk_free_source is None and old.risk_free_rate_pct != self.settings.risk_free_rate_pct:
+                # The live T-bill rate was unavailable, so the fallback in Settings is in use: apply the new one now.
+                self.ws.risk_free = self.settings.risk_free_rate_pct / 100
+                self._compute_risk()
+                self.options.render(self.ws)
 
     def show_glossary(self, term: str = "") -> None:
         GlossaryDialog(self, term if isinstance(term, str) else "").exec()
@@ -811,7 +891,9 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt naming
         for job in self.jobs.values():
             job.cancel()
+        self.quote_runner.cancel_all()
         self.runner.cancel_all()
+        self.quote_runner.wait(3000)
         self.runner.wait(3000)  # long jobs check for cancellation between steps
         self.settings.window_state = bytes(self.saveState().toHex()).decode()
         save_settings(self.settings)

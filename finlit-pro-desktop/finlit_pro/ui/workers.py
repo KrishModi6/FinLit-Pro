@@ -63,6 +63,8 @@ class Job(QRunnable):
             self.cancel_event.set()
 
     def run(self) -> None:
+        if self.cancel_event.is_set():  # cancelled while still queued: do nothing
+            return
         try:
             result = self.fn(*self.args, **self.kwargs)
         except EXPECTED as exc:
@@ -75,8 +77,8 @@ class Job(QRunnable):
 
 
 class Runner:
-    def __init__(self) -> None:
-        self.pool = QThreadPool.globalInstance()
+    def __init__(self, pool: QThreadPool | None = None) -> None:
+        self.pool = pool or QThreadPool.globalInstance()
         self._live: set[QRunnable] = set()
 
     def start(self, job: Job, on_done: Callable | None = None, on_failed: Callable | None = None, on_progress: Callable | None = None) -> Job:
@@ -100,6 +102,7 @@ class Runner:
     def cancel_all(self) -> None:
         for job in list(self._live):
             job.cancel()
+        self.pool.clear()  # drop jobs that have not started yet
 
     def wait(self, ms: int = 30000) -> bool:
         return self.pool.waitForDone(ms)

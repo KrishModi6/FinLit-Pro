@@ -205,6 +205,16 @@ class MonteCarloView(QWidget):
         self.run_btn.setEnabled(not busy)
         self.run_btn.setText("Running" if busy else "Run simulation")
 
+    def clear(self) -> None:
+        """Empty every result, so a new symbol never shows the previous one's simulation."""
+        self.notice.clear()
+        self.kpis.reset()
+        self.pct_table.setRowCount(0)
+        self.cal_table.setRowCount(0)
+        self.cal_text.setText("")
+        for chart in (self.fan, self.hist, self.cal_chart):
+            chart.message("Waiting for prices")
+
     def show_error(self, message: str) -> None:
         self.notice.show_message(message, "error")
 

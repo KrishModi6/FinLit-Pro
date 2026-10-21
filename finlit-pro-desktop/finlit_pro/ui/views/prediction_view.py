@@ -157,6 +157,19 @@ class PredictionView(QWidget):
         self.progress.setMaximum(max(total, 1))
         self.progress.setValue(done)
 
+    def clear(self) -> None:
+        """Empty every result, so a new symbol never shows the previous one's forecast or evaluation."""
+        self.notice.clear()
+        self.ev_notice.clear()
+        self.kpis.reset()
+        for t in (self.inputs, self.components, self.quantiles, self.signals, self.diagnostics, self.ev_metrics, self.buckets):
+            t.setRowCount(0)
+        self.fan.clear()
+        self.equity.clear()
+        self.ev_notes.setText("")
+        self.source.set_sources([])
+        self.set_eval_busy(False)
+
     def show_error(self, message: str) -> None:
         self.notice.show_message(message, "error")
 

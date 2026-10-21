@@ -42,7 +42,8 @@ def build_html(ws: Workspace, charts: dict[str, str], note_html: str) -> str:
     h = ws.history
     rows = []
     if h:
-        rows += [("Last price", f"{num(h.price)} {h.currency} ({h.bars.index[-1].date()})"), ("Change on the day", pct(h.day_change, 2, True))]
+        cur = f" {h.currency}" if h.currency else ""  # never print "None" when the currency is unknown
+        rows += [("Last price", f"{num(h.price)}{cur} ({h.bars.index[-1].date()})"), ("Change on the day", pct(h.day_change, 2, True))]
     r = ws.ratios
     if r:
         rows += [("Market cap", money(r.get("market_cap"))), ("P/E (TTM)", num(r.get("pe"), 1)), ("EV/EBIT", num(r.get("ev_ebit"), 1)), ("FCF yield", pct(r.get("fcf_yield"))), ("ROIC", pct(r.get("roic")))]
@@ -95,4 +96,12 @@ img {{ max-width:100%; border:1px solid #d1d9e0; }} figure {{ margin:14px 0; }} 
 
 
 def price_csv(ws: Workspace) -> str:
-    return ws.history.bars.to_csv(index_label="date", float_format="%.6g") if ws.history else ""
+    # First Version: float_format="%.6g" for every column, so a price of 1234.567 became 1234.57
+    # and a volume of 51,234,567 became 5.12346e+07.
+    # Current Version: ten significant digits for prices and whole numbers for volume.
+    if not ws.history:
+        return ""
+    bars = ws.history.bars.copy()
+    if "volume" in bars:
+        bars["volume"] = bars["volume"].round().astype("Int64")
+    return bars.to_csv(index_label="date", float_format="%.10g")

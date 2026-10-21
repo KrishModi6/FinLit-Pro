@@ -91,6 +91,12 @@ class ValuationView(QWidget):
         lay.addWidget(self.note)
         lay.addStretch(1)
 
+    def _clear_results(self) -> None:
+        self.cards.reset()
+        self.sens.setRowCount(0)
+        self.flows.setRowCount(0)
+        self.note.setText("")
+
     def _fill_fields(self, inp: val.DCFInputs) -> None:
         def m(v):
             return f"{v / 1e6:,.1f}" if np.isfinite(v) else ""
@@ -151,23 +157,25 @@ class ValuationView(QWidget):
         first = self.analysis is None or self.analysis.symbol != a.symbol
         self.analysis = a
         if not a.fundamentals or not a.history:
+            self._clear_results()
             self.banner.show_message(a.fundamentals_error or "Valuation needs SEC fundamentals. Load a company that files with the SEC.", "warn")
             self.mc_chart.message("No fundamentals loaded.")
             return
         if a.dcf_inputs is None:
+            self._clear_results()
             return
         if first or not self.f_growth.text():
             self._fill_fields(a.dcf_inputs)
         price = a.history.price
         fmt = price_formatter(a.history.currency)
         if a.dcf is None:
-            self.banner.show_message(
-                "Free cash flow is zero or negative, so a cash-flow DCF cannot value this company as it stands. "
-                "Enter the free cash flow you think it can reach in Base free cash flow, then press Calculate.",
-                "warn",
-            )
+            # First Version: always blamed negative free cash flow, even for a bank or a company whose debt
+            # is not reported. Current Version: the reason comes from the inputs themselves.
+            self._clear_results()
+            self.banner.show_message(dcf_reason(a.dcf_inputs), "warn")
             self.mc_chart.message("No DCF")
             return
+        self.banner.clear()
         d = a.dcf
         up = d.per_share / price - 1
         self.cards.kpi("value", "").set(fmt(d.per_share, None), f"price {fmt(price, None)}", tone(up))
@@ -213,6 +221,21 @@ class ValuationView(QWidget):
             f"plus net cash {money(a.dcf_inputs.net_cash)} gives equity value {money(d.equity_value)}. "
             "A DCF is only as good as its growth and discount assumptions; the sensitivity grid shows how much they matter."
         )
+
+
+def dcf_reason(inp: val.DCFInputs) -> str:
+    """Why the DCF did not run, in words the user can act on."""
+    refusal = getattr(inp, "refusal", None)
+    if refusal:
+        return refusal
+    try:
+        inp.validate()
+    except validation.ValidationError as exc:
+        return str(exc)
+    return (
+        "Free cash flow is zero or negative, so a cash-flow DCF cannot value this company as it stands. "
+        "Enter the free cash flow you think it can reach in Base free cash flow, then press Calculate."
+    )
 
 
 def recompute(a: Workspace, inp: val.DCFInputs) -> None:

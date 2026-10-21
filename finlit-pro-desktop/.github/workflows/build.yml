@@ -26,7 +26,12 @@ jobs:
         run: |
           $p = Start-Process -FilePath dist\FinLitPro\FinLitPro.exe -ArgumentList "--self-test" -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "Self-test failed with exit code $($p.ExitCode)" }
+      # The artifact upload drops symlinks and the executable bit, which breaks a macOS .app,
+      # so the bundle is zipped with ditto first and the zip is uploaded.
+      - name: Zip the macOS app
+        if: runner.os == 'macOS'
+        run: ditto -c -k --keepParent dist/FinLitPro.app dist/FinLitPro-macOS.zip
       - uses: actions/upload-artifact@v4
         with:
           name: FinLitPro-${{ runner.os }}
-          path: dist/
+          path: ${{ runner.os == 'macOS' && 'dist/FinLitPro-macOS.zip' || 'dist/' }}

@@ -94,6 +94,11 @@ class KpiStrip(QFrame):
         self.columns = columns
         self.items: dict[str, Kpi] = {}
 
+    def reset(self) -> None:
+        """Back to n/a, so a new symbol never shows the previous one's numbers while it loads."""
+        for k in self.items.values():
+            k.set("n/a")
+
     def kpi(self, key: str, caption: str = "", tip: str = "") -> Kpi:
         if key not in self.items:
             k = Kpi(caption, tip)

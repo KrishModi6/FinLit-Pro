@@ -191,3 +191,55 @@ while loading; pytest-qt treats a callback returning `None` as "condition met", 
 before the model had finished and failed for the wrong reason.
 **Current Version:** the condition is wrapped in `bool(...)`.
 
+
+### 29. Work for the old symbol kept running after loading a new one
+**First Version:** loading a new ticker while a research note or evaluation was running for the old
+one left that job going: its progress appeared under the new symbol and its buttons stayed disabled.
+The prediction and Monte Carlo views also kept the old symbol's charts until the new model finished.
+**Current Version:** `load()` cancels research and evaluation, retires every job id of the old
+symbol (model, evaluation, Monte Carlo, option chain, research, filings, benchmark) and clears the
+prediction and Monte Carlo views straight away.
+
+### 30. A failed load showed the old charts under the new name
+**First Version:** typing a symbol that does not exist left the previous company's charts on screen
+while the title, quote line and "Add to watchlist" button used the failed symbol.
+**Current Version:** the window goes back to the symbol that did load, re-renders it and says
+"Still showing X". With nothing loaded before, the title and status bar are reset.
+
+### 31. "None" printed as a currency
+**First Version:** when Yahoo did not report a currency, the quote line and the HTML report showed
+"123.45 None".
+**Current Version:** the currency is left out when unknown.
+
+### 32. Smaller window fixes
+**First Version / Current Version:**
+* A failed SEC request left the Fundamentals and Filings views showing "loading"; now they show the
+  reason. Funds and ETFs are told SEC fundamentals do not apply instead of searching for them.
+* The benchmark could finish before prices and be dropped; it is now kept until prices arrive.
+* The engine label said "Claude" when no Anthropic key was stored; it now says "(no API key stored)".
+* The HTML report asked for charts that had no data; it now includes only charts that were drawn.
+* Exporting CSV to a folder that cannot be written failed with no clear message; it now says what failed.
+* Changing the fallback risk-free rate in Settings did nothing until the next load; it now applies at
+  once when no live rate was found.
+* "Add to watchlist" worked before prices loaded; it now waits for them.
+* Valuation kept the previous symbol's DCF result when the new one could not be valued, and gave
+  a generic reason; it clears the result and gives the specific reason (for example, banks).
+* Piotroski showed "0 / 9" when none of the nine tests could be run; it now shows "n/a".
+* Headlines are searched with the company name as well, so thinly covered tickers still get news.
+
+### 33. Settings changed stored keys and then refused to save
+**First Version:** with Claude selected, ticking "Remove the stored key" deleted the key from the
+credential store, and only then did Save refuse because Claude had no key. The key was gone and the
+settings were unchanged.
+**Current Version:** Save works out first whether the selected engine will still have a key and
+refuses before touching the store; after storing, each key row refreshes where its key now lives.
+
+### 34. Exported prices lost precision
+**First Version:** the price CSV used six significant digits for every column, so 1,234.567 was
+written as 1234.57 and a volume of 51,234,567 as 5.12346e+07.
+**Current Version:** prices keep ten significant digits and volume is written as a whole number.
+
+### 35. The macOS build artifact did not open
+**First Version:** the build uploaded `dist/` directly; the upload drops symlinks and the executable
+bit, so the downloaded `FinLitPro.app` would not start.
+**Current Version:** the app bundle is zipped with `ditto` first and the zip is uploaded.

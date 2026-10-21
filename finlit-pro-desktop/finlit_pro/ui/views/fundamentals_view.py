@@ -136,6 +136,21 @@ class FundamentalsView(QWidget):
     def need_email(self, show: bool) -> None:
         self.setup.setVisible(show)
 
+    def clear(self) -> None:
+        self.notice.clear()
+        self.header.setText("")
+        self.sub.setText("")
+        self.kpis.reset()
+        self.table.setRowCount(0)
+        self.f_table.setRowCount(0)
+        self.f_score.setText("n/a")
+        self.f_score.setStyleSheet("")
+        self.z_value.setText("n/a")
+        self.z_value.setStyleSheet("")
+        self.z_zone.setText("")
+        self.chart.message("Loading")
+        self.source.set_sources([])
+
     def show_loading(self) -> None:
         self.notice.show_message("Loading SEC EDGAR company facts and filing index.")
 
@@ -143,10 +158,12 @@ class FundamentalsView(QWidget):
         self.valuation.render(ws)
         f = ws.fundamentals
         if f is None:
+            # First Version: only the header changed, so the previous company's ratios, statements and
+            # scores stayed on screen under the new name. Current Version: everything is emptied.
+            self.clear()
             if ws.fundamentals_error:
                 self.notice.show_message(ws.fundamentals_error, "warn")
-            self.header.setText(ws.history.name if ws.history else "")
-            self.sub.setText("")
+            self.header.setText(ws.history.name if ws.history else ws.symbol)
             self.chart.message("No SEC financial statements for this security.")
             return
         self.notice.clear()
@@ -229,8 +246,12 @@ class FundamentalsView(QWidget):
 
         if ws.piotroski:
             score, runnable, checks = ws.piotroski
-            self.f_score.setText(f"{score} / {runnable}")
-            self.f_score.setStyleSheet(f"color: {theme.UP if score >= 7 else (theme.DOWN if score <= 3 else theme.WARN)};")
+            if runnable:
+                self.f_score.setText(f"{score} / {runnable}")
+                self.f_score.setStyleSheet(f"color: {theme.UP if score >= 7 else (theme.DOWN if score <= 3 else theme.WARN)};")
+            else:  # no test could run, e.g. a bank: a red "0 / 0" would read as a failing score
+                self.f_score.setText("n/a")
+                self.f_score.setStyleSheet("")
             self.f_table.fill(
                 [[c.name, "Pass" if c.passed else ("Fail" if c.passed is False else "n/a"), c.detail] for c in checks],
                 [[None, "up" if c.passed else ("down" if c.passed is False else "muted"), None] for c in checks],
