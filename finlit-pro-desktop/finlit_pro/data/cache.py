@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -43,7 +45,11 @@ class DiskCache:
 
     def put(self, key: str, value: Any) -> None:
         path = self._path(key)
-        tmp = path.with_suffix(".tmp")
+        # First Version: every writer used "<digest>.tmp", so two threads saving the
+        # same key at once (the price load and the Returns view both fetching the
+        # benchmark) could interleave their writes and corrupt the saved copy.
+        # Current Version: each process and thread writes its own temporary file.
+        tmp = path.with_name(f"{path.stem}.{os.getpid()}.{threading.get_ident()}.tmp")
         try:
             tmp.write_text(json.dumps({"saved_at": time.time(), "key": key, "value": value}), encoding="utf-8")
             tmp.replace(path)

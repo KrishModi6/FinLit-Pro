@@ -61,7 +61,7 @@ def test_parse_chart_reads_split_ratios():
 
 def test_parse_chart_error_envelope_is_friendly():
     payload = {"chart": {"result": None, "error": {"code": "Not Found", "description": "No data found, symbol may be delisted"}}}
-    with pytest.raises(DataError, match="Check the ticker"):
+    with pytest.raises(DataError, match="Check the spelling"):  # a NotFoundError: "misspelled, or delisted or acquired"
         yahoo.parse_chart(payload, "ZZZZ")
 
 
@@ -266,11 +266,12 @@ def test_extract_latest_balance_sheet_and_share_classes():
         ({"debt_long_total": 100, "short_borrowings": 10, "debt_current_portion": 20}, 110),
         ({"debt_noncurrent": 80, "debt_current_all": 30, "debt_current_portion": 20}, 110),
         ({"debt_noncurrent": 80, "debt_current_portion": 20, "short_borrowings": 5}, 105),
-        ({}, 0),
+        ({}, None),  # no debt tag at all: n/a, not zero
     ],
 )
 def test_total_debt_never_double_counts(row, expected):
-    assert sec.total_debt(row) == expected
+    result = sec.total_debt(row)
+    assert pd.isna(result) if expected is None else result == expected
 
 
 def test_sec_requires_contact_email():

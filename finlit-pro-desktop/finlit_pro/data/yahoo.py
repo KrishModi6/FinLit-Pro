@@ -9,7 +9,9 @@ them accordingly: everything is cached, requests are throttled, and
 
 from __future__ import annotations
 
+import re
 import time
+from collections.abc import Callable
 from datetime import datetime
 from urllib.parse import quote as urlquote
 
@@ -17,34 +19,128 @@ import numpy as np
 import pandas as pd
 
 from finlit_pro import validation
-from finlit_pro.data.http import BROWSER_UA, get_json
-from finlit_pro.data.models import DataError, NewsItem, PriceHistory, Source
+from finlit_pro.data.http import BROWSER_UA, Fetched, cache, get_json
+from finlit_pro.data.models import STALE, DataError, NetworkError, NewsItem, NotFoundError, PriceHistory, Source
 
 HOSTS = ("https://query1.finance.yahoo.com", "https://query2.finance.yahoo.com")
 HEADERS = {"User-Agent": BROWSER_UA, "Accept": "application/json"}
 SERVICE = "Yahoo Finance"
 QUOTE_PAGE = "https://finance.yahoo.com/quote/{symbol}"
+# About 1900-01-01, the start yfinance has used for period="max". Yahoo accepts
+# dates before 1970 and returns everything from the first listed day.
+EARLIEST = -2208994789
+# Class shares as people usually write them (BRK.B, BF.B); Yahoo spells them BRK-B, BF-B.
+CLASS_SHARE = re.compile(r"^[A-Z]{1,5}\.[A-Z]$")
 
 
-def _get(path: str, ttl_s: float, not_found: str | None = None, allow_stale: bool = True):
+def not_found_message(symbol: str, also: list[str] | None = None) -> str:
+    """What to say when Yahoo has nothing under a symbol: a typo, or a company that is gone."""
+    tried = "".join(f' or "{s}"' for s in also or [])
+    return (
+        f'Yahoo Finance has no data for "{symbol}"{tried}. The symbol may be misspelled, or the company may have been '
+        "delisted or acquired. Check the spelling, or search by company name to find its current ticker."
+    )
+
+
+def spellings(symbol: str) -> list[str]:
+    """The symbol, then the dash spelling Yahoo uses for a class share (BRK.B -> BRK-B).
+
+    Exchange suffixes (SAP.DE, 7203.T, SHOP.TO) never match, and a single-letter
+    suffix that Yahoo knows (BP.L) is found on the first try, so neither is rewritten.
+    """
+    return [symbol, symbol.replace(".", "-")] if CLASS_SHARE.match(symbol) else [symbol]
+
+
+def history_key(symbol: str) -> str:
+    """The cache key of a symbol's full history: stable, so the offline copy is always found."""
+    return f"yahoo:history:{symbol}"
+
+
+def _get(path: str, ttl_s: float, not_found: str | None = None, allow_stale: bool = True, cache_key: str | None = None) -> Fetched:
+    """The first Yahoo host that answers.
+
+    First Version: any failure, including a timeout or a refused connection, moved
+    on to the second host, so a network that was down or hanging cost two full
+    timeouts. Current Version: a not-found answer or a network failure stops here
+    (both hosts sit behind the same network); other errors (HTTP 5xx, unreadable
+    data) still try the second host.
+    """
     last_error: DataError | None = None
     for host in HOSTS:
         try:
-            return get_json(host + path, headers=HEADERS, ttl_s=ttl_s, not_found_message=not_found, service=SERVICE, allow_stale=allow_stale)
+            return get_json(host + path, headers=HEADERS, ttl_s=ttl_s, not_found_message=not_found, service=SERVICE, allow_stale=allow_stale, cache_key=cache_key)
+        except (NotFoundError, NetworkError):
+            raise
         except DataError as exc:
-            if not_found and str(exc) == not_found:
-                raise
             last_error = exc
     assert last_error is not None
     raise last_error
+
+
+def _chart(symbol: str, query: str, ttl_s: float, allow_stale: bool = True, key: Callable[[str], str] | None = None) -> tuple[str, Fetched]:
+    """A v8 chart response and the spelling Yahoo answered to.
+
+    First Version: BRK.B, the usual way to write Berkshire's class B shares, failed
+    with "does not recognise" (and HTTP 404 in the watchlist), because Yahoo spells it
+    BRK-B; searching "BRK.B" as advised found an unrelated ETF. Current Version: when
+    Yahoo does not know a class-share spelling, the dash spelling is tried once.
+    """
+    names = spellings(symbol)
+    message = not_found_message(symbol, names[1:])
+    for name in names:
+        try:
+            path = f"/v8/finance/chart/{urlquote(name, safe='^=')}?{query}"
+            return name, _get(path, ttl_s, not_found=message, allow_stale=allow_stale, cache_key=key(name) if key else None)
+        except NotFoundError:
+            if name == names[-1]:
+                raise
+    raise AssertionError("unreachable")
+
+
+def _positive(value) -> float | None:
+    return float(value) if isinstance(value, (int, float)) and np.isfinite(value) and value > 0 else None
+
+
+def _add_latest_session(bars: pd.DataFrame, meta: dict, offset: int, price: float | None) -> pd.DataFrame:
+    """Add the session meta reports when Yahoo has not filled in its daily bar yet.
+
+    First Version: after the close Yahoo often sends the day's bar with a null close
+    while meta.regularMarketPrice already holds that close. The null bar was dropped,
+    so the price came from the new session and the previous close from two sessions
+    back (AMZN +5.05% instead of +0.07%; MSFT shown up when it fell), the as-of date
+    was a day old, and the model's last price differed from the Monte Carlo's.
+    Current Version: when regularMarketTime falls on a later exchange-local date than
+    the last bar with a close, a bar for that session is built from meta (close =
+    regularMarketPrice, the day's high, low and volume; the chart meta has no open, so
+    the previous close stands in, kept within the day's range). The price, the last
+    bar, the previous close and the as-of date then agree.
+    """
+    when = meta.get("regularMarketTime")
+    if price is None or bars.empty or not isinstance(when, (int, float)):
+        return bars
+    day = pd.DatetimeIndex(pd.to_datetime(np.asarray([when], dtype="int64") + offset, unit="s")).normalize().as_unit(bars.index.unit)
+    if day[0] <= bars.index[-1]:
+        return bars
+    prev = float(bars["close"].iloc[-1])
+    open_ = _positive(meta.get("regularMarketOpen")) or prev
+    high = max(_positive(meta.get("regularMarketDayHigh")) or max(open_, price), price)
+    low = min(_positive(meta.get("regularMarketDayLow")) or min(open_, price), price)
+    open_ = min(max(open_, low), high)
+    volume = meta.get("regularMarketVolume")
+    volume = float(volume) if isinstance(volume, (int, float)) and volume >= 0 else 0.0
+    row = pd.DataFrame({"open": open_, "high": high, "low": low, "close": price, "adjclose": price, "volume": volume}, index=day, dtype="float64")
+    return pd.concat([bars, row])
 
 
 def parse_chart(payload: dict, symbol: str) -> PriceHistory:
     """Turn a v8 chart response into a PriceHistory. Raises DataError."""
     chart = (payload or {}).get("chart") or {}
     if chart.get("error"):
-        desc = (chart["error"] or {}).get("description") or "unknown error"
-        raise DataError(f'Yahoo Finance has no data for "{symbol}" ({desc}). Check the ticker.')
+        error = chart["error"] or {}
+        if str(error.get("code") or "").lower() == "not found":
+            raise NotFoundError(not_found_message(symbol))
+        desc = error.get("description") or "unknown error"
+        raise DataError(f'Yahoo Finance has no data for "{symbol}" ({desc}). Check the ticker, or try again later.')
     result = (chart.get("result") or [None])[0]
     if not result or not result.get("timestamp"):
         raise DataError(f'Yahoo Finance returned no price history for "{symbol}".')
@@ -73,6 +169,8 @@ def parse_chart(payload: dict, symbol: str) -> PriceHistory:
         bars[name] = bars[name].fillna(bars["close"])
     bars["adjclose"] = bars["adjclose"].fillna(bars["close"])
     bars["volume"] = bars["volume"].fillna(0)
+    price = _positive(meta.get("regularMarketPrice"))
+    bars = _add_latest_session(bars, meta, offset, price)
     if len(bars) < 2:
         raise DataError(f'Not enough price history for "{symbol}". It may be newly listed.')
 
@@ -90,8 +188,7 @@ def parse_chart(payload: dict, symbol: str) -> PriceHistory:
         dtype="float64",
     ).sort_index()
 
-    price = meta.get("regularMarketPrice")
-    price = float(price) if isinstance(price, (int, float)) and price > 0 else float(bars["close"].iloc[-1])
+    price = price or float(bars["close"].iloc[-1])
     sym = str(meta.get("symbol") or symbol).upper()
     return PriceHistory(
         symbol=sym,
@@ -111,25 +208,51 @@ def parse_chart(payload: dict, symbol: str) -> PriceHistory:
 
 
 def history(symbol: str, force: bool = False, allow_stale: bool = True) -> PriceHistory:
-    """Full daily history since listing (period1=0), with dividends and splits."""
+    """Full daily history since listing, with dividends and splits.
+
+    First Version: period1=0 (1970-01-01) cut off older history (KO lost 1,987
+    bars, 1962 to 1969), and the cache key was the URL, whose period2 was "now"
+    rounded to the hour. The offline copy was therefore found only within the
+    clock hour it was saved, and each hour wrote another full copy to disk.
+    Current Version: period1 is about 1900 (KO starts 1962-01-02, as yfinance's
+    period="max" does), and the copy is saved under history_key(symbol), which
+    never changes, so the last copy is always the one found and replaced.
+    """
     symbol = validation.ticker(symbol)
-    path = (
-        f"/v8/finance/chart/{urlquote(symbol, safe='^=')}"
-        f"?period1=0&period2={int(time.time()) // 3600 * 3600}&interval=1d&events=div%2Csplit&includeAdjustedClose=true"
-    )
-    # period2 is rounded to the hour so the cache key is stable within an hour.
-    fetched = _get(path, ttl_s=0 if force else 900, not_found=f'Yahoo Finance does not recognise "{symbol}". Check the spelling or search by name.', allow_stale=allow_stale)
-    hist = parse_chart(fetched.value, symbol)
+    query = f"period1={EARLIEST}&period2={int(time.time())}&interval=1d&events=div%2Csplit&includeAdjustedClose=true"
+    name, fetched = _chart(symbol, query, 0 if force else 900, allow_stale, history_key)
+    hist = parse_chart(fetched.value, name)
     hist.source.status = fetched.status
     hist.source.retrieved_at = datetime.fromtimestamp(fetched.saved_at)
     return hist
 
 
+def cached_history(symbol: str) -> PriceHistory | None:
+    """The last history saved for `symbol`, however old, read from disk with no network call.
+
+    Labelled Offline copy, with the time it was saved. None when no copy was ever
+    saved or the saved copy cannot be read.
+    """
+    symbol = validation.ticker(symbol)
+    for name in spellings(symbol):
+        entry = cache().get(history_key(name), None)
+        if entry is None:
+            continue
+        try:
+            hist = parse_chart(entry[0], name)
+        except DataError:
+            continue
+        hist.source.status = STALE
+        hist.source.retrieved_at = datetime.fromtimestamp(entry[1])
+        return hist
+    return None
+
+
 def quote(symbol: str) -> tuple[float, float | None]:
     """(price, day change) from a five-day chart: a small payload for the watchlist."""
     symbol = validation.ticker(symbol)
-    fetched = _get(f"/v8/finance/chart/{urlquote(symbol, safe='^=')}?range=5d&interval=1d", ttl_s=120)
-    h = parse_chart(fetched.value, symbol)
+    name, fetched = _chart(symbol, "range=5d&interval=1d", 120)
+    h = parse_chart(fetched.value, name)
     return h.price, h.day_change
 
 

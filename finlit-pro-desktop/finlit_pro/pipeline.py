@@ -4,11 +4,15 @@
     ws = load("AAPL", email="you@example.com")
     ws.forecast.verdict, ws.evaluation.metric("Skill vs no-change").display
 
-The desktop app runs the same steps as parallel background jobs.
+The desktop app runs the same steps as parallel background jobs. A step that
+cannot run (a listing too young for the model, a fund with no financial
+statements) leaves its result None and its reason in the matching *_error
+field, and the other steps still run.
 """
 
 from __future__ import annotations
 
+from finlit_pro import validation
 from finlit_pro.analytics import montecarlo, risk, valuation
 from finlit_pro.data import demo, filings, prices, sec, yahoo
 from finlit_pro.data.models import DataError
@@ -16,6 +20,8 @@ from finlit_pro.model import registry
 from finlit_pro.model.evaluation import walk_forward
 from finlit_pro.validation import ValidationError
 from finlit_pro.workspace import Workspace
+
+MIN_RISK_SESSIONS = 60  # risk.report's minimum
 
 
 def load_prices(ws: Workspace, benchmark: str = "SPY", fallback_rf: float = 0.04, force: bool = False) -> None:
@@ -36,11 +42,20 @@ def compute_risk(ws: Workspace, years: float = 3) -> None:
     ws.risk = risk.report(ws.history.closes, ws.benchmark.closes if ws.benchmark else None, ws.risk_free, years, ws.benchmark.symbol if ws.benchmark else None)
 
 
+def risk_message(ws: Workspace, exc: Exception) -> str:
+    """risk.report's reason, reworded when the whole history is too short (no range choice can help)."""
+    sessions = int(ws.history.closes.dropna().size) if ws.history else 0
+    if sessions < MIN_RISK_SESSIONS:
+        return (f"This listing has {sessions} sessions; risk statistics need at least {MIN_RISK_SESSIONS}. "
+                f"They will appear after about {MIN_RISK_SESSIONS - sessions} more trading sessions.")
+    return str(exc)
+
+
 def compute_fundamentals(ws: Workspace) -> None:
     f, h = ws.fundamentals, ws.history
     sec.apply_splits(f, h.splits)
     ws.ratios = valuation.ratios(f, h.price, h.trailing_dividends())
-    ws.piotroski = valuation.piotroski(f.annual)
+    ws.piotroski = valuation.piotroski(f.annual, f.sic_description)
     ws.altman = valuation.altman_z(f, ws.ratios.get("market_cap", float("nan")))
     ws.dcf_inputs = valuation.default_inputs(f, ws.ratios)
     try:
@@ -61,23 +76,43 @@ def load(
     read_filings: bool = True,
     filing_chars: int = 40_000,
 ) -> Workspace:
-    ws = Workspace(symbol.upper())
+    # First Version: Workspace(symbol.upper()) kept surrounding spaces, so " msft " gave ws.symbol " MSFT ".
+    # Current Version: the symbol is validated and cleaned first, and used for every step.
+    symbol = validation.ticker(symbol)
+    ws = Workspace(symbol)
     load_prices(ws)
-    compute_risk(ws)
+    # First Version: risk, the model, Monte Carlo and calibration were not wrapped, so a listing with fewer
+    # than 60 sessions made the whole load fail, and the evaluation's reason was dropped. Current Version:
+    # each step that cannot run records its message on the Workspace and the rest still run.
+    try:
+        compute_risk(ws)
+    except ValueError as exc:
+        ws.risk_error = risk_message(ws, exc)
     model = registry.get(model_key)
-    ws.forecast = model.predict(ws.history.bars, horizon, simulations)
+    try:
+        ws.forecast = model.predict(ws.history.bars, horizon, simulations)
+    except ValueError as exc:
+        ws.forecast_error = str(exc)
     if evaluate:
         try:
             ws.evaluation = walk_forward(model, ws.history.bars, horizon)
-        except ValueError:
-            ws.evaluation = None
+        except ValueError as exc:
+            ws.evaluation, ws.evaluation_error = None, str(exc)
     cfg = mc_config or montecarlo.MCConfig()
-    ws.mc = montecarlo.simulate(ws.history.closes, cfg, start_price=ws.history.price)
-    ws.calibration = montecarlo.calibration(ws.history.closes, cfg.horizon_days, cfg.lookback_days)
     try:
-        ws.fundamentals = sec.fundamentals(symbol, email)
-    except (DataError, ValidationError) as exc:
-        ws.fundamentals_error = str(exc)
+        ws.mc = montecarlo.simulate(ws.history.closes, cfg, start_price=ws.history.price)
+        ws.calibration = montecarlo.calibration(ws.history.closes, cfg.horizon_days, cfg.lookback_days)
+    except ValueError as exc:
+        ws.mc_error = str(exc) if ws.mc is None else f"The Monte Carlo ran, but its calibration check could not: {exc}"
+    # Funds, indices and the like file no company statements: say so instead of asking the SEC.
+    reason = sec.not_a_company(ws.history.instrument_type, ws.history.name)
+    if reason:
+        ws.fundamentals_error = reason
+    else:
+        try:
+            ws.fundamentals = sec.fundamentals(symbol, email)
+        except (DataError, ValidationError) as exc:
+            ws.fundamentals_error = str(exc)
     if ws.fundamentals:
         compute_fundamentals(ws)
         if read_filings and not ws.is_demo:

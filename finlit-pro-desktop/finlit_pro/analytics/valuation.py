@@ -14,9 +14,42 @@ import numpy as np
 import pandas as pd
 
 from finlit_pro.data.models import Fundamentals
+from finlit_pro.fmt import money
 from finlit_pro.validation import ValidationError
 
 NAN = float("nan")
+
+# SEC industry (SIC) descriptions of banks, savings institutions, insurers, broker-dealers and finance
+# companies, e.g. "National Commercial Banks", "Savings Institution, Federally Chartered", "Fire, Marine &
+# Casualty Insurance", "Security Brokers, Dealers & Flotation Companies", "Finance Services".
+FINANCIAL_SIC_WORDS = ("bank", "savings", "insurance", "security brokers", "finance services", "finance lessors", "credit institution", "credit agencies")
+# Insurance agents and brokers sell policies without carrying the risk, so their cash flow means what it does elsewhere.
+NOT_FINANCIAL_SIC_WORDS = ("insurance agents",)
+
+FINANCIAL_NOTE = (
+    "Free cash flow, enterprise value, net debt, debt/equity, ROIC, the DCF and the Piotroski and Altman scores are not shown "
+    "for this financial company (SEC industry: {sic}). Cash-flow and leverage measures do not describe a bank's or insurer's business: "
+    "deposits, loans, policy reserves and trading balances are its operations rather than its financing. P/E, P/B, ROE and dividend yield still apply."
+)
+FINANCIAL_DCF = (
+    "A cash-flow DCF does not value a bank or insurer: its cash flow swings with deposits, loans and trading balances, and "
+    "borrowing is part of the business rather than its financing. Compare it on P/E, P/B, ROE and dividend yield instead."
+)
+NO_DEBT_NOTE = "No debt is reported in the filings; treated as zero."
+DEBT_UNKNOWN_NOTE = "The filings report interest expense but no debt in standard XBRL tags, so debt-based ratios are not shown."
+NOT_MEANINGFUL = "Not meaningful for financial companies"
+
+
+def is_financial(sic_description: str | None) -> bool:
+    """A bank, savings institution, insurer, broker-dealer or finance company, from its SEC industry description."""
+    sic = (sic_description or "").lower()
+    return any(w in sic for w in FINANCIAL_SIC_WORDS) and not any(w in sic for w in NOT_FINANCIAL_SIC_WORDS)
+
+
+def _note(fund: Fundamentals, text: str) -> None:
+    """Add a caveat once; ratios are recomputed whenever the price or the inputs change."""
+    if text not in fund.notes:
+        fund.notes.append(text)
 
 
 def _f(value) -> float:
@@ -59,20 +92,70 @@ def balance(fund: Fundamentals, key: str) -> float:
     return float(col.dropna().iloc[-1]) if col is not None and col.notna().any() else NAN
 
 
+def _last_year(fund: Fundamentals, key: str) -> float:
+    """The value in the last fiscal year's row, NaN if that year does not report it (never an older year)."""
+    a = fund.annual
+    return _f(a[key].iloc[-1]) if key in a and len(a) else NAN
+
+
+def _current(fund: Fundamentals, key: str) -> float:
+    """The latest balance sheet's value, else the last fiscal year end's; NaN rather than an older year's."""
+    return _f(fund.latest[key]) if np.isfinite(_f(fund.latest.get(key))) else _last_year(fund, key)
+
+
+def _returns_base(fund: Fundamentals, key: str) -> tuple[float, float]:
+    """(net income, average balance) over matching periods, for ROE (equity) and ROA (total assets).
+
+    First Version: TTM net income through the latest 10-Q over the average of the last two fiscal-year-end
+    balances, which can be up to 18 months older. NVDA's equity doubled in that time, so its ROE read 163% and
+    its ROA 121%. Current Version: the income and the balances describe the same period.
+    """
+    a = fund.annual
+    fy_end = a.index[-1] if len(a) else None
+    fy_value, latest, ttm_income = _last_year(fund, key), _f(fund.latest.get(key)), _f(fund.ttm.get("net_income"))
+    after_fy = bool(fund.latest_period) and fy_end is not None and pd.Timestamp(fund.latest_period) > fy_end + pd.Timedelta(days=7)
+    if after_fy and np.isfinite(latest) and np.isfinite(fy_value) and np.isfinite(ttm_income):
+        # The latest balance sheet is a 10-Q after the last fiscal year end: TTM income (which ends at that
+        # quarter) over the average of the quarter's balance and the fiscal-year-end balance inside the TTM period.
+        return ttm_income, (latest + fy_value) / 2
+    previous = _f(a[key].iloc[-2]) if key in a and len(a) >= 2 else NAN
+    income = _last_year(fund, "net_income")
+    if np.isfinite(fy_value) and np.isfinite(previous) and np.isfinite(income):
+        # Otherwise the last fiscal year: its income over the average of its opening and closing balances.
+        return income, (fy_value + previous) / 2
+    # One fiscal year of history: the latest income over the latest balance.
+    return flow(fund, "net_income"), balance(fund, key)
+
+
 def ratios(fund: Fundamentals, price: float, dividends_ttm: float = 0.0) -> dict[str, float]:
     a = fund.annual
+    financial = is_financial(fund.sic_description)
     shares = _f(fund.shares_outstanding)
     mcap = price * shares if np.isfinite(shares) else NAN
     cash = _f(balance(fund, "cash"))
     st_inv = balance(fund, "short_investments")
     liquid = cash + (0 if np.isnan(st_inv) else st_inv)
-    debt = balance(fund, "total_debt")
-    ev = mcap + (0 if np.isnan(debt) else debt) - (0 if np.isnan(liquid) else liquid)
+    liquid0 = 0 if np.isnan(liquid) else liquid
 
     revenue, net_income = flow(fund, "revenue"), flow(fund, "net_income")
     op_income, gross = flow(fund, "operating_income"), flow(fund, "gross_profit")
     ocf, capex = flow(fund, "operating_cash_flow"), flow(fund, "capex")
     fcf = ocf - (0 if np.isnan(capex) else capex)
+
+    # First Version: missing debt counted as zero, and balance() fell back to the newest year with any debt
+    # tag, so PLTR's zero from 2021 stood in for today and BRK, which tags its borrowings under its own names,
+    # showed no debt and net cash. Current Version: debt from the latest balance sheet or the last fiscal year
+    # end. With no debt tag, it is zero only when no interest expense is reported either (TTM, else the last
+    # fiscal year); otherwise every debt-based figure is NaN with a note saying why.
+    debt = _current(fund, "total_debt")
+    interest = _f(fund.ttm.get("interest_expense")) if np.isfinite(_f(fund.ttm.get("interest_expense"))) else _last_year(fund, "interest_expense")
+    if np.isnan(debt) and not (np.isfinite(interest) and interest != 0):
+        debt = 0.0
+        if not financial:
+            _note(fund, NO_DEBT_NOTE)
+    elif np.isnan(debt) and not financial:
+        _note(fund, DEBT_UNKNOWN_NOTE)
+    ev = mcap + debt - liquid0
     # P/E as market cap over TTM net income. Summing reported EPS across a
     # 10-K and a 10-Q mixes pre- and post-split figures when a split lands
     # in between; net income has no such problem.
@@ -84,16 +167,21 @@ def ratios(fund: Fundamentals, price: float, dividends_ttm: float = 0.0) -> dict
     tax_rate = _div(tax, pretax)
     if np.isnan(tax_rate) or not 0 <= tax_rate <= 0.5:
         tax_rate = 0.21  # US statutory rate when the effective one is unusable
-    invested = (0 if np.isnan(debt) else debt) + equity - (0 if np.isnan(liquid) else liquid)
 
-    # Averages of opening and closing balances, as ROE should be.
-    def avg(key: str) -> float:
-        col = a.get(key)
-        if col is None or col.dropna().size < 2:
-            return balance(fund, key)
-        c = col.dropna()
-        return float((c.iloc[-1] + c.iloc[-2]) / 2)
+    # First Version: invested capital was debt + equity - all cash, so PLTR, whose cash and short-term
+    # investments are 96% of its equity, showed a ROIC of 712%. Current Version: when invested capital is
+    # under 10% of debt plus equity, the ratio is NaN and a note says why.
+    capital = debt + equity
+    invested = capital - liquid0
+    roic = _div(op_income * (1 - tax_rate), invested) if invested > 0 else NAN
+    if np.isfinite(capital) and capital > 0 and invested < 0.1 * capital:
+        roic = NAN
+        if not financial:
+            _note(fund, f"ROIC is not shown: cash and short-term investments ({money(liquid0)}) exceed most of the capital "
+                        f"(debt plus equity of {money(capital)}), so invested capital is under 10% of it and the ratio would not be meaningful.")
 
+    equity_avg_income, equity_avg = _returns_base(fund, "equity")
+    assets_avg_income, assets_avg = _returns_base(fund, "total_assets")
     pe = _div(mcap, net_income) if np.isfinite(net_income) and net_income > 0 else NAN
 
     out = {
@@ -113,12 +201,12 @@ def ratios(fund: Fundamentals, price: float, dividends_ttm: float = 0.0) -> dict
         "operating_margin": _div(op_income, revenue),
         "net_margin": _div(net_income, revenue),
         "fcf_margin": _div(fcf, revenue),
-        "roe": _div(net_income, avg("equity")) if avg("equity") > 0 else NAN,
-        "roa": _div(net_income, avg("total_assets")),
-        "roic": _div(op_income * (1 - tax_rate), invested) if invested > 0 else NAN,
+        "roe": _div(equity_avg_income, equity_avg) if equity_avg > 0 else NAN,
+        "roa": _div(assets_avg_income, assets_avg),
+        "roic": roic,
         "current_ratio": _div(balance(fund, "current_assets"), balance(fund, "current_liabilities")),
         "debt_to_equity": _div(debt, equity) if np.isfinite(equity) and equity > 0 else NAN,
-        "net_debt": (0 if np.isnan(debt) else debt) - (0 if np.isnan(liquid) else liquid),
+        "net_debt": debt - liquid0,
         "interest_coverage": _div(op_income, flow(fund, "interest_expense")),
         "asset_turnover": _div(revenue, assets),
         "sbc_to_revenue": _div(flow(fund, "sbc"), revenue),
@@ -134,6 +222,13 @@ def ratios(fund: Fundamentals, price: float, dividends_ttm: float = 0.0) -> dict
         "eps": eps,
         "shares": shares,
     }
+    if financial:
+        # First Version: JPM showed FCF of -$162.5B and an FCF yield of -18.2%, because a bank's operating
+        # cash flow swings with its trading and lending balances. Current Version: cash-flow and leverage
+        # measures are NaN for banks and insurers, with one note; P/E, P/B, ROE and dividend yield stay.
+        for key in ("fcf", "fcf_yield", "fcf_per_share", "fcf_margin", "fcf_cagr_5y", "enterprise_value", "ev_sales", "ev_ebit", "net_debt", "debt_to_equity", "roic"):
+            out[key] = NAN
+        _note(fund, FINANCIAL_NOTE.format(sic=fund.sic_description))
     return out
 
 
@@ -149,11 +244,15 @@ class Check:
     detail: str
 
 
-def piotroski(annual: pd.DataFrame) -> tuple[int, int, list[Check]]:
+def piotroski(annual: pd.DataFrame, sic_description: str | None = None) -> tuple[int, int, list[Check]]:
     """Piotroski F-score: nine pass/fail tests of profitability, leverage and efficiency.
 
     Uses the last two fiscal years. Returns (score, tests that could be run, checks).
     """
+    # First Version: JPM scored 2/7 and BRK 2/6 on tests of cash flow, leverage and current ratio that do
+    # not apply to banks and insurers. Current Version: not meaningful for them, with no tests run.
+    if is_financial(sic_description):
+        return 0, 0, [Check(NOT_MEANINGFUL, None, "The F-score's cash-flow, leverage and current-ratio tests do not describe a bank or insurer. Judge it on ROE, P/B and dividend yield instead.")]
     if len(annual) < 3:
         return 0, 0, [Check("Not enough history", None, "The F-score needs three fiscal years of filings.")]
     cur, prev, prev2 = annual.iloc[-1], annual.iloc[-2], annual.iloc[-3]
@@ -198,8 +297,13 @@ def altman_z(fund: Fundamentals, market_cap: float) -> tuple[float, str]:
     """Altman Z-score (original public-manufacturer weights).
 
     Not meaningful for banks and insurers, whose balance sheets are mostly
-    financial assets and liabilities; the zone label says so where it can.
+    financial assets and liabilities; the zone label says so.
     """
+    # First Version: the missing-data check ran first, so JPM read "Not enough balance sheet data" and the
+    # financial-company label was never reached. Current Version: the industry is checked first.
+    sic = (fund.sic_description or "").lower()
+    if is_financial(fund.sic_description) or any(word in sic for word in ("bank", "insurance", "savings", "finance", "reit", "real estate investment")):
+        return NAN, NOT_MEANINGFUL
     ta = balance(fund, "total_assets")
     tl = balance(fund, "total_liabilities")
     wc = balance(fund, "current_assets") - balance(fund, "current_liabilities")
@@ -210,9 +314,6 @@ def altman_z(fund: Fundamentals, market_cap: float) -> tuple[float, str]:
     if any(np.isnan(p) for p in parts):
         return NAN, "Not enough balance sheet data"
     z = 1.2 * parts[0] + 1.4 * parts[1] + 3.3 * parts[2] + 0.6 * parts[3] + 1.0 * parts[4]
-    sic = (fund.sic_description or "").lower()
-    if any(word in sic for word in ("bank", "insurance", "savings", "finance", "reit", "real estate investment")):
-        return z, "Not meaningful for financial companies"
     if z > 2.99:
         return z, "Safe zone (above 2.99)"
     if z >= 1.81:
@@ -235,8 +336,11 @@ class DCFInputs:
     shares: float
     years_high: int = 5
     years_fade: int = 5
+    refusal: str = ""  # why a DCF does not apply to this company at all (banks and insurers)
 
     def validate(self) -> None:
+        if self.refusal:
+            raise ValidationError(self.refusal)
         if not np.isfinite(self.base_fcf) or self.base_fcf <= 0:
             raise ValidationError(
                 "Free cash flow is zero or negative, so a cash-flow DCF cannot value this company. "
@@ -244,6 +348,11 @@ class DCFInputs:
             )
         if not np.isfinite(self.shares) or self.shares <= 0:
             raise ValidationError("The share count is missing, so there is no per-share value. Check the SEC data loaded.")
+        if not np.isfinite(self.net_cash):
+            raise ValidationError(
+                "Net cash is unknown because the filings report interest expense but no debt in standard XBRL tags. "
+                "Enter net cash (cash and short-term investments minus debt, negative for net debt) from the latest balance sheet."
+            )
         if self.discount <= self.terminal_growth:
             raise ValidationError(
                 f"The discount rate ({self.discount:.1%}) must be higher than terminal growth "
@@ -360,11 +469,15 @@ def default_inputs(fund: Fundamentals, ratio: dict[str, float]) -> DCFInputs:
     candidates = [_f(ratio.get("revenue_cagr_5y")), _f(ratio.get("fcf_cagr_5y"))]
     candidates = [g for g in candidates if np.isfinite(g)]
     growth = min(candidates) if candidates else 0.05
+    # First Version: unknown net debt became zero net cash, and a bank's DCF was refused as if its cash flow
+    # were merely negative. Current Version: unknown net cash stays NaN (validate() asks for it), and banks and
+    # insurers carry a refusal that says why a DCF does not apply.
     return DCFInputs(
         base_fcf=_f(ratio.get("fcf")),
         growth=float(np.clip(growth, -0.05, 0.15)),
         discount=0.09,
         terminal_growth=0.025,
-        net_cash=-_f(ratio.get("net_debt")) if np.isfinite(_f(ratio.get("net_debt"))) else 0.0,
+        net_cash=-_f(ratio.get("net_debt")),
         shares=_f(ratio.get("shares")),
+        refusal=FINANCIAL_DCF if is_financial(fund.sic_description) else "",
     )

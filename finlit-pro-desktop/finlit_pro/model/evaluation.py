@@ -72,6 +72,46 @@ def _max_drawdown(growth: np.ndarray) -> float:
     return float((1 - growth / peak).max()) if len(growth) else 0.0
 
 
+MIN_ORIGINS = 8
+
+
+def _span(days: float) -> str:
+    """Calendar days as a span a reader can picture: about 2 years, about 15 months."""
+    months = round(days / 30.44)
+    return f"about {months // 12} years" if months >= 24 and months % 12 == 0 else f"about {months} months"
+
+
+def _origin_count(n_bars: int, first: int, horizon: int, step: int) -> int:
+    return len(range(first, n_bars - horizon, step))
+
+
+def _too_few_message(model: PredictionModel, bars: pd.DataFrame, horizon: int, step: int, fixed_step: bool, first: int, found: int) -> str:
+    """Why the evaluation cannot run yet, and what would change that.
+
+    First Version: every shortfall advised "choose a shorter horizon", even for a listing younger than the
+    model's two-year lookback (FIG, KLAR, CRCL), where no horizon fits a single test. Current Version: that
+    case names the history the model needs, the history there is, and when the first test becomes possible;
+    the shorter-horizon advice is given only when a shorter horizon would fit at least 8 forecasts.
+    """
+    n, index = len(bars), bars.index
+    start = index[first] if first < n else index[0] + pd.Timedelta(days=model.lookback_calendar_days)
+    eighth = (start + pd.offsets.BDay(step * (MIN_ORIGINS - 1) + horizon)).date()
+    if first > n - 2:
+        # No origin at any horizon: the history is shorter than the lookback plus one session to score.
+        first_test = (start + pd.offsets.BDay(horizon)).date()
+        return (
+            f"The {model.name} needs {_span(model.lookback_calendar_days)} of history ({model.lookback_calendar_days} calendar days) "
+            f"before its first forecast, plus {horizon} sessions to score it. This history has {n} sessions from {index[0].date()} "
+            f"({_span((index[-1] - index[0]).days)}), so no out-of-sample test fits yet at any horizon. The first test becomes possible "
+            f"around {first_test}, and the {MIN_ORIGINS} the evaluation needs around {eighth}."
+        )
+    shorter = next((h for h in range(horizon - 1, 0, -1) if _origin_count(n, first, h, step if fixed_step else h) >= MIN_ORIGINS), None)
+    head = f"Only {found} out-of-sample forecasts fit in this history at a {horizon}-day horizon. The evaluation needs at least {MIN_ORIGINS}; "
+    if shorter:
+        return head + f"choose a horizon of {shorter} days or shorter, or a ticker with a longer history."
+    return head + f"a shorter horizon would not fit {MIN_ORIGINS} either. At this horizon they fit around {eighth}; until then, choose a ticker with a longer history."
+
+
 def walk_forward(
     model: PredictionModel,
     bars: pd.DataFrame,
@@ -83,6 +123,7 @@ def walk_forward(
     progress: Callable[[int, int], None] | None = None,
     cancelled: Callable[[], bool] | None = None,
 ) -> Evaluation:
+    fixed_step = bool(step)
     step = max(1, step or horizon)
     closes = bars["adjclose"].to_numpy(dtype=float)
     index = bars.index
@@ -94,11 +135,8 @@ def walk_forward(
     if len(origins) > max_origins:
         origins = origins[-max_origins:]
         notes.append(f"Limited to the most recent {max_origins} origins.")
-    if len(origins) < 8:
-        raise ValueError(
-            f"Only {len(origins)} out-of-sample forecasts fit in this history at a {horizon}-day horizon. "
-            "The evaluation needs at least 8; choose a shorter horizon or a ticker with a longer history."
-        )
+    if len(origins) < MIN_ORIGINS:
+        raise ValueError(_too_few_message(model, bars, horizon, step, fixed_step, first, len(origins)))
 
     rows = []
     for n, i in enumerate(origins):

@@ -5,7 +5,7 @@ import pytest
 from conftest import bars_from, gbm_closes
 
 from finlit_pro.data import prices, yahoo, yf_provider
-from finlit_pro.data.models import IMPORT, LIVE, STALE, DataError, PriceHistory, Source
+from finlit_pro.data.models import IMPORT, LIVE, STALE, DataError, NotFoundError, PriceHistory, Source
 
 
 def history(name: str, status: str = LIVE) -> PriceHistory:
@@ -36,12 +36,9 @@ def test_falls_back_to_yfinance_and_records_why(monkeypatch):
 
 
 def test_then_to_the_stale_copy(monkeypatch):
-    def chart(symbol, force=False, allow_stale=True):
-        if not allow_stale:
-            raise DataError("Could not reach Yahoo Finance.")
-        return history("chart", STALE)
-
-    monkeypatch.setattr(yahoo, "history", chart)
+    # Step 3 reads the saved copy from disk (yahoo.cached_history); it no longer calls yahoo.history again.
+    monkeypatch.setattr(yahoo, "history", fail("Could not reach Yahoo Finance."))
+    monkeypatch.setattr(yahoo, "cached_history", lambda s: history("chart", STALE))
     monkeypatch.setattr(yf_provider, "history", fail("yfinance failed"))
     h = prices.load_history("TEST")
     assert h.source.status == STALE and len(h.attempts) == 2
@@ -61,9 +58,16 @@ def test_then_to_an_imported_csv(monkeypatch, tmp_path):
 
 
 def test_an_unknown_symbol_is_not_retried_elsewhere(monkeypatch):
-    monkeypatch.setattr(yahoo, "history", fail('Yahoo Finance does not recognise "ZZZZ".'))
-    monkeypatch.setattr(yf_provider, "history", fail("should not be called"))
-    with pytest.raises(DataError, match="does not recognise"):
+    def unknown(*_a, **_k):
+        raise NotFoundError('Yahoo Finance has no data for "ZZZZ".')
+
+    def never(*_a, **_k):
+        raise AssertionError("should not be called")
+
+    monkeypatch.setattr(yahoo, "history", unknown)
+    monkeypatch.setattr(yf_provider, "history", never)
+    monkeypatch.setattr(yahoo, "cached_history", never)
+    with pytest.raises(NotFoundError, match="has no data"):
         prices.load_history("ZZZZ")
 
 
