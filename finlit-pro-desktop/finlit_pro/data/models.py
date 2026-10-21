@@ -157,6 +157,13 @@ class Fundamentals:
     splits_applied: bool = False
     # Caveats about this company's data shown with the figures, e.g. XBRL lagging the latest filing.
     notes: list[str] = field(default_factory=list)
+    # How the latest total debt was established, decided once in sec.py:
+    #   "reported" - from debt tags; "none" - no debt concept of any kind in recent filings (treated as zero);
+    #   "unknown"  - the filings show debt (or debt disclosures) that no standard total captures (left n/a).
+    debt_status: str = "reported"
+    # The balance sheet about twelve months before `latest`, for averages over the trailing year (ROE, ROA).
+    year_ago: dict[str, float] = field(default_factory=dict)
+    year_ago_period: str | None = None
 
     KEY_FORMS = ("10-K", "10-K/A", "10-Q", "10-Q/A", "8-K", "DEF 14A", "S-1", "S-3", "SC 13D", "SC 13G", "SC 13D/A", "SC 13G/A", "20-F", "6-K", "40-F")
 

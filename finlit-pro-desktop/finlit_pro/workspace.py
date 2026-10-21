@@ -39,6 +39,7 @@ class Workspace:
     mc: MCResult | None = None
     mc_error: str | None = None
     calibration: Calibration | None = None
+    calibration_error: str | None = None
     risk: RiskReport | None = None
     risk_error: str | None = None
     filing_texts: list[FilingText] = field(default_factory=list)
